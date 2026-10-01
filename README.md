@@ -11,12 +11,16 @@ Foundry VTT v14 / D35E 3.1.0 的3R与PF1规则自动化及配套世界时间界�
 
 ## 安装
 
-1. 下载仓库ZIP或克隆仓库。
-2. 把两个模块目录完整放入Foundry用户数据目录的 Data/modules/，目录内直接包含 module.json。
-3. 在D35E世界启用模块，更新后GM与玩家刷新各自客户端。
-4. 公开版建立“3r自动化 → 来源书 → 类别”合集，不自动创建角色。由使用者创建自己的角色，拖入需要的职业、种族、专长、法术与装备，选择法术书职业链接及其他角色选项。
+在Foundry设置页打开“附加模块 → 安装模块”，分别把下面地址填入“清单URL”：
 
-当前没有Foundry安装清单链接或Release下载包，仓库ZIP用于手动安装。
+| 模块 | 清单URL |
+| --- | --- |
+| 3r自动化 | https://github.com/Baihei13/3r-automation/releases/latest/download/samson-3r-automation.module.json |
+| 3R 世界时间轴 | https://github.com/Baihei13/3r-automation/releases/latest/download/d35e-world-timeline.module.json |
+
+安装后在D35E世界启用相应模块；更新后GM与玩家刷新各自客户端。公开版建立“3r自动化 → 来源书 → 类别”合集，不自动创建角色。由使用者创建自己的角色，拖入需要的条目并配置法术书和其他角色选项。
+
+也可从[发布页](https://github.com/Baihei13/3r-automation/releases/tag/v0.4.9)下载两个独立安装包，分别解压到对应模块目录。每个ZIP根目录直接包含module.json及scripts/styles/data等本模块文件。仓库源码ZIP用于手动复制两个模块目录，不作为Foundry清单URL。
 
 ## 主要内容
 
@@ -36,3 +40,7 @@ Foundry VTT v14 / D35E 3.1.0 的3R与PF1规则自动化及配套世界时间界�
 - [时间轴说明](d35e-world-timeline/README.md)
 
 原规则与译文的权利归各自作者/出版方；本仓库未自行授予这些资料新的许可。PF2只作代码/界面参考，不作3R/PF1规则来源。
+
+## 后续发布
+
+每次发布同时附上两个模块的命名清单与各自ZIP；manifest始终指向latest，download指向该次固定发布标签。安装包从仅规则仓库的指定提交生成，禁止从私有本地模块目录直接打包。上传、清单/文件目录核对与用户实际Foundry安装验收分别记录。
