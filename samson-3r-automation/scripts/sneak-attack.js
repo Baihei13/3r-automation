@@ -7,7 +7,6 @@ import { ItemUse } from "../../../systems/D35E/module/item/extensions/use.js";
 const key=item=>item?.getFlag(MODULE_ID,"key");
 const conditions=actor=>actor?.system.attributes?.conditions??{};
 const attacks=new Set(["mwak","rwak"]);
-const escaping=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const active=item=>effectIsActive(item)&&(!["weapon","equipment"].includes(item.type)||item.system.equipped&&!item.system.melded)
   &&!item.hasUnmetRequirements?.(foundry.utils.deepClone(item.actor.getRollData()))?.length;
 const flag=(actor,name)=>Boolean(actor?.getFlag("D35E",name)||actor?.items.some(i=>i.system.changeFlags?.[name]&&active(i)));
@@ -81,7 +80,8 @@ function reach(item) {
 function armed(item) {
   if(item.system.melded||fragileState(weaponFor(item))==="destroyed")return false;
   const weapon=weaponFor(item);
-  if(weapon)return weapon.system.equipped&&!weapon.system.melded;
+  if(weapon)return weapon.system.equipped&&!weapon.system.melded&&weapon.system.weaponSubtype!=="ranged"
+    &&(!item.system.actionType||item.system.actionType==="mwak");
   if(item.type==="weapon")return item.system.equipped&&item.system.weaponSubtype!=="ranged";
   if(item.type!=="attack"||item.system.actionType!=="mwak")return false;
   if(item.system.attackType==="natural")return true;
@@ -89,19 +89,30 @@ function armed(item) {
   return item.system.attackType==="weapon"&&(!unarmed||ability(item.actor,"improvedUnarmedStrike",["Improved Unarmed Strike","精通徒手击打"]));
 }
 function threatens(source,target,item=null) {
-  if(incapacitated(source.actor))return false;
-  const d=distance(source,target);if(d==null)return null;
-  if(conditions(source.actor).blind&&!blindsight(source,target))return false;
+  if(incapacitated(source.actor))return {value:false,reason:"不能行动，不能威胁目标"};
+  const d=distance(source,target);if(d==null)return {value:null,reason:"无法确认距离：地图单位或双方高差需确认"};
+  if(conditions(source.actor).blind&&!blindsight(source,target))return {value:false,reason:"目盲且没有能感知目标的盲视"};
   const choices=item?[item]:source.actor.items.filter(i=>armed(i)&&(i.type==="weapon"||i.system.actionType==="mwak"));
   let unknown=false;
+  const reasons=new Set(),feet=value=>Number(value.toFixed(2));
   for(const attack of choices) {
-    if(!armed(attack))continue;
-    const r=reach(attack);if(!r){unknown=true;continue;}
-    if(r.max<=0||d<=r.min||d>r.max+1e-6)continue;
+    const name=weaponFor(attack)?.name??attack.name;
+    if(!armed(attack)){reasons.add(`${name}不是当前可用且已装备的近战武器／天然攻击`);continue;}
+    const r=reach(attack);
+    if(!r){unknown=true;reasons.add(`${name}的触及距离未记录`);continue;}
+    if(r.max<=0){reasons.add(`${name}的触及为0尺，不能威胁目标`);continue;}
+    if(d<=r.min) {
+      reasons.add(r.min>0?`${name}是长触及武器：目标距离${feet(d)}尺，在${feet(r.min)}尺以内，不能用它威胁目标（最大触及${feet(r.max)}尺）`
+        :`${name}与目标占据同一位置，不能自动确认威胁`);
+      continue;
+    }
+    if(d>r.max+1e-6){reasons.add(`${name}最大触及${feet(r.max)}尺，目标距离${feet(d)}尺，超出范围`);continue;}
     // Blocking walls prevent an automatic threat. Bars/windows and unusual attacks can be adjudicated.
-    if(clearLine(source,target)&&clearLine(source,target,"move"))return true;
+    if(!clearLine(source,target)){reasons.add(`${name}与目标之间的视线被墙壁阻挡`);continue;}
+    if(!clearLine(source,target,"move")){reasons.add(`${name}与目标之间的攻击路径被墙壁阻挡`);continue;}
+    return {value:true};
   }
-  return unknown?null:false;
+  return {value:unknown?null:false,reason:reasons.size?[...reasons].join("；"):"没有已装备的可用近战武器或天然攻击"};
 }
 function opposite(a,b,target) {
   const left=target.x,right=target.x+target.w,top=target.y,bottom=target.y+target.h;
@@ -128,21 +139,28 @@ function flank(source,target,item) {
     if(rogueLevels(source.actor)<defender+4)return {value:false,reason:"精通直觉闪避阻止夹击"};
   }
   const ownThreat=threatens(source,target,item);
-  if(!ownThreat)return {value:ownThreat,reason:ownThreat===null?"攻击者触及未记录":"攻击者未装备可用近战武器、距离超出触及或被墙壁阻挡"};
+  if(ownThreat.value!==true)return {value:ownThreat.value,reason:`攻击者：${ownThreat.reason}`};
   const disposition=source.document.disposition;
   if(!disposition)return {value:null,reason:"中立Token的盟友关系待GM裁定"};
-  let unknown=false,oppositeAlly=false;
+  let unknown=false;
+  const failures=new Set();
   for(const ally of canvas.tokens.placeables) {
     if(ally.id===source.id||ally.id===target.id||!ally.actor||ally.document.disposition!==disposition)continue;
     if(!game.user.isGM&&(!ally.isVisible||ally.document.hidden))continue;
     const positions=centers(source).some(p=>centers(ally).some(q=>opposite(p,q,target)));
     if(!positions)continue;
-    oppositeAlly=true;
-    const threat=threatens(ally,target);unknown ||= threat===null;
-    if(threat)return {value:true,reason:"盟友从相对边威胁目标"};
+    const threat=threatens(ally,target);unknown ||= threat.value===null;
+    const name=ally.document.name??ally.actor.name;
+    if(threat.value===true)return {value:true,reason:`${name}从相对边威胁目标`};
+    failures.add(`${name}：${threat.reason}`);
   }
-  return {value:unknown?null:false,reason:unknown?"同伴触及未记录":oppositeAlly?
-    "相对位置有同伴，但其未装备可用近战武器、不能行动或无法触及目标":"没有站在目标相对边／角的同伴"};
+  return {value:unknown?null:false,reason:failures.size?[...failures].join("；"):"没有站在目标相对边／角的同伴"};
+}
+function detectionModes(observer) {
+  const modes=observer.document.detectionModes??{};
+  // v14 uses a TypedObjectField keyed by mode ID; the value has no id field.
+  // Read legacy arrays too, without modifying the TokenDocument.
+  return Array.isArray(modes)?modes:Object.entries(modes).map(([id,mode])=>({...mode,id}));
 }
 function detectionVisibility(observer,target,ids) {
   const vision=observer.vision;
@@ -151,7 +169,7 @@ function detectionVisibility(observer,target,ids) {
   if(!level)return null;
   const points=target.document.getVisibilityTestPoints();
   let checked=false;
-  for(const mode of observer.document.detectionModes??[]) {
+  for(const mode of detectionModes(observer)) {
     if(!mode.enabled||!ids.includes(mode.id))continue;
     const detector=CONFIG.Canvas.detectionModes[mode.id];
     if(!detector?.testVisibility)continue;
@@ -164,7 +182,8 @@ function detectionVisibility(observer,target,ids) {
 function blindsight(observer,target) {
   const d=distance(observer,target);if(d==null)return false;
   const range=Number(observer.actor.system.attributes?.senses?.blindsight)||0;
-  return range>0&&d<=range||observer.document.detectionModes?.some(m=>m.id==="blindSight"&&m.enabled&&Number(m.range)>0&&d<=Number(m.range));
+  const unit=feetUnit();
+  return range>0&&d<=range||detectionModes(observer).some(m=>m.id==="blindSight"&&m.enabled&&Number(m.range)>0&&unit&&d<=Number(m.range)/unit);
 }
 function detectsInvisible(observer,target) {
   if(!clearLine(observer,target))return false;
@@ -172,7 +191,7 @@ function detectsInvisible(observer,target) {
   const senses=observer.actor.system.attributes?.senses??{};
   if([senses.blindsight,senses.truesight].some(r=>Number(r)>0&&d<=Number(r)))return true;
   if(blindsight(observer,target))return true;
-  const modes=(observer.document.detectionModes??[]).filter(m=>m.id==="seeInvisibility"&&m.enabled);
+  const modes=detectionModes(observer).filter(m=>m.id==="seeInvisibility"&&m.enabled);
   return modes.length?detectionVisibility(observer,target,["seeInvisibility"]):false;
 }
 function sight(source,target) {
@@ -185,7 +204,8 @@ function sight(source,target) {
   }
   // A GM's all-seeing canvas is never evidence of this creature's vision.
   if(!canvas.scene.tokenVision)return {value:true};
-  const visible=detectionVisibility(source,target,["basicSight","seeInvisibility","blindSight"]);
+  // v14 basicSight is darkvision; illuminated targets use lightPerception.
+  const visible=detectionVisibility(source,target,["basicSight","lightPerception","seeInvisibility","blindSight"]);
   return visible===true?{value:true}:visible===false?{value:false,reason:"攻击者不能通过自身视野看清目标"}
     :{value:null,reason:"攻击Token视野或地图楼层未记录，能否看清待GM裁定"};
 }
@@ -211,7 +231,7 @@ function deniedDex(source,target,pf) {
   return null;
 }
 export function evaluateSneak(item,context={}) {
-  const actor=item.actor,result={eligible:false,flanking:false,dice:dice(actor),reason:"",pending:false};
+  const actor=item.actor,result={eligible:false,flanking:false,flankingReason:"",flankingPending:false,dice:dice(actor),reason:"",pending:false};
   const stop=(reason,pending=false)=>({...result,reason,pending});
   if(!supported(item))return stop("本次不是带伤害的武器攻击");
   const targetIds=context.targetIds??[...game.user.targets].map(t=>t.id);
@@ -222,38 +242,58 @@ export function evaluateSneak(item,context={}) {
   if(incapacitated(actor))return stop("攻击者不能行动");
   const mode=game.user.isGM?context.mode??"auto":context.mode==="off"?"off":"auto";
   if(mode==="gm-flank")return {...result,eligible:result.dice>0,flanking:item.system.actionType==="mwak",
+    flankingReason:"GM裁定本次夹击",
     reason:result.dice>0?"GM裁定本次夹击且符合全部偷袭条件":"GM裁定本次夹击；没有可用的原生偷袭伤害骰"};
   if(mode==="gm-eligible") {
-    let autoFlank=false;
-    try {autoFlank=flank(source,target,item).value===true;}catch(error){console.error(MODULE_ID,error);}
-    return {...result,eligible:result.dice>0,flanking:autoFlank,
+    let f={value:null,reason:"地图夹击判定接口不可用"};
+    try {f=flank(source,target,item);}catch(error){console.error(MODULE_ID,error);}
+    return {...result,eligible:result.dice>0,flanking:f.value===true,flankingReason:f.reason,flankingPending:f.value===null,
       reason:result.dice>0?"GM裁定本次符合全部偷袭条件":"没有可用的原生偷袭伤害骰，不能凭裁定增加骰数"};
   }
-  const pf=pfRule(actor),f=flank(source,target,item);
+  const pf=pfRule(actor);
+  let f;
+  try {
+    // Keep the native checkbox as a per-attack ruling, not an override of
+    // distance, vision, immunity or the actor's actual sneak attack dice.
+    f=typeof context.flanking==="boolean"?{value:context.flanking&&item.system.actionType==="mwak",
+      reason:context.flanking?"本次攻击窗口已指定夹击":"本次攻击窗口已取消夹击"}:flank(source,target,item);
+  }catch(error) {
+    console.error(MODULE_ID,"夹击判定程序错误",error);
+    f={value:null,reason:"自动夹击判定发生程序错误",error:true};
+  }
   result.flanking=f.value===true;
+  result.flankingReason=f.reason??(item.system.actionType==="rwak"?"远程攻击不获得夹击加值":"未形成夹击");
+  result.flankingPending=f.value===null;
+  result.flankingError=Boolean(f.error);
   if(mode==="off")return stop("本次关闭偷袭");
   if(result.dice<=0)return stop(sneakKnown(actor)?"已有偷袭能力，但系统偷袭骰数为0；请由GM刷新客户端完成旧职业数据修复":"没有偷袭能力",sneakKnown(actor));
-  const d=distance(source,target);
-  if(d==null)return stop("地图距离单位未识别或双方高差需GM裁定",true);
-  if(item.system.actionType==="rwak"&&d>30+1e-6)return stop("远程偷袭超出30尺");
-  if(item.system.actionType==="mwak") {
-    const r=reach(item);if(!r)return stop("近战触及未记录",true);
-    if(d>r.max+1e-6||r.min>0&&d<=r.min)return stop("目标不在本次武器的触及范围内");
-    if(!clearLine(source,target,"move"))return stop("墙壁阻挡攻击；特殊障碍待GM裁定",true);
+  try {
+    const d=distance(source,target);
+    if(d==null)return stop("地图距离单位未识别或双方高差需GM裁定",true);
+    if(item.system.actionType==="rwak"&&d>30+1e-6)return stop("远程偷袭超出30尺");
+    if(item.system.actionType==="mwak") {
+      const r=reach(item);if(!r)return stop("近战触及未记录",true);
+      if(d>r.max+1e-6||r.min>0&&d<=r.min)return stop("目标不在本次武器的触及范围内");
+      if(!clearLine(source,target,"move"))return stop("墙壁阻挡攻击；特殊障碍待GM裁定",true);
+    }
+    const inherent=Boolean(item.system.nonLethal||item.system.nonLethalNoPenalty);
+    if(context.nonLethal&&!inherent)return stop("致命武器改作非致命攻击不能偷袭");
+    const concealment=Number(target.actor.system.attributes?.concealment?.total)||0;
+    if(concealment>=(pf?50:1)&&!blindsight(source,target))return stop(pf?"目标有全隐蔽":"3R偷袭不能对隐蔽目标使用");
+    const type=target.actor.system.attributes?.creatureType;
+    if(elemental(target.actor)||(!pf&&["undead","construct","ooze","plant"].includes(type))||pf&&type==="ooze")return stop("此规则下该生物类型免疫偷袭");
+    if(target.actor.system.traits?.incorporeal)return stop("虚体的精准伤害例外须GM裁定",true);
+    if(target.actor.system.combinedResistances?.some(r=>r.uid==="damage-precision"&&r.immunity))return stop("目标免疫精准伤害");
+    const visible=sight(source,target);if(visible.value!==true)return stop(visible.reason,visible.value===null);
+    const denial=deniedDex(source,target,pf);
+    if(denial?.pending&&!result.flanking)return stop(denial.reason,true);
+    if(typeof denial==="string"||result.flanking)return {...result,eligible:true,reason:typeof denial==="string"?denial:f.reason};
+    return stop(f.reason??"目标既未被夹击，也未失去敏捷防御",f.value===null);
+  }catch(error) {
+    console.error(MODULE_ID,"偷袭判定程序错误",error);
+    // A vision/API failure must not discard an independently valid flank.
+    return {...stop("自动偷袭判定发生程序错误，本次未加入偷袭伤害",true),error:true};
   }
-  const inherent=Boolean(item.system.nonLethal||item.system.nonLethalNoPenalty);
-  if(context.nonLethal&&!inherent)return stop("致命武器改作非致命攻击不能偷袭");
-  const concealment=Number(target.actor.system.attributes?.concealment?.total)||0;
-  if(concealment>=(pf?50:1)&&!blindsight(source,target))return stop(pf?"目标有全隐蔽":"3R偷袭不能对隐蔽目标使用");
-  const type=target.actor.system.attributes?.creatureType;
-  if(elemental(target.actor)||(!pf&&["undead","construct","ooze","plant"].includes(type))||pf&&type==="ooze")return stop("此规则下该生物类型免疫偷袭");
-  if(target.actor.system.traits?.incorporeal)return stop("虚体的精准伤害例外须GM裁定",true);
-  if(target.actor.system.combinedResistances?.some(r=>r.uid==="damage-precision"&&r.immunity))return stop("目标免疫精准伤害");
-  const visible=sight(source,target);if(visible.value!==true)return stop(visible.reason,visible.value===null);
-  const denial=deniedDex(source,target,pf);
-  if(denial?.pending&&!result.flanking)return stop(denial.reason,true);
-  if(typeof denial==="string"||result.flanking)return {...result,eligible:true,reason:typeof denial==="string"?denial:f.reason};
-  return stop(f.reason??"目标既未被夹击，也未失去敏捷防御",f.value===null);
 }
 
 export function prepareSneakAttack(chat,options) {
@@ -261,7 +301,7 @@ export function prepareSneakAttack(chat,options) {
   const context=chat.rollData.threeRSneak??{};
   let result;
   try {result=evaluateSneak(chat.item,context);}
-  catch(error) {console.error(MODULE_ID,"偷袭判定",error);result={eligible:false,flanking:false,pending:true,reason:"地图判定接口不可用，待GM裁定"};}
+  catch(error) {console.error(MODULE_ID,"偷袭判定程序错误",error);result={eligible:false,flanking:false,pending:true,error:true,flankingError:true,reason:"自动攻击判定发生程序错误，本次未加入自动加值或偷袭伤害"};}
   chat._threeRSneak=result;
   // Replace the native aggregate once; critical confirmation inherits these same extra parts.
   const extra=(options.extraParts??[]).filter(p=>p.part!=="@flanking"&&!p.threeRFlanking);
@@ -277,8 +317,49 @@ export function sneakDamage(chat,options) {
   options.extraParts=[...(options.extraParts??[]),[`${result.dice}d6`,"精准伤害","damage-precision","偷袭"]];
 }
 function verdict(result) {
-  return `${result.flanking?"夹击：+2无名加值":"夹击：未加入加值"}。${result.eligible?`偷袭：额外${result.dice}d6精准伤害（命中后结算，不乘重击）`:result.pending?"偷袭：数据或条件待确认，暂不加入伤害":"偷袭：不触发"}。${result.reason}。`;
+  const flankText=result.flanking?"夹击：+2无名加值":result.flankingError?"夹击：程序错误，未加入自动加值":result.flankingPending?"夹击：条件待确认，未加入加值":"夹击：未加入加值";
+  return `${flankText}${result.flankingReason?`（${result.flankingReason}）`:""}。${result.eligible?`偷袭：额外${result.dice}d6精准伤害（命中后结算，不乘重击）`:result.error?"偷袭：程序错误，未加入伤害":result.pending?"偷袭：数据或条件待确认，暂不加入伤害":"偷袭：不触发"}。${result.reason}。`;
 }
+// D35E keeps attack in its serialized chat data, but drops custom fields on
+// the ChatAttack instance. Preserve the rolled verdict, never recompute it
+// against today's token positions when an old message is displayed.
+export function finishSneakAttack(chat,options) {
+  if(!options.critical&&chat._threeRSneak)chat.attack.threeRSneak={...chat._threeRSneak};
+}
+
+const openAttacks=new Set(),dialogAttacks=new WeakMap(),attackForms=new WeakMap();
+function attackDialog(app,html) {
+  const root=html?.[0]??html;
+  const form=root?.matches?.("form.attack-form")?root:root?.querySelector?.("form.attack-form");
+  if(!form)return;
+  let context=dialogAttacks.get(app);
+  if(!context) {
+    const title=app.data?.title??app.title;
+    const candidates=[...openAttacks].filter(c=>!c.dialog&&c.title===title);
+    // Simultaneous identical dialogs must not borrow the wrong actor/item.
+    if(candidates.length!==1)return;
+    context=candidates[0];context.dialog=app;dialogAttacks.set(app,context);
+  }
+  if(attackForms.has(form))return;
+  const item=context.item,source=actorToken(context.actor);
+  const state={sourceId:source?.id};attackForms.set(form,state);
+  const box=form.querySelector('[name="flanking"]');
+  if(!box)return;
+  const refresh=()=> {
+    const targetIds=form.querySelector('[name="target-ids"]')?.value.split(";").filter(Boolean)??[...game.user.targets].map(t=>t.id);
+    let result;
+    try {result=evaluateSneak(item,{...state,targetIds,
+      nonLethal:Boolean(form.querySelector('[name="nonLethal"]')?.checked)});}
+    catch(error){console.error(MODULE_ID,"攻击窗口判定程序错误",error);result={flankingError:true,flankingReason:"自动夹击判定发生程序错误"};}
+    box.checked=Boolean(result.flanking);
+    box.title=result.flankingReason??"自动判断夹击；可使用原有勾选指定本次夹击，偷袭仍检查其他条件";
+  };
+  form.addEventListener("change",event=> {
+    if(event.target===box)state.flanking=box.checked;
+    refresh();
+  });refresh();
+}
+
 export function installSneakRules() {
   Hooks.on("D35E.ItemRolls.postRollDamage",(item,rolls)=> {
     for(const roll of rolls)if(roll.damageTypeUid==="damage-precision"&&roll.source==="偷袭")roll.damageType="精准伤害";
@@ -286,49 +367,44 @@ export function installSneakRules() {
   const rollAttack=ItemUse.prototype.rollAttack;
   ItemUse.prototype.rollAttack=function(fullAttack,form,temporaryItem,actor,data,...rest) {
     if(!supported(this.item))return rollAttack.call(this,fullAttack,form,temporaryItem,actor,data,...rest);
-    const root=form?.[0]??form,sourceId=root?.querySelector?.('[name="threeR-source-id"]')?.value;
+    const root=form?.[0]??form;
+    const attackForm=root?.matches?.("form.attack-form")?root:root?.querySelector?.("form.attack-form");
+    const state=attackForms.get(attackForm);
     const ids=root?.querySelector?.('[name="target-ids"]')?.value;
-    const mode=root?.querySelector?.('[name="threeR-sneak-mode"]')?.value??"auto";
     const copy=foundry.utils.deepClone(data);
-    copy.threeRSneak={sourceId:sourceId??actorToken(actor)?.id,
+    copy.threeRSneak={sourceId:state?.sourceId??actorToken(actor)?.id,
       targetIds:ids!=null?ids.split(";").filter(Boolean):[...game.user.targets].map(t=>t.id),
-      nonLethal:Boolean(root?.querySelector?.('[name="nonLethal"]')?.checked),mode};
+      nonLethal:Boolean(root?.querySelector?.('[name="nonLethal"]')?.checked),mode:"auto",
+      flanking:state?state.flanking:root?.querySelector?.('[name="flanking"]')?.checked?true:undefined};
     return rollAttack.call(this,fullAttack,form,temporaryItem,actor,copy,...rest);
   };
-  const renderer=foundry.applications.handlebars,render=renderer.renderTemplate;
-  renderer.renderTemplate=async function(path,data,...rest) {
-    const html=await render.call(this,path,data,...rest);
-    if(path==="systems/D35E/templates/apps/attack-roll-dialog.html"&&supported(data.item)) {
-      const root=document.createElement("div");root.innerHTML=html;
-      const form=root.querySelector("form");if(!form)return html;
-      const source=actorToken(data.item.actor),targetIds=(data.targets??[]).map(t=>t.id);
-      let result;
-      try {result=evaluateSneak(data.item,{sourceId:source?.id,targetIds});}
-      catch(error){console.error(MODULE_ID,error);result={pending:true,reason:"地图判定接口不可用"};}
-      const panel=document.createElement("section");panel.className="three-r-sneak";
-      panel.innerHTML=`<h4>夹击与偷袭自动判断 · ${pfRule(data.item.actor)?"PF掉链子游荡者":"3R"}</h4><p>${escaping(verdict(result))}</p>
-        <input type="hidden" name="threeR-source-id" value="${escaping(source?.id)}">
-        <label>本次处理 <select name="threeR-sneak-mode"><option value="auto">自动判断</option><option value="off">不使用偷袭</option>
-        ${game.user.isGM?'<option value="gm-eligible">GM裁定：全部条件符合</option>'+ (data.item.system.actionType==="mwak"?'<option value="gm-flank">GM裁定：夹击且全部条件符合</option>':""):""}</select></label>
-        <small>掷骰时重新判断。虚招、未记录的免疫、特殊触及由GM裁定；不改目标状态。</small>`;
-      (form.querySelector("section")??form).prepend(panel);
-      const flankBox=form.querySelector('[name="flanking"]');
-      if(flankBox){flankBox.checked=result.flanking;flankBox.disabled=true;if(result.flanking)flankBox.setAttribute("checked","");else flankBox.removeAttribute("checked");flankBox.setAttribute("disabled","");}
-      return root.innerHTML;
-    }
-    if(path==="systems/D35E/templates/chat/attack-roll.html"&&data.attacks?.some(a=>a._threeRSneak)) {
-      const root=document.createElement("div");root.innerHTML=html;
-      const rows=root.querySelectorAll(".chat-attack");
-      data.attacks.forEach((attack,i)=> {
-        if(!attack._threeRSneak||!rows[i])return;
-        const note=document.createElement("p");note.className="three-r-sneak-result";
-        note.textContent=attack.attack?.isFumble?"偷袭：本次攻击天然1，未加入精准伤害。":verdict(attack._threeRSneak);
-        rows[i].append(note);
-      });
-      return root.innerHTML;
-    }
-    return html;
+  // v14 exposes a read-only ESM namespace. Use the supported render hook,
+  // scoped to a pending D35E attack, instead of assigning renderTemplate.
+  const useAttack=ItemUse.prototype.useAttack;
+  ItemUse.prototype.useAttack=async function(options={},actor=this.item.actor,...rest) {
+    if(!supported(this.item)||options.skipDialog||actor&&actor.uuid!==this.item.actor.uuid)
+      return useAttack.call(this,options,actor,...rest);
+    const owner=actor??this.item.actor;
+    const context={item:this.item,actor:owner,title:`${game.i18n.localize("D35E.Use")}: ${this.item.name} - ${owner.name}`};
+    openAttacks.add(context);
+    try {return await useAttack.call(this,options,actor,...rest);}
+    finally {openAttacks.delete(context);}
   };
+  Hooks.on("renderDialog",(app,html)=> {
+    try {attackDialog(app,html);}catch(error){console.error(MODULE_ID,"攻击窗口",error);}
+  });
+  Hooks.on("renderChatMessageHTML",(message,html)=> {
+    if(!message.isContentVisible||message.flags?.D35E?.template!=="systems/D35E/templates/chat/attack-roll.html")return;
+    const root=html?.[0]??html,rows=root?.querySelectorAll?.(".chat-attack");if(!rows)return;
+    const attacks=message.flags.D35E.chatTemplateData?.attacks??[];
+    attacks.forEach((attack,i)=> {
+      const result=attack.attack?.threeRSneak,row=rows[i];
+      if(!result||!row||row.querySelector(".three-r-sneak-result"))return;
+      const note=document.createElement("p");note.className="three-r-sneak-result";
+      note.textContent=verdict(attack.attack.isFumble?{...result,eligible:false,pending:false,reason:"本次攻击天然1，未加入精准伤害"}:result);
+      row.append(note);
+    });
+  });
   // Record only combats observed from their first regular turn. Mid-combat activation is not guessed.
   Hooks.on("updateCombat",(combat,change)=> {
     if(game.users.activeGM?.id!==game.user.id||!("round" in change||"turn" in change))return;

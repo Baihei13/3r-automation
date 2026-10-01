@@ -18,7 +18,7 @@ import { createTransientView } from "./transient-view.js";
 import { describeAttackSources, localizeChatHtml } from "./presentation.js";
 import { effectDeadline, effectIsActive } from "./effect-state.js";
 import { installFragileRules, prepareFragileAttack, finishFragileAttack, fragileDamageOptions, fragileState, weaponFor } from "./fragile.js";
-import { installSneakRules, prepareSneakAttack, sneakDamage } from "./sneak-attack.js";
+import { installSneakRules, prepareSneakAttack, finishSneakAttack, sneakDamage } from "./sneak-attack.js";
 import { applyWeaponFinesse } from "./weapon-finesse.js";
 
 export const key = item => item?.flags?.[MODULE_ID]?.key;
@@ -386,6 +386,7 @@ export function activateRules() {
     const ac=targets.length===1 ? Number(targets[0].actor.system.attributes.ac[
       this.item?.system.ability?.vsTouchAc?"touch":targets[0].actor.system.attributes.conditions?.flatFooted?"flatFooted":"normal"].total) : null;
     const result=await addAttack.call(this,options);
+    finishSneakAttack(this,options);
     await finishFragileAttack(this,options);
     for(const data of [this.attack,this.critConfirm])if(data?.tooltip)data.tooltip=localizeChatHtml(data.tooltip);
     if(!options.critical)captureTanglefootAttack(this);

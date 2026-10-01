@@ -19,9 +19,4 @@
 .three-r-fragile { margin: 8px 0; padding: 6px 10px; border: 1px solid #8b6843; border-radius: 4px; }
 .three-r-fragile p { margin: 4px 0; }
 .three-r-fragile button { width: auto; }
-.three-r-sneak { padding: 8px; margin: 6px 0 12px; border: 1px solid #8b6843; border-radius: 4px; }
-.three-r-sneak h4, .three-r-sneak p { margin: 4px 0; }
-.three-r-sneak label { display: flex; gap: 8px; align-items: center; }
-.three-r-sneak select { flex: 1; min-width: 0; }
-.three-r-sneak small { display: block; margin-top: 6px; }
 .three-r-sneak-result { margin: 8px 0; padding-top: 6px; border-top: 1px solid #8b6843; }

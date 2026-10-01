@@ -2,7 +2,7 @@
   "id": "samson-3r-automation",
   "title": "3r自动化",
   "description": "按规则书与类别整理角色内容，并为 D35E 角色提供规则自动化。",
-  "version": "0.4.6",
+  "version": "0.4.9",
   "authors": [{ "name": "Local custom module" }],
   "esmodules": ["scripts/main.js"],
   "styles": ["styles/main.css"],
