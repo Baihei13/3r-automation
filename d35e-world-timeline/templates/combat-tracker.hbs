@@ -1,0 +1,69 @@
+<div class="combat-tracker dwt-combat-dashboard">
+  {{#if hasCombat}}
+  <div class="dwt-combat-hero">
+    <span>第 {{dwtRound}} 轮</span>
+    <strong>{{dwtCurrentName}}</strong>
+    <small>当前行动者</small>
+  </div>
+  {{/if}}
+
+  <ol class="plain dwt-combat-list">
+    {{#each turns}}
+    <li class="combatant dwt-combatant {{css}}" data-combatant-id="{{id}}" data-action="activateCombatant">
+      <img class="token-image dwt-combat-portrait" src="{{img}}" alt="" loading="lazy" />
+      <div class="token-name dwt-combat-details">
+        <div class="dwt-combat-heading">
+          <strong class="name">{{name}}</strong>
+          <div class="token-initiative">
+            {{#if initiative includeZero=true}}
+              {{#if @root.hasDecimals}}<span>{{initiative}}</span>
+              {{else}}<input type="text" class="initiative-input" inputmode="numeric" pattern="^[+=\-]?\d*" value="{{initiative}}" aria-label="先攻值" {{#unless @root.user.isGM}}readonly{{/unless}} />{{/if}}
+            {{else if isOwner}}
+              <button type="button" class="combatant-control roll" data-action="rollInitiative" title="投先攻"><i class="fa-solid fa-dice-d20"></i></button>
+            {{/if}}
+          </div>
+        </div>
+
+        {{#if dwtShowHp}}
+        <div class="dwt-combat-hp"><div style="width: {{dwtHpPercent}}%"></div><span>HP {{dwtHp}}</span></div>
+        {{/if}}
+
+        {{#if dwtHasEffects}}
+        <div class="dwt-combat-effects">
+          {{#each dwtEffects}}<img src="{{img}}" title="{{name}} {{remaining}}" alt="{{name}}" />{{/each}}
+        </div>
+        {{/if}}
+
+        <div class="combatant-controls dwt-combat-actions">
+          {{#if @root.user.isGM}}
+          <button type="button" class="combatant-control {{#if hidden}}active{{/if}}" data-action="toggleHidden" title="显示/隐藏"><i class="fa-solid fa-eye-slash"></i></button>
+          <button type="button" class="combatant-control {{#if isDefeated}}active{{/if}}" data-action="toggleDefeated" title="击败状态"><i class="fa-solid fa-skull"></i></button>
+          {{/if}}
+          {{#if canPing}}<button type="button" class="combatant-control" data-action="pingCombatant" title="定位 Token"><i class="fa-solid fa-crosshairs"></i></button>{{/if}}
+          {{#unless @root.user.isGM}}<button type="button" class="combatant-control" data-action="panToCombatant" title="查看 Token"><i class="fa-solid fa-eye"></i></button>{{/unless}}
+          {{#if advancedCombatTracking}}{{#if isActor}}
+          <button type="button" class="combatant-control dwt-action {{#unless usedMoveAction}}available{{/unless}}" {{#if @root.user.isGM}}data-action="toggleCombatAction" data-action-key="usedMoveAction"{{/if}} title="移动动作"><i class="fa-solid fa-shoe-prints"></i></button>
+          <button type="button" class="combatant-control dwt-action {{#unless usedAttackAction}}available{{/unless}}" {{#if @root.user.isGM}}data-action="toggleCombatAction" data-action-key="usedAttackAction"{{/if}} title="标准/攻击动作"><i class="fa-solid fa-hand-fist"></i></button>
+          <button type="button" class="combatant-control dwt-action {{#unless usedSwiftAction}}available{{/unless}}" {{#if @root.user.isGM}}data-action="toggleCombatAction" data-action-key="usedSwiftAction"{{/if}} title="迅捷动作"><i class="fa-solid fa-bolt"></i></button>
+          <button type="button" class="combatant-control dwt-action {{#unless usedAllAao}}available{{/unless}}" {{#if @root.user.isGM}}data-action="toggleCombatAction" data-action-key="usedAllAao"{{/if}} title="借机攻击剩余 {{aaoLeft}} / {{aaoMax}}"><i class="fa-solid fa-shield-halved"></i></button>
+          {{/if}}{{/if}}
+        </div>
+      </div>
+    </li>
+    {{else}}
+      <li class="dwt-combat-empty">{{#if hasCombat}}本场战斗还没有参战者。{{else}}当前场景没有战斗。GM 可用上方按钮创建。{{/if}}</li>
+    {{/each}}
+  </ol>
+
+  {{#if nextTurnBuffs.length}}
+  <div class="dwt-combat-buff-heading">即将结算的增益</div>
+  <ol class="plain dwt-combat-list dwt-combat-buffs">
+    {{#each nextTurnBuffs}}
+    <li class="combatant dwt-combatant" data-combatant-id="{{id}}">
+      <img class="token-image dwt-combat-portrait" src="{{img}}" alt="" />
+      <div class="dwt-combat-details"><strong>{{name}}</strong><small>{{actorName}}</small></div>
+    </li>
+    {{/each}}
+  </ol>
+  {{/if}}
+</div>

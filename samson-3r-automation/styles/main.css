@@ -1,0 +1,27 @@
+#samson-automation-panel { position: fixed; z-index: 100; top: 70px; right: 35px; width: min(390px, calc(100vw - 30px)); max-height: calc(100vh - 90px); overflow: auto; padding: 13px; border: 1px solid #b9a078; border-radius: 7px; background: #17212bea; color: #f2eee9; box-shadow: 0 8px 22px #0008; }
+#samson-automation-panel header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+#samson-automation-panel header strong { font-size: 17px; }
+#samson-automation-panel header button { flex: none; width: 26px; min-height: 26px; }
+#samson-automation-panel p { margin: 9px 0; font-size: 12px; line-height: 1.4; }
+#samson-automation-panel label { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+#samson-automation-panel select { flex: 1; min-height: 29px; }
+#samson-automation-panel .samson-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 11px 0; }
+#samson-automation-panel .samson-actions button { width: auto; min-height: 31px; padding: 3px 6px; font-size: 12px; }
+#samson-automation-panel small { display: block; font-size: 11px; opacity: .8; }
+#three-r-character-panel { position: fixed; z-index: 101; top: 70px; right: 35px; width: min(390px, calc(100vw - 30px)); max-height: calc(100vh - 90px); overflow: auto; padding: 13px; border: 1px solid #b9a078; border-radius: 7px; background: #17212bea; color: #f2eee9; box-shadow: 0 8px 22px #0008; }
+#three-r-character-panel header { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+#three-r-character-panel header strong { font-size: 17px; }
+#three-r-character-panel header button { flex: none; width: 26px; min-height: 26px; }
+#three-r-character-panel p { margin: 9px 0; font-size: 12px; line-height: 1.4; }
+#three-r-character-panel .three-r-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 11px 0; }
+#three-r-character-panel .three-r-actions button { width: auto; min-height: 31px; padding: 3px 6px; font-size: 12px; }
+#three-r-character-panel small { display: block; font-size: 11px; opacity: .8; }
+.three-r-fragile { margin: 8px 0; padding: 6px 10px; border: 1px solid #8b6843; border-radius: 4px; }
+.three-r-fragile p { margin: 4px 0; }
+.three-r-fragile button { width: auto; }
+.three-r-sneak { padding: 8px; margin: 6px 0 12px; border: 1px solid #8b6843; border-radius: 4px; }
+.three-r-sneak h4, .three-r-sneak p { margin: 4px 0; }
+.three-r-sneak label { display: flex; gap: 8px; align-items: center; }
+.three-r-sneak select { flex: 1; min-width: 0; }
+.three-r-sneak small { display: block; margin-top: 6px; }
+.three-r-sneak-result { margin: 8px 0; padding-top: 6px; border-top: 1px solid #8b6843; }

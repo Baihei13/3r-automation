@@ -1,0 +1,94 @@
+<section class="dwt-panel">
+  <header class="dwt-top">
+    <div>
+      <strong>世界时间</strong>
+      <div class="dwt-clock">{{now}}</div>
+    </div>
+    <button type="button" data-action="refresh" title="刷新列表"><i class="fa-solid fa-rotate"></i></button>
+  </header>
+
+  {{#if isGM}}
+  <section class="dwt-ruler" data-now="{{nowSeconds}}" aria-label="拖动时间轴">
+    <div class="dwt-ruler-heading">
+      <strong>拖动时间轴，选择要推进到的时间</strong>
+      <label>显示范围
+        <select class="dwt-span" aria-label="时间轴显示范围">
+          <option value="60">1小时</option>
+          <option value="480" selected>8小时</option>
+          <option value="1440">24小时</option>
+          <option value="10080">7天</option>
+        </select>
+      </label>
+    </div>
+    <div class="dwt-ruler-track">
+      {{#each markers}}
+      <span class="dwt-marker" data-end="{{endSeconds}}" title="{{actorName}}：{{name}}"></span>
+      {{/each}}
+    </div>
+    <input class="dwt-slider" type="range" min="0" max="480" step="1" value="0" aria-label="从现在起推进的分钟数" />
+    <div class="dwt-axis"><span>现在</span><span>+4小时</span><span>+8小时</span></div>
+    <div class="dwt-preview">把滑块拖到目标时间，再点击“应用时间”</div>
+    <button type="button" data-action="applyPreview" disabled>应用时间</button>
+  </section>
+  <div class="dwt-controls">
+    <span>快捷推进</span>
+    <button type="button" data-action="advance" data-seconds="60">+1分钟</button>
+    <button type="button" data-action="advance" data-seconds="600">+10分钟</button>
+    <button type="button" data-action="advance" data-seconds="3600">+1小时</button>
+    <button type="button" data-action="advance" data-seconds="28800">+8小时</button>
+  </div>
+  <div class="dwt-exact">
+    <label>精确推进
+      <input type="number" name="amount" min="1" step="1" value="1" aria-label="精确推进数量" />
+      <select name="unit" aria-label="精确推进单位">
+        <option value="60">分钟</option><option value="3600">小时</option><option value="86400">天</option>
+      </select>
+    </label>
+    <button type="button" data-action="advanceExact">推进</button>
+  </div>
+  <div class="dwt-new-marker">
+    <span>为所选 Token 新建计时标记：{{selectedActor}}</span>
+    <div>
+      <input type="text" name="name" placeholder="效果名称，例如 魔化武器" maxlength="100" />
+      <input type="number" name="amount" value="1" min="0.01" step="any" aria-label="时长" />
+      <select name="unit" aria-label="时间单位">
+        <option value="60">分钟</option><option value="3600">小时</option><option value="86400">天</option>
+      </select>
+      <button type="button" data-action="createMarker">新建</button>
+    </div>
+  </div>
+  {{/if}}
+
+  <div class="dwt-summary">当前效果 {{count}} 项 · 按预计到期时间排序</div>
+  <div class="dwt-list">
+    {{#each rows}}
+    <article class="dwt-entry {{#if expired}}dwt-expired{{/if}}" {{#if hasTimer}}data-end="{{endSeconds}}"{{/if}}>
+      <img src="{{img}}" alt="" />
+      <div class="dwt-entry-main">
+        <div class="dwt-entry-title">
+          <button type="button" class="dwt-name" data-action="openDocument" data-uuid="{{uuid}}">{{name}}</button>
+          <span class="dwt-remaining">{{remaining}}</span>
+        </div>
+        <div class="dwt-meta">{{actorName}} · {{kind}} · {{note}}</div>
+        {{#if hasTimer}}
+        <div class="dwt-track"><div style="width: {{progress}}%"></div></div>
+        <div class="dwt-end">预计结束：{{end}}</div>
+        {{/if}}
+        {{#if ../isGM}}
+        <div class="dwt-edit">
+          <input type="number" name="amount" value="1" min="0.01" step="any" aria-label="时长" />
+          <select name="unit" aria-label="时间单位">
+            <option value="60">分钟</option><option value="3600">小时</option><option value="86400">天</option>
+          </select>
+          <button type="button" data-action="setTimer" data-uuid="{{uuid}}">设置/重置</button>
+          {{#if ownTimer}}<button type="button" data-action="clearTimer" data-uuid="{{uuid}}">清除计时</button>{{/if}}
+        </div>
+        {{/if}}
+      </div>
+    </article>
+    {{else}}
+    <p class="dwt-empty">当前没有正在计时的效果。新施放的法术若有明确时长，会自动出现；此前的聊天记录没有可靠的施法时点，不会倒推。也可以选中 Token 新建计时标记。</p>
+    {{/each}}
+  </div>
+  <footer>系统法术时长会自动生成计时记录，但不会自动提供法术数值加值。旧效果可手动设置；倒退世界时间不会恢复已结束的效果。</footer>
+</section>

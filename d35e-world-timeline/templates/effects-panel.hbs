@@ -1,0 +1,10 @@
+<div class="dwt-effects-heading"><i class="fa-solid fa-sparkles"></i> {{actorName}}的效果</div>
+<div class="dwt-effects-grid">
+  {{#each effects}}
+  <button type="button" class="dwt-effect-icon" data-dwt-key="{{key}}"
+    aria-label="{{name}}，{{time}}" aria-haspopup="dialog">
+    <img src="{{img}}" alt="" />
+    <span>{{badge}}</span>
+  </button>
+  {{/each}}
+</div>

@@ -1,0 +1,199 @@
+.d35e-world-timeline .window-content { padding: 0; }
+.dwt-panel { display: flex; flex-direction: column; height: 100%; min-height: 0; color: var(--color-text-primary, #ddd); }
+.dwt-top { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: #202c35; color: #f3f0e7; }
+.dwt-top strong { font-size: 13px; opacity: .75; }
+.dwt-clock { font-size: 20px; font-weight: 700; margin-top: 3px; }
+.dwt-top button { flex: 0 0 auto; width: 34px; height: 34px; }
+.dwt-ruler { padding: 12px 18px; border-bottom: 1px solid #7776; background: #45789819; }
+.dwt-ruler-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.dwt-ruler-heading strong { font-size: 14px; }
+.dwt-ruler-heading label { display: flex; align-items: center; gap: 5px; font-size: 12px; white-space: nowrap; }
+.dwt-ruler-heading select { width: 85px; }
+.dwt-ruler-track { height: 22px; margin: 12px 8px -4px; position: relative; border-bottom: 2px solid #70b9d1; }
+.dwt-marker { display: block; position: absolute; bottom: -5px; width: 8px; height: 12px; border-radius: 3px; background: #e4b64b; transform: translateX(-50%); }
+.dwt-marker[hidden] { display: none; }
+.dwt-slider { width: 100%; margin: 5px 0 0; cursor: ew-resize; accent-color: #62aaca; }
+.dwt-axis { display: flex; justify-content: space-between; font-size: 11px; opacity: .75; }
+.dwt-preview { margin: 9px 0 6px; font-weight: 650; }
+.dwt-ruler > button { min-width: 120px; }
+.dwt-ruler > button:disabled { opacity: .5; cursor: default; }
+.dwt-controls, .dwt-new-marker, .dwt-summary { padding: 9px 16px; border-bottom: 1px solid #7776; }
+.dwt-controls { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.dwt-controls span { margin-right: 8px; font-weight: 600; }
+.dwt-controls button, .dwt-edit button, .dwt-new-marker button { flex: 0 0 auto; }
+.dwt-exact { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #7776; }
+.dwt-exact label { display: flex; align-items: center; gap: 6px; }
+.dwt-exact input { width: 80px; }
+.dwt-exact select { width: 75px; }
+.dwt-new-marker > span { display: block; margin-bottom: 6px; font-weight: 600; }
+.dwt-new-marker > div, .dwt-edit { display: flex; align-items: center; gap: 6px; }
+.dwt-new-marker input[name="name"] { flex: 1 1 180px; min-width: 100px; }
+.dwt-new-marker input[name="amount"], .dwt-edit input[name="amount"] { flex: 0 1 70px; min-width: 55px; }
+.dwt-new-marker select, .dwt-edit select { flex: 0 0 75px; }
+.dwt-summary { font-size: 12px; opacity: .7; }
+.dwt-list { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding: 6px 12px; }
+.dwt-entry { display: flex; gap: 10px; margin: 8px 0; padding: 10px; border: 1px solid #7777; border-radius: 7px; background: #8881; }
+.dwt-entry > img { width: 44px; height: 44px; flex: 0 0 44px; border: 0; object-fit: cover; border-radius: 4px; }
+.dwt-entry-main { flex: 1 1 auto; min-width: 0; }
+.dwt-entry-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.dwt-name { all: unset; cursor: pointer; font-size: 16px; font-weight: 700; overflow-wrap: anywhere; }
+.dwt-name:hover { text-decoration: underline; }
+.dwt-remaining { white-space: nowrap; font-weight: 700; }
+.dwt-meta, .dwt-end { font-size: 12px; opacity: .72; margin-top: 3px; }
+.dwt-track { height: 7px; margin-top: 9px; border-radius: 9px; overflow: hidden; background: #7776; }
+.dwt-track > div { height: 100%; background: #469ac1; transition: width .2s; }
+.dwt-expired .dwt-track > div { background: #c15f54; }
+.dwt-preview-expired .dwt-remaining { color: #c65d50; }
+.dwt-edit { flex-wrap: wrap; margin-top: 8px; }
+.dwt-empty { padding: 18px; text-align: center; opacity: .7; }
+.dwt-panel footer { padding: 8px 16px; border-top: 1px solid #7776; font-size: 11px; opacity: .65; }
+
+/* Shared time section inside the Foundry sidebar. */
+#dwt-time-strip { flex: none; align-self: flex-end; width: var(--sidebar-width, 360px); padding: 9px 12px; border: 1px solid #7db1c266; border-radius: 5px 0 0 5px; background: #172b38ee; color: #f5f7f8; box-shadow: 0 2px 8px #0007; pointer-events: all; }
+#dwt-time-strip .dwt-time-heading { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 12px; font-weight: 700; }
+#dwt-time-strip .dwt-time-heading > div { display: flex; gap: 4px; }
+#dwt-time-strip .dwt-time-heading button { width: auto; height: 25px; min-height: 25px; padding: 2px 7px; font-size: 11px; }
+#dwt-time-strip .dwt-time-value { display: block; margin: 5px 0; font-size: 16px; font-variant-numeric: tabular-nums; }
+#dwt-time-strip .dwt-time-weather { display: flex; align-items: center; gap: 6px; margin: 4px 0 6px; color: #d3e5e9; font-size: 12px; }
+#dwt-time-strip .dwt-time-weather i { width: 16px; text-align: center; }
+#dwt-time-strip .dwt-time-gm { display: flex; gap: 4px; }
+#dwt-time-strip .dwt-time-gm[hidden] { display: none; }
+#dwt-time-strip .dwt-time-gm button { flex: 1; width: auto; min-height: 26px; font-size: 11px; }
+
+/* Selected-token effect icons in the canvas top-right area. */
+#ui-right-column-1 { position: relative; }
+#dwt-effects-panel { position: absolute; top: 12px; right: 0; z-index: 30; width: 62px; max-height: min(75vh, 700px); overflow-y: auto; padding: 6px; border: 1px solid #acb9c277; border-radius: 6px; background: #10141dc9; color: #f7f7f5; box-shadow: 0 2px 12px #0009; pointer-events: all; }
+#dwt-effects-panel[hidden] { display: none; }
+#ui-top #dwt-effects-panel { position: fixed; right: calc(var(--sidebar-width, 360px) + 18px); top: 48px; }
+.dwt-effects-heading { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+.dwt-effects-grid { display: grid; grid-template-columns: 44px; gap: 6px; }
+.dwt-effect-icon { position: relative; width: 44px; height: 44px; padding: 0; border: 1px solid #adc3ca88; border-radius: 5px; overflow: hidden; background: #263d4b; cursor: pointer; }
+.dwt-effect-icon:disabled { cursor: default; opacity: 1; }
+.dwt-effect-icon img { display: block; width: 100%; height: 100%; border: 0; object-fit: cover; }
+.dwt-effect-icon span { position: absolute; right: 0; bottom: 0; max-width: 100%; padding: 1px 2px; background: #0b1721df; color: white; font-size: 10px; font-weight: 750; white-space: nowrap; }
+.dwt-effect-icon:hover, .dwt-effect-icon:focus-visible { border-color: #e2be7b; box-shadow: 0 0 0 2px #e2be7b66; }
+
+/* Rich effect card placed to the left of the icon rail. */
+#dwt-effect-card { position: fixed; z-index: var(--z-index-tooltip, 9999); box-sizing: border-box; display: flex; flex-direction: column; width: min(480px, calc(100vw - 16px)); max-height: min(70vh, 560px); padding: 15px 18px 16px; border: 2px solid #af906e; border-radius: 4px; background: linear-gradient(145deg, #14141ceF, #0b0c13f5); color: #f2eee9; box-shadow: 0 10px 30px #000c, inset 0 0 0 1px #e7cba349; pointer-events: all; }
+#dwt-effect-card[hidden] { display: none; }
+.dwt-effect-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.dwt-effect-card-title { min-width: 0; }
+.dwt-effect-card-title small { color: #c9bdac; font-size: 12px; }
+.dwt-effect-card-title h2 { margin: 4px 0 0; color: #fff; font-family: var(--font-primary, sans-serif); font-size: 17px; line-height: 1.3; overflow-wrap: anywhere; }
+.dwt-effect-card-actions { display: flex; gap: 4px; }
+.dwt-effect-card-actions button { flex: none; width: 26px; height: 26px; min-height: 26px; padding: 2px; border: 0; background: transparent; color: #ddd2be; }
+.dwt-effect-card-actions button:hover { color: #fff; }
+.dwt-effect-card-meta { display: flex; flex-wrap: wrap; gap: 5px 8px; margin: 11px 0 7px; font-size: 12px; }
+.dwt-effect-card-meta span { display: inline-block; padding: 3px 6px; border: 1px solid #957b686e; border-radius: 3px; background: #57526651; }
+.dwt-effect-card-hint { margin-bottom: 5px; color: #c6b7a1; font-size: 11px; text-align: right; }
+.dwt-effect-card-time { align-self: flex-start; width: auto; min-height: 26px; margin: 2px 0 7px; padding: 2px 8px; border-color: #987b63; color: #eed8bf; font-size: 11px; }
+.dwt-effect-card-description { min-height: 0; overflow: auto; padding: 10px 3px 0 0; border-top: 1px solid #baa5888a; color: #f1eeeb; font-size: 13px; line-height: 1.42; overflow-wrap: anywhere; }
+.dwt-effect-card-description p { margin: 0 0 10px; }
+.dwt-effect-card-description h1, .dwt-effect-card-description h2, .dwt-effect-card-description h3 { color: #fff; }
+.dwt-effect-card-description .spell-description { color: inherit; }
+.dwt-effect-card-description img { max-width: 100%; height: auto; }
+.dwt-effect-loading { padding: 12px 0; color: #cfc5b5; }
+
+/* Rebuilt D35E combat tracker. Core encounter controls and D35E turn processing stay in charge. */
+.combat-sidebar .dwt-combat-dashboard { flex: 1; min-height: 0; overflow: hidden auto; color: #f3f0eb; }
+.combat-sidebar .dwt-combat-hero { display: flex; flex-direction: column; gap: 2px; padding: 11px 13px; border-bottom: 1px solid #6594a677; background: linear-gradient(125deg, #193648, #304c54); }
+.combat-sidebar .dwt-combat-hero span { color: #b6d9e4; font-size: 12px; font-weight: 700; }
+.combat-sidebar .dwt-combat-hero strong { font-size: 18px; line-height: 1.2; }
+.combat-sidebar .dwt-combat-hero small { opacity: .7; }
+.combat-sidebar .dwt-combat-list { display: flex; flex-direction: column; gap: 5px; margin: 0; padding: 6px 7px; list-style: none; }
+.combat-sidebar .dwt-combatant { display: flex; align-items: flex-start; gap: 8px; min-height: 68px; margin: 0; padding: 8px; border: 1px solid #819ba36b; border-radius: 6px; background: #172a35e8; }
+.combat-sidebar .dwt-combatant.active { border-color: #e9c36d; box-shadow: inset 3px 0 #e9c36d; background: #2d3b3de8; }
+.combat-sidebar .dwt-combatant.defeated { opacity: .55; }
+.combat-sidebar .dwt-combat-portrait { flex: 0 0 48px; width: 48px; height: 48px; border: 0; border-radius: 5px; object-fit: cover; }
+.combat-sidebar .dwt-combat-details { flex: 1; min-width: 0; }
+.combat-sidebar .dwt-combat-heading { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.combat-sidebar .dwt-combat-heading strong { overflow-wrap: anywhere; font-size: 14px; }
+.combat-sidebar .dwt-combat-heading .token-initiative { flex: none; min-width: 30px; font-weight: 800; text-align: right; }
+.combat-sidebar .dwt-combat-heading .initiative-input { width: 40px; min-height: 24px; height: 24px; text-align: center; }
+.combat-sidebar .dwt-combat-hp { position: relative; height: 15px; margin: 6px 0; overflow: hidden; border-radius: 4px; background: #653f3f; }
+.combat-sidebar .dwt-combat-hp > div { height: 100%; background: #58a379; }
+.combat-sidebar .dwt-combat-hp > span { position: absolute; inset: 0; color: white; font-size: 11px; font-weight: 700; line-height: 15px; text-align: center; text-shadow: 0 1px 2px #000; }
+.combat-sidebar .dwt-combat-effects { display: flex; gap: 3px; margin: 5px 0; }
+.combat-sidebar .dwt-combat-effects img { width: 20px; height: 20px; border: 1px solid #a9c1cb88; border-radius: 3px; object-fit: cover; }
+.combat-sidebar .dwt-combat-actions { display: flex; flex-wrap: wrap; gap: 3px; margin-top: 5px; }
+.combat-sidebar .dwt-combat-actions button { width: 23px; height: 23px; min-height: 23px; padding: 2px; border: 1px solid #829ba36a; border-radius: 3px; color: #aebbc0; background: #17242d; font-size: 12px; }
+.combat-sidebar .dwt-combat-actions button.active { color: #f3bd74; }
+.combat-sidebar .dwt-combat-actions .dwt-action.available { color: #8ee1ae; border-color: #7ec09b; }
+.combat-sidebar .dwt-combat-buff-heading { margin: 7px 8px 0; padding-top: 7px; border-top: 1px solid #768b8d88; color: #d3d9d4; font-size: 12px; font-weight: 700; }
+.combat-sidebar .dwt-combat-buffs .dwt-combatant { min-height: 48px; opacity: .85; }
+.combat-sidebar .dwt-combat-empty { padding: 16px; text-align: center; opacity: .7; }
+.combat-sidebar .combat-tracker-header, .combat-sidebar .combat-controls { background: #172a35e8; }
+.combat-sidebar .dwt-combat-header { gap: 7px; padding: 10px 9px; border-bottom: 1px solid #819ba355; color: #f3f0eb; }
+.combat-sidebar .dwt-combat-title { display: flex; align-items: center; gap: 7px; color: #b8e1ee; font-size: 15px; font-weight: 800; }
+.combat-sidebar .dwt-combat-encounters { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.combat-sidebar .dwt-combat-encounters button { flex: 0 0 auto; min-width: 28px; min-height: 27px; padding: 2px 7px; }
+.combat-sidebar .dwt-combat-encounters button.active { border-color: #e9c36d; color: #e9c36d; }
+.combat-sidebar .dwt-combat-encounters span { margin: 0 3px; color: #c4d3d8; font-size: 12px; }
+.combat-sidebar .dwt-combat-utility { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 5px; font-size: 12px; }
+.combat-sidebar .dwt-combat-utility > div { display: flex; gap: 4px; }
+.combat-sidebar .dwt-combat-utility button { width: auto; min-height: 27px; padding: 2px 6px; font-size: 11px; }
+.combat-sidebar .dwt-combat-footer { display: flex; justify-content: space-between; gap: 4px; padding: 8px; border-top: 1px solid #819ba355; }
+.combat-sidebar .dwt-combat-footer button { flex: 0 0 auto; min-width: 30px; min-height: 31px; padding: 3px 7px; }
+.combat-sidebar .dwt-combat-footer button.dwt-primary { flex: 1; border-color: #7dc2d8; background: #245a6e; color: white; font-weight: 800; }
+
+/* Calendar and per-scene weather. */
+.dwt-calendar-window .window-content { padding: 0; }
+.dwt-calendar-content { height: 100%; overflow: auto; padding: 16px; color: var(--color-text-primary, #eee); }
+.dwt-calendar-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 6px; background: #193746; color: #f5f4ef; }
+.dwt-calendar-top div { display: flex; flex-direction: column; gap: 3px; }
+.dwt-calendar-top small { color: #b6d6df; }
+.dwt-calendar-top strong { font-size: 17px; }
+.dwt-calendar-top button { width: auto; min-height: 30px; }
+.dwt-calendar-month, .dwt-calendar-weather { margin-top: 13px; padding: 13px; border: 1px solid #748c9177; border-radius: 6px; background: #32474b1f; }
+.dwt-calendar-navigation { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.dwt-calendar-navigation h2 { margin: 0; font-size: 17px; text-align: center; }
+.dwt-calendar-navigation button { width: 30px; min-height: 30px; }
+.dwt-calendar-grid { display: grid; grid-template-columns: repeat(var(--dwt-weekdays, 7), minmax(0, 1fr)); gap: 3px; }
+.dwt-calendar-weekday { padding: 4px 0; color: #92afba; font-size: 11px; font-weight: 700; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dwt-calendar-day, .dwt-calendar-blank { display: flex; align-items: center; justify-content: center; min-width: 0; min-height: 35px; border-radius: 4px; }
+.dwt-calendar-day { border: 1px solid #718c9273; background: #28414a42; font-size: 13px; }
+.dwt-calendar-day.today { border-color: #ddae65; color: #ffd697; font-weight: 800; }
+.dwt-calendar-day.selected { background: #397b91; color: white; box-shadow: inset 0 0 0 1px #b7e5ee; }
+.dwt-calendar-day { position: relative; }
+.dwt-calendar-event-dot { position: absolute; bottom: 3px; width: 5px; height: 5px; border-radius: 50%; background: #e6b36b; }
+.dwt-calendar-selection { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.dwt-calendar-selection strong { flex: 1 1 175px; }
+.dwt-calendar-selection label { display: flex; align-items: center; gap: 3px; font-size: 12px; }
+.dwt-calendar-selection input { width: 54px; min-height: 28px; text-align: center; }
+.dwt-calendar-selection button { flex: 0 0 auto; width: auto; min-height: 29px; padding: 3px 8px; }
+.dwt-calendar-events { margin-top: 13px; padding: 13px; border: 1px solid #748c9177; border-radius: 6px; background: #32474b1f; }
+.dwt-calendar-events h2 { margin: 0 0 10px; font-size: 15px; }
+.dwt-calendar-event { display: flex; justify-content: space-between; align-items: start; gap: 8px; margin: 6px 0; padding: 8px; border-left: 3px solid #c5a16a; background: #34515a39; }
+.dwt-calendar-event p { margin: 4px 0 0; font-size: 12px; white-space: pre-wrap; }
+.dwt-calendar-event button { flex: none; width: 26px; min-height: 25px; padding: 2px; }
+.dwt-calendar-event-form { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+.dwt-calendar-event-form input:first-child { flex: 1 1 140px; }
+.dwt-calendar-event-form input:nth-child(2) { flex: 2 1 180px; }
+.dwt-calendar-event-form button { flex: 0 0 auto; width: auto; min-height: 30px; padding: 3px 8px; }
+.dwt-calendar-event-form label { display: flex; align-items: center; gap: 3px; font-size: 12px; white-space: nowrap; }
+.dwt-calendar-event-form label input { width: auto; }
+.dwt-calendar-io { margin-top: 13px; padding: 13px; border: 1px solid #748c9177; border-radius: 6px; background: #32474b1f; }
+.dwt-calendar-io h2 { margin: 0 0 7px; font-size: 15px; }
+.dwt-calendar-io p { margin: 5px 0 10px; font-size: 12px; }
+.dwt-calendar-io-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.dwt-calendar-io-actions button { width: auto; min-height: 30px; padding: 3px 8px; }
+.dwt-calendar-io-actions label { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+.dwt-calendar-io-actions input[type="file"] { max-width: 280px; font-size: 12px; }
+.dwt-calendar-import-options { margin-top: 12px; padding: 11px; border: 1px solid #80a7ae80; border-radius: 5px; background: #1c3b4966; }
+.dwt-calendar-import-options > label { display: flex; align-items: center; gap: 6px; margin: 8px 0; font-size: 12px; }
+.dwt-calendar-import-options input[type="checkbox"] { width: auto; }
+.dwt-calendar-io-warning { color: #f2c47f; font-weight: 700; }
+.dwt-calendar-weather-heading { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.dwt-calendar-weather-heading h2 { margin: 0; font-size: 16px; }
+.dwt-calendar-weather-heading small { opacity: .7; }
+.dwt-weather-current { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; margin: 11px 0; padding: 10px 12px; border-radius: 5px; background: #22506255; }
+.dwt-weather-current > i { width: 22px; color: #bde3f2; font-size: 21px; text-align: center; }
+.dwt-weather-current strong { font-size: 16px; }
+.dwt-weather-current span { font-weight: 700; }
+.dwt-weather-current small { margin-left: auto; opacity: .7; }
+.dwt-weather-form { display: flex; align-items: end; flex-wrap: wrap; gap: 8px; }
+.dwt-weather-form label { display: flex; flex: 1 1 115px; flex-direction: column; gap: 3px; font-size: 12px; }
+.dwt-weather-form select, .dwt-weather-form input { width: 100%; min-height: 30px; }
+.dwt-weather-buttons { display: flex; flex: 1 1 100%; flex-wrap: wrap; gap: 6px; }
+.dwt-weather-buttons button { width: auto; min-height: 30px; padding: 3px 8px; font-size: 12px; }
+.dwt-weather-note, .dwt-calendar-empty { margin: 10px 0 0; font-size: 12px; opacity: .75; }

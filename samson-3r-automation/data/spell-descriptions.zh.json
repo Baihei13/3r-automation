@@ -1,0 +1,327 @@
+{
+  "source": "用户已安装的 zzzzz_3r_chn.spells 合集",
+  "entries": {
+    "Status": {
+      "name": "关照术",
+      "shortDescription": "<p>当你要和即将分离的同伴保持关注时，关照术使你可以从心中察觉同伴的相对位置和状态。你可以感觉到，受术者的方向、距离和所处状况，如：未受伤，受伤，瘫痪，恍惚，昏迷，濒死，恶心，慌乱，晕眩，中毒，生病，困惑等。一旦法术施展在受术者身上，那么只要施法者与受术者处于同一位面，他们之间的距离远近不影响法术效果。若一个受术者离开该位面或死亡，则法术结束该受术者的部分。</p>",
+      "source": "zzzzz_3r_chn.spells.0jr9KEPv1Tqd58AJ",
+      "text": {}
+    },
+    "Flame Strike": {
+      "name": "焰击术",
+      "shortDescription": "<p>影响区域：柱形（10尺半径，40尺高）</p>\n<p>焰击术产生一道垂直的圣火柱，轰鸣着从天而降。法术造成每施法者等级1d6的伤害（最多15d6）。这伤害一半是火伤害，但另一半是直接源自神力，因此抵抗火攻击的方式无法对这一部分起作用。</p>",
+      "source": "zzzzz_3r_chn.spells.33IaP5Cu8pc77nrP",
+      "text": {
+        "spellArea": "圆柱（10英尺半径，40英尺高）",
+        "types": "火"
+      }
+    },
+    "Augury": {
+      "name": "占卜术",
+      "shortDescription": "<p>占卜术能告诉你紧接下来的某个特定行为带来的结果对你来说是好是坏。</p>\n<p>要得到有意义的答复其基础概率是<span lang=\"EN-US\">70%+1%/</span>每施法者等级，最多<span lang=\"EN-US\">90%</span>；该判定是秘密进行的。非常清晰的问题有可能自动得到成功的结果，特别含糊的问题则可能完全无法得到成功的结果。如果占卜术成功了，你将得到以下四个结果之一。</p>\n<ul>\n<li><strong>吉（<span lang=\"EN-US\">Weal</span>）</strong>（如果该行为会带来好的结果）。</li>\n<li><strong>凶（<span lang=\"EN-US\">Woe</span>）</strong>（如果会带来坏的结果）。</li>\n<li><strong>吉且凶（<span lang=\"EN-US\">Weal and woe</span>）</strong>（如果既会带来好的结果又会带来坏的结果）。</li>\n<li><strong>平（<span lang=\"EN-US\">Nothing</span>）</strong>（如果行为不会有特别好或特别坏的结果）。</li>\n</ul>\n<p>如果法术失败，你将得到&ldquo;平&rdquo;的结果。得到&ldquo;平&rdquo;的牧师无法得知究竟这是法术失败的结果还是一次成功的占卜。</p>\n<p>占卜术仅能判断半个小时以内的未来，因此这段时间以后的所有事情都无法影响到结果。因此，该结果不能用来判断一个预期行为的长期结果。同一个人为同一个主题施展的占卜术全部使用第一次施法的投骰结果。</p>\n<p>&nbsp;</p>",
+      "source": "zzzzz_3r_chn.spells.3sjlcq6x73d4MmfM",
+      "text": {}
+    },
+    "Sequester": {
+      "name": "隔离术",
+      "shortDescription": "<p>此法术不光会保护目标，使其不会被预言系法术侦测或定位，还使其不会被看见（效果如同隐形术（invisibility）），但是可以通过触觉或其他装置来发现受术者。受此法术作用的生物会陷入昏睡，呈假死状态，直至法术结束或被解除。</p>\n<p>注意：通过意志豁免的物体不会被隔离。但是如果用预言系法术来探知被隔离的生物或物体则无豁免。</p>\n<p>材料成分：一根石化蜥蜴的睫毛，透明胶、一杯白漆。</p>",
+      "source": "zzzzz_3r_chn.spells.4rWDTfhBWqbaljOR",
+      "text": {}
+    },
+    "Magic Vestment": {
+      "name": "魔化防具",
+      "shortDescription": "<p>你可以对一套盔甲或盾牌赋予每4施法者等级+1的增强加值（最多在施法者等级20级时+5）</p>\n<p>若以一般外衣作为法术目标，则衣服被视为没有AC加值的盔甲。</p>",
+      "source": "zzzzz_3r_chn.spells.7OmyaAC9Sxttewng",
+      "text": {}
+    },
+    "Mending": {
+      "name": "修复术",
+      "shortDescription": "<div>\n<p align=\"left\">修复术可以修复物品上的小裂缝或小的破损处（扭曲的则不行，例如被曲木术（<span lang=\"EN-US\">warp wood</span>）作用过的）。修复术可以用来焊接只有一处破损的金属物品，例如戒指，链子，徽章或小型的匕首。</p>\n<p align=\"left\">多处破损的瓷器或木器也可以修复至完好如新。修复术也可以把皮袋或酒囊上的小洞补起来。此法术可以修复魔法物品，但是不能恢复损坏的魔法物品的魔法能力。此法术不能修复魔法权杖、法杖、魔杖也无法修复，也无法影响生物（包括构装生物）。</p>\n</div>",
+      "source": "zzzzz_3r_chn.spells.E7ronZxQYLHrS0CT",
+      "text": {}
+    },
+    "Spiritual Weapon": {
+      "name": "灵能武器",
+      "shortDescription": "<p>你可以造出一把由纯力场构成的武器，并指挥它来攻击远处敌人，该武器每一击可造成1d8点力场伤害，每三级施法者等级可多造成一点伤害（最多为15级时的+5）。武器形状是你信奉神祉的偏好武器，或者是对你意义重大，有某种精神象征的武器（见下文），它的重击范围与重击倍数与和它同形体的真实武器相同。从施法那轮开始，该武器即会攻击你指定的敌人，此后每一轮都在你行动之后进行攻击。它用你的基本攻击加值（因此有可能让它在后面的轮次内每轮进行多次攻击）加上施法者的感知调整值作为它的攻击加值。它的攻击视为法术而非武器，因此它可以对有伤害减免的生物造成伤害。作为力场效果，它攻击虚体生物时不会有失手几率。该武器只能从你的方向发动攻击。它不能获得夹击加值，也不能帮助队友夹击。你的专长和战斗行动对它没有影响。如果武器离开法术的有效距离，或离开你的视野，或你不再指挥它，它便会回到你身边盘旋待命。</p>\n<p>第一轮之后的每一轮里，你都可以用一个移动动作来指挥该武器攻击另一个目标。如果你不这么做，它会继续攻击前一轮的目标。改变目标的那一轮，该武器只能攻击一次。之后若不改变目标，且你的基本攻击加值允许，它可以进行多重攻击。即便造出的灵能武器是远程武器，武器的攻击范围仍旧受法术范围的限制，而不是原来武器的攻击范围，并且改变目标仍旧是个移动动作。</p>\n<p>物理攻击无法攻击或损伤灵能武器，但是解除魔法（dispel magic），解离术（disintegrate），毁灭黑洞（sphere of annihilation），抹消权杖（rod of cancellation）都会影响它。灵能武器的接触AC为12（10+超小型物体的体型调整值）。</p>\n<p>若受攻击生物有法术抗力，你需要在灵能武器第一次攻击它时作施法者等级检定（1d20+施法者等级）来对抗对方的法术抗力。若这个武器被成功的抵抗了，则法术解消。反之则在法术持续时间内，武器对该生物能发挥全部正常效果。</p>\n<p>你造出的武器通常都是你信奉神祗的偏好武器。无神牧师根据其阵营获得武器。中立无神牧师可以造出任何阵营的武器，但他当时的行为必须符合该阵营性质。各阵营的武器如下：</p>\n<p>混乱：</p>\n<p>战斧</p>\n<p>邪恶：</p>\n<p>轻型链枷</p>\n<p>善良：</p>\n<p>战锤</p>\n<p>守序：</p>\n<p>长剑</p>",
+      "source": "zzzzz_3r_chn.spells.FL2IZ9dkpBpCd8MI",
+      "text": {
+        "spellEffect": "力场魔法武器",
+        "types": "力场"
+      }
+    },
+    "Unseen Servant": {
+      "name": "隐形仆役",
+      "shortDescription": "<p>隐形仆役是一股不可见、无心智、无形体的力量，在你的指挥下可以为你完成简单的任务。它可以跑步取来东西，开没有拴住的门，端椅子，或清理东西。仆役一次只能做一件事，但只要在法术有效距离内，你可以要求它不断重复做同一件事。它只能打开普通的门，抽屉，盖子等。它的有效力量值为2（所以它可以举起20磅或拉动100磅）。它可以触动陷阱，但因为它只能加20磅的力，所以可能无法压动某些压力板或机关。若它从事的工作需要进行一次DC超过10的技能检定，或者该工作需要使用必须受训的技能，那么它将不能完成任务。它的速度为15尺。</p>\n<p>该仆役不能攻击，也不能进行攻击检定。它不会被杀，但如果因区域性攻击受到6点伤害，它就会消散。（遭袭时，它不能进行豁免检定。）若你试图让它前往法术有效范围外的地方（从你的当前位置算起），仆役就会消失。</p>\n<p>材料成分：一条线和一块木头。</p>",
+      "source": "zzzzz_3r_chn.spells.HTWgHfX0lOJvmjNe",
+      "text": {
+        "spellEffect": "一个不可见、无心智、无形体的仆役",
+        "subschool": "创造"
+      }
+    },
+    "Clairaudience/Clairvoyance": {
+      "name": "锐耳术/鹰眼术",
+      "shortDescription": "<p align=\"left\">此法术在特定地点制造一个隐形的魔法传感器，让你如感同身受般听或看（由你选择）。你和那个地点间不需要视觉线或者效果线，但是这个地方必须是你有了解的，或者是你所熟知的，或者是很明确的地点。一旦你决定了感应器的位置，它便不能转移到它处，不过你可以让它旋转到任何方向去探知你所渴望的事物。和其他探知法术不同的是，此法术不能再附加任何增强探知力的法术或超自然能力。如果选定的场所处在魔法黑暗中，你不能看到任何东西。如果是自然黑暗，你能看见以法术作用点为中心半径十英尺的事物。该法术只能探知你所在位面的事物。</p>",
+      "source": "zzzzz_3r_chn.spells.Ih7GmzIZkgEb7bfW",
+      "text": {
+        "spellEffect": "魔法感官",
+        "subschool": "探知"
+      }
+    },
+    "Identify": {
+      "name": "鉴定术",
+      "shortDescription": "<p>此法术能辨识出一件魔法物品的所有魔法属性，包括如何启动它的功能（如果需要启动）和该物品的法术能量还剩几发（如果有）。</p>\n<p>鉴定术用于神器不会发生任何效果。</p>",
+      "source": "zzzzz_3r_chn.spells.Iq6AMFhnc8sT5WF8",
+      "text": {}
+    },
+    "Analyze Dweomer": {
+      "name": "解析咒文",
+      "shortDescription": "<p>你辨别出多个生物或物品上呈现的所有法术或魔法特性。每一轮里，你都可以以一个即时动作来检查一个你能看见生物或物品。如果是检查魔法物品，那么你可以获知它的功能，如何启动它的功能（如果有这项），以及还剩多少发充能（<span lang=\"EN-US\">charges</span>）（如果该物品使用充能）。如果是检查正有法术施展在其上的一件物品或是一个生物，那么你能知晓每一项法术，它们的效果，以及它们的施法者等级。</p>\n<p>如果持有者愿意，任何被持有的物品都可以尝试以一个意志豁免来抵抗该法术的效果。如果豁免成功，那么除了你能看到的外，你对该物品无法了解更多。任何进行了豁免的物品在<span lang=\"EN-US\">24</span>小时内都不会被其它解析咒文所影响。</p>\n<p>解析咒文对神器没有作用。</p>\n<p>&nbsp;</p>",
+      "source": "zzzzz_3r_chn.spells.NHxi2s8sVHWRsxOr",
+      "text": {}
+    },
+    "Magic Weapon": {
+      "name": "魔化武器",
+      "shortDescription": "<p>魔化武器可以使一把武器在攻击检定和伤害掷骰上拥有+1的增强加值。（计算攻击加值时，此增强加值不与精制品武器在攻击检定上的+1加值累计。）</p>\n<p>你不能将此法术施展在天生武器上，例如徒手攻击（见魔牙术（magic fang））。武僧的徒手攻击被视为一种武器，所以可以被这个法术强化。</p>",
+      "source": "zzzzz_3r_chn.spells.QDpyTUANZ48we0hy",
+      "text": {}
+    },
+    "Power Word Kill": {
+      "name": "律令：死亡",
+      "shortDescription": "<p>你仅发出一个威力无比的词就能立即杀死你选定的一个生物，不管它是否能听见那个词。任何当前具有101或者更多生命值的生物都不受真言术：死影响。</p>",
+      "source": "zzzzz_3r_chn.spells.Qwmd4u9KGGY9QwOz",
+      "text": {
+        "subschool": "胁迫",
+        "types": "死亡,影响心灵"
+      }
+    },
+    "Blade Barrier": {
+      "name": "剑刃护壁",
+      "shortDescription": "<p>这个法术造出纯力场的旋转刀刃，构成一道垂直固定帐幕。任何穿越这道墙的生物都会受到每施法者等级<span lang=\"EN-US\">1d6</span>的伤害（最多<span lang=\"EN-US\">15d6</span>），成功的反射豁免可以减半伤害。</p>\n<p>如果你在已经有生物的地方唤出这道屏障，任何这些生物都会受到伤害，如同穿越这道墙一样。每一个这类生物可以通过一个成功的反射豁免躲开刀墙（停在由它选择的一边），从而不受伤害。</p>\n<p>对抗穿过剑刃护壁的攻击时，它会提供掩蔽（<span lang=\"EN-US\">AC+4</span>加值，反射豁免<span lang=\"EN-US\">+2</span>加值）。</p>",
+      "source": "zzzzz_3r_chn.spells.UQkfYYSMao9Bc0Zm",
+      "text": {
+        "spellEffect": "旋转刀刃的墙壁，至多长20英尺/每施法者等级，或者环形的旋转刀墙，半径至多为每两个施法者等级5英尺；两种均高20英尺。",
+        "types": "力场"
+      }
+    },
+    "Detect Magic": {
+      "name": "侦测魔法",
+      "shortDescription": "<div class=\"WordSection1\">\n<p align=\"left\">你可以侦测魔法的灵光。你能获得的信息取决于你研究该区域或物品的时间。</p>\n<ul>\n<li>第一轮：确定是否有魔法灵光。</li>\n<li>第二轮：察知魔法灵光的数量，以及最强者的强度。</li>\n<li>第三轮：每处灵光的位置和强度。若物品或生物在视线内，你可以通过辨识法术检定来得知那些法术所属的学派。（每道灵光进行一次检定；<span lang=\"EN-US\">DC=15+</span>法术等级，若是非法术效果则为<span lang=\"EN-US\">15</span>加施法者等级的一半）。</li>\n</ul>\n<p align=\"left\"><strong>魔法区域</strong>：多种法术效果或强大的区域法术可能会歪曲或掩盖较弱的魔法灵光。</p>\n<p align=\"left\"><strong>灵光强度</strong>：灵光强度与作用中的法术等级或物品的施法者等级有关。若一道灵光包含了多个类型，则此法术会显示其中较强者。</p>\n<table class=\"MsoNormalTable\" style=\"border-collapse: collapse; width: 100%; height: 229.333px;\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\">\n<tbody>\n<tr style=\"height: 31.3333px;\">\n<td style=\"border-width: 1pt medium 1pt 1pt; border-style: solid none solid solid; padding: 0cm 5.4pt; width: 17.8179%; height: 31.3333px; border-color: windowtext initial windowtext windowtext;\" valign=\"top\">\n<p align=\"left\">&nbsp;</p>\n</td>\n<td style=\"border-width: 1pt 1pt 1pt medium; border-style: solid solid solid none; padding: 0cm 5.4pt; width: 75.4114%; height: 31.3333px; border-color: windowtext windowtext windowtext initial;\" colspan=\"4\" valign=\"top\">\n<p><span lang=\"EN-US\">&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash; </span>灵光强度<span lang=\"EN-US\"> &mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;</span></p>\n</td>\n</tr>\n<tr style=\"height: 58px;\">\n<td style=\"border-width: medium 1pt 1pt; border-style: none solid solid; padding: 0cm 5.4pt; width: 17.8179%; height: 58px; border-color: initial windowtext windowtext windowtext;\" valign=\"top\">\n<p align=\"left\"><strong>法术或物体</strong></p>\n</td>\n<td valign=\"top\">\n<p align=\"center\"><strong>昏暗（<span lang=\"EN-US\">Faint</span>）</strong></p>\n</td>\n<td valign=\"top\">\n<p align=\"center\"><strong>中等（<span lang=\"EN-US\">Moderate</span>）</strong></p>\n</td>\n<td valign=\"top\">\n<p align=\"center\"><strong>强烈（<span lang=\"EN-US\">Strong</span>）</strong></p>\n</td>\n<td style=\"border-width: medium 1pt 1pt medium; border-style: none solid solid none; padding: 0cm 5.4pt; width: 25.6429%; height: 58px; border-color: initial windowtext windowtext initial;\" valign=\"top\">\n<p align=\"center\"><strong>刺目（<span lang=\"EN-US\">Overwhelming</span>）</strong></p>\n</td>\n</tr>\n<tr style=\"height: 70px;\">\n<td style=\"border-width: medium 1pt 1pt; border-style: none solid solid; padding: 0cm 5.4pt; width: 17.8179%; height: 70px; border-color: initial windowtext windowtext windowtext;\" valign=\"top\">\n<p align=\"left\">作用中的法术（法术等级）</p>\n</td>\n<td valign=\"top\">\n<p align=\"center\"><span lang=\"EN-US\">3</span>级或更低</p>\n</td>\n<td valign=\"top\">\n<p align=\"center\"><span lang=\"EN-US\">4&ndash;6</span>级</p>\n</td>\n<td valign=\"top\">\n<p align=\"center\"><span lang=\"EN-US\">7&ndash;9</span>级</p>\n</td>\n<td style=\"border-width: medium 1pt 1pt medium; border-style: none solid solid none; padding: 0cm 5.4pt; width: 25.6429%; height: 70px; border-color: initial windowtext windowtext initial;\" valign=\"top\">\n<p align=\"center\"><span lang=\"EN-US\">10+ </span>（神级）</p>\n</td>\n</tr>\n<tr style=\"height: 70px;\">\n<td style=\"border-width: medium 1pt 1pt; border-style: none solid solid; padding: 0cm 5.4pt; width: 17.8179%; height: 70px; border-color: initial windowtext windowtext windowtext;\" valign=\"top\">\n<p align=\"left\">魔法物品（施法者等级）</p>\n</td>\n<td valign=\"top\">\n<p align=\"center\"><span lang=\"EN-US\">5</span>级或更低</p>\n</td>\n<td valign=\"top\">\n<p align=\"center\"><span lang=\"EN-US\">6&ndash;11</span>级</p>\n</td>\n<td valign=\"top\">\n<p align=\"center\"><span lang=\"EN-US\">12&ndash;20</span>级</p>\n</td>\n<td style=\"border-width: medium 1pt 1pt medium; border-style: none solid solid none; padding: 0cm 5.4pt; width: 25.6429%; height: 70px; border-color: initial windowtext windowtext initial;\" valign=\"top\">\n<p align=\"center\"><span lang=\"EN-US\">21+ </span>（神器）</p>\n</td>\n</tr>\n</tbody>\n</table>\n<ul>\n<li><strong><span lang=\"EN-US\">&nbsp;</span>残存的灵光</strong>：魔法灵光被摧毁（魔法物品）或消失（法术）后，会留下残存的灵光。若以侦测魔法观察，则可发现此处有暗淡（<span lang=\"EN-US\">dim</span>）的灵光（比昏暗灵光更暗）。灵光的残存时间取决于该魔法物品的力量。</li>\n</ul>\n<table class=\"MsoNormalTable\" style=\"border-collapse: collapse; mso-padding-alt: 0cm 5.4pt 0cm 5.4pt;\" border=\"0\" cellspacing=\"0\" cellpadding=\"0\">\n<tbody>\n<tr>\n<td style=\"border-top: windowtext 1pt solid; border-right: windowtext 1pt solid; border-bottom: medium none; border-left: windowtext 1pt solid; mso-border-left-alt: solid windowtext .5pt; mso-border-top-alt: solid windowtext .5pt; mso-border-right-alt: solid windowtext .5pt; padding: 0cm 5.4pt 0cm 5.4pt;\" valign=\"top\">\n<p align=\"left\">原来的强度</p>\n</td>\n<td style=\"border-top: windowtext 1pt solid; border-right: windowtext 1pt solid; border-bottom: medium none; border-left: medium none; mso-border-left-alt: solid windowtext .5pt; mso-border-top-alt: solid windowtext .5pt; mso-border-right-alt: solid windowtext .5pt; padding: 0cm 5.4pt 0cm 5.4pt;\" valign=\"top\">\n<p align=\"left\">灵光残存时间</p>\n</td>\n</tr>\n<tr>\n<td style=\"border-top: windowtext 1pt solid; border-right: windowtext 1pt solid; border-bottom: medium none; border-left: windowtext 1pt solid; mso-border-left-alt: solid windowtext .5pt; mso-border-top-alt: solid windowtext .5pt; mso-border-right-alt: solid windowtext .5pt; padding: 0cm 5.4pt 0cm 5.4pt;\" valign=\"top\">\n<p align=\"left\">昏暗</p>\n</td>\n<td style=\"border-top: windowtext 1pt solid; border-right: windowtext 1pt solid; border-bottom: medium none; border-left: medium none; mso-border-left-alt: solid windowtext .5pt; mso-border-top-alt: solid windowtext .5pt; mso-border-right-alt: solid windowtext .5pt; padding: 0cm 5.4pt 0cm 5.4pt;\" valign=\"top\">\n<p align=\"left\"><span lang=\"EN-US\">1d6 </span>轮</p>\n</td>\n</tr>\n<tr>\n<td style=\"border-top: windowtext 1pt solid; border-right: windowtext 1pt solid; border-bottom: medium none; border-left: windowtext 1pt solid; mso-border-left-alt: solid windowtext .5pt; mso-border-top-alt: solid windowtext .5pt; mso-border-right-alt: solid windowtext .5pt; padding: 0cm 5.4pt 0cm 5.4pt;\" valign=\"top\">\n<p align=\"left\">中等</p>\n</td>\n<td style=\"border-top: windowtext 1pt solid; border-right: windowtext 1pt solid; border-bottom: medium none; border-left: medium none; mso-border-left-alt: solid windowtext .5pt; mso-border-top-alt: solid windowtext .5pt; mso-border-right-alt: solid windowtext .5pt; padding: 0cm 5.4pt 0cm 5.4pt;\" valign=\"top\">\n<p align=\"left\"><span lang=\"EN-US\">1d6 </span>分钟</p>\n</td>\n</tr>\n<tr>\n<td style=\"border-top: windowtext 1pt solid; border-right: windowtext 1pt solid; border-bottom: medium none; border-left: windowtext 1pt solid; mso-border-left-alt: solid windowtext .5pt; mso-border-top-alt: solid windowtext .5pt; mso-border-right-alt: solid windowtext .5pt; padding: 0cm 5.4pt 0cm 5.4pt;\" valign=\"top\">\n<p align=\"left\">强烈</p>\n</td>\n<td style=\"border-top: windowtext 1pt solid; border-right: windowtext 1pt solid; border-bottom: medium none; border-left: medium none; mso-border-left-alt: solid windowtext .5pt; mso-border-top-alt: solid windowtext .5pt; mso-border-right-alt: solid windowtext .5pt; padding: 0cm 5.4pt 0cm 5.4pt;\" valign=\"top\">\n<p align=\"left\"><span lang=\"EN-US\">1d6x10 </span>分钟</p>\n</td>\n</tr>\n<tr>\n<td style=\"mso-border-alt: solid windowtext .5pt; border: windowtext 1pt solid; padding: 0cm 5.4pt 0cm 5.4pt;\" valign=\"top\">\n<p align=\"left\">刺目</p>\n</td>\n<td style=\"border-top: windowtext 1pt solid; border-right: windowtext 1pt solid; border-bottom: windowtext 1pt solid; border-left: medium none; mso-border-alt: solid windowtext .5pt; mso-border-left-alt: solid windowtext .5pt; padding: 0cm 5.4pt 0cm 5.4pt;\" valign=\"top\">\n<p align=\"left\"><span lang=\"EN-US\">1d6 </span>天</p>\n</td>\n</tr>\n</tbody>\n</table>\n<p align=\"left\">异界生物和元素生物本身不是魔法物品，但如果它们是被召唤来的，可以侦测到咒法系法术。</p>\n<p align=\"left\">每一轮你都可以侦测一个新区域。此法术可穿透障碍，不过<span lang=\"EN-US\">1</span>英尺厚的岩石，<span lang=\"EN-US\">1</span>英寸厚的普通金属，铅薄片或<span lang=\"EN-US\">3</span>英尺厚的木头或泥土都可以挡住它。</p>\n<p align=\"left\">侦测魔法可以用<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.CFyRFIkx6f3jBART\" data-id=\"CFyRFIkx6f3jBART\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\" aria-describedby=\"tooltip\">魔法恒定术</a>来永久化。</p>\n</div>",
+      "source": "zzzzz_3r_chn.spells.VQ0QrFKM2yYHt9lm",
+      "text": {
+        "spellArea": "锥形弥漫区域"
+      }
+    },
+    "Tongues": {
+      "name": "巧言术",
+      "shortDescription": "<div>本法术使受术者能够听懂和叙说其他任何智能生物的语言，无论是种族语言或方言。受术者一次只能说一种语言，但是他能了解的语言可以超过一种。巧言术无法使受术者与不会讲话的生物交谈。在嗓音可传达的范围内，所有生物都能理解受术者的话。此法术不能决定其他生物会向受术者说些什么。</div>\n<div>巧言术可以用<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.CFyRFIkx6f3jBART\" data-id=\"CFyRFIkx6f3jBART\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\" aria-describedby=\"tooltip\">魔法恒定术</a>恒定。</div>",
+      "source": "zzzzz_3r_chn.spells.X6DmImn7OOZzPtUa",
+      "text": {}
+    },
+    "Heroes' Feast": {
+      "name": "英雄宴",
+      "shortDescription": "<p>你作出一份丰盛的宴席，包括：豪华桌椅，完善服务，食物和饮料。享用着一顿大餐要花费1小时，所有的效果都在吃完后才能开始起作用。所有与宴者的疾病（diseases）、恶心（sickness）和反胃（nausea）将会痊愈；在接下来12小时内免疫毒素并且百毒不侵12小时；在喝下纯美的佳酿后（作为宴席的一部分）还会获得1d8加每两施法者等级1点（最高+10）的临时生命值。精致的食物会使与宴者在接下来的12小时中在攻击和意志豁免上获得+1士气加值，并对恐惧免疫。</p>\n<p>如果宴席被打断，则法术中止并失去所有效果。.</p>",
+      "source": "zzzzz_3r_chn.spells.XT362nAY9eoVk5yf",
+      "text": {
+        "subschool": "创造"
+      }
+    },
+    "Divine Power": {
+      "name": "神能",
+      "shortDescription": "<p>呼唤你所信仰神祗的威力，为自己注入一股战斗力量和技能。你的基本攻击加值变为等于你的人物等级（这也许可使你进行多次攻击），你的力量获得+6的增强加值，并获得每施法者等级1点暂时生命值。</p>",
+      "source": "zzzzz_3r_chn.spells.azlX5f7Y6FgCgraF",
+      "text": {}
+    },
+    "Discern Location": {
+      "name": "感知位置",
+      "shortDescription": "<p>感知位置是最强大的确定生物或物体位置的法术之一。除了法术心灵屏障（mind blank）或神力的直接干涉外没有任何途经能阻止你得知目标的确切位置。感知位置可以绕过通常的探知或定位防护方法。此法术可显示生物的名字或物体所在的位置（地点，姓名，商业名，建筑名之类），社区，郡（或其他行政区划），国家，大陆，以及位面名。</p>\n<p>要用这个法术找到一个生物，你必须见过它，或有一些曾属于它的物品。要找到一件物品，你必须至少接触过它一次。</p>",
+      "source": "zzzzz_3r_chn.spells.cn0KgW9Tc61dTJMf",
+      "text": {}
+    },
+    "Detect Scrying": {
+      "name": "侦测探知",
+      "shortDescription": "<p>当你被任何预言系（探知）法术或效果观测时，你会立即知晓。这个法术法术区域以你为中心，并随你移动。你可以知道法术范围内任何魔法传感器。</p>\n<p>若有人试图在法术区域内侦测你，你会知道它的位置；同时，你和侦测者立刻进行施法者等级对抗（<span lang=\"EN-US\">1d20+</span>施法者等级）。若你的结果不低于对方，则你立即看到对方的影像，并确知其方向及距离。</p>\n<p>&nbsp;</p>",
+      "source": "zzzzz_3r_chn.spells.cuaeNcyVCOXvtXDI",
+      "text": {
+        "spellArea": "以你为中心，半径40英尺弥漫范围"
+      }
+    },
+    "Shield of Faith": {
+      "name": "虔诚护盾",
+      "shortDescription": "<div>\n<p align=\"left\">此法术创造出一种闪着微光的魔法场，保卫着受术者以防御敌人的攻击。受术者的<span lang=\"EN-US\">AC</span>获得<span lang=\"EN-US\">+2</span>偏斜加值，同时施法者每<span lang=\"EN-US\">6</span>级多获得<span lang=\"EN-US\">1</span>点偏斜加值（最多在<span lang=\"EN-US\">18</span>级时获得<span lang=\"EN-US\">+5</span>偏斜加值）。</p>\n<p align=\"left\">施法材料：一小片写有神圣文字的羊皮纸</p>\n</div>",
+      "source": "zzzzz_3r_chn.spells.d6WN7BnDUWpLaDef",
+      "text": {}
+    },
+    "Power Word Blind": {
+      "name": "律令：目盲",
+      "shortDescription": "<p>你仅发出一个威力无比的词就能让你选定的一个生物目盲，不管它是否能听见那个词。该法术的持续时间和目标的当前总生命值相关。任何当前具有201或者更多生命值的生物都不受真言术：盲影响。</p>\n<p>生命值</p>\n<p>持续时间</p>\n<p>50或更少</p>\n<p>永久</p>\n<p>51–100</p>\n<p>1d4+1 分钟</p>\n<p>101–200</p>\n<p>1d4+1 轮</p>",
+      "source": "zzzzz_3r_chn.spells.dC4yecInATydpbC6",
+      "text": {
+        "subschool": "胁迫",
+        "types": "影响心灵"
+      }
+    },
+    "Deathwatch": {
+      "name": "观命术",
+      "shortDescription": "<p>你使用冥界力量赐予的秽暗视觉得知法术范围内濒死生物的状态。你可在瞬间得知每个生物是否死亡、奄奄一息（活着但是重伤，生命值不超过<span lang=\"EN-US\">3</span>）、死里逃生（生命值<span lang=\"EN-US\">4</span>或更高）、不死生物，或无所谓死活（如构装生物）</p>\n<p>观命术可看穿任何使生物假死的法术和能力。</p>",
+      "source": "zzzzz_3r_chn.spells.eF22Ab1hfrV9hwfQ",
+      "text": {
+        "spellArea": "锥形弥漫区域",
+        "types": "邪恶"
+      }
+    },
+    "Illusory Script": {
+      "name": "迷幻手稿",
+      "shortDescription": "<p>你能在羊皮纸、纸或是任何可书写的材料上写下指示或是其他信息。该文字看上去就像是一种异国或是魔法文字。</p>\n<p>只有你在施法时所指定的人（或多人）能阅读该文字，对其他人而言，该文字完全不可读，哪怕是已经认出这是迷幻手稿的幻术师。</p>\n<p>任何未被指定的生物若是想要阅读此手稿都会触发一个强力的幻觉效果，同时必须做一个豁免检定。豁免检定成功则表示该生物能把脸转过去，只会暂时恍惚一下。若检定失败，则表示该生物会受到你施法时所定下的暗示的影响。该暗示效果只持续<span lang=\"EN-US\">30&nbsp;</span>分钟。常见的暗示包括：&ldquo;合上这本书并离开&rdquo;&ldquo;忘记这本书的存在&rdquo;之类。如果该法术被<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.Q3ZxRzrxld8P0t1v\" data-id=\"Q3ZxRzrxld8P0t1v\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">解除魔法</a>所解除，迷幻手稿本身和它的秘密信息都会消失。只有结合了<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.TPjZCWxk1iXsJpqj\" data-id=\"TPjZCWxk1iXsJpqj\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">阅读魔法</a>或<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.BGeAhjtsnDcY6iTV\" data-id=\"BGeAhjtsnDcY6iTV\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">通晓语言</a>的<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.qftXpeBL3XWLYe2W\" data-id=\"qftXpeBL3XWLYe2W\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">真知术</a>可以读取隐藏信息。</p>\n<p>施法时间取决于你要写多长的信息，但至少要花费一分钟。</p>",
+      "source": "zzzzz_3r_chn.spells.olTqrte8hmw7W6eN",
+      "text": {
+        "subschool": "魅影幻觉",
+        "types": "影响心灵"
+      }
+    },
+    "Time Stop": {
+      "name": "时间静止",
+      "shortDescription": "<p>这个法术看上去像是让除了你以外的其他人都进入时间静止状态。但事实上是你的速度变得非常快，使得其他生物看起来完全静止，尽管他们实际上依然可以正常运动。你可以在1d4+1轮（以你的观点）内自由行动。普通或是魔法火焰、寒冷、毒气等依然会伤害你。时间静止作用期间，其他生物不会因你的攻击或法术而受伤，你不能以那些生物为物理攻击或法术的目标。区域法术持续时间若比时间静止剩下的时间长，则可在时间静止结束后继续生效。大多数施法者利用这些额外的时间来加强防御、召唤盟友，或者逃离战斗。</p>\n<p>若物品被其他生物所持有、携带或穿着，则你不能移动或伤害它们，但你可以影响无主物品。</p>\n<p>在时间静止的持续时间内，你不可被侦测。在时间静止的效果下你不能进入被反魔场（Antimagic Field）保护的区域。</p>",
+      "source": "zzzzz_3r_chn.spells.p3lOHPkh13ToBOIG",
+      "text": {}
+    },
+    "Power Word Stun": {
+      "name": "律令：震慑",
+      "shortDescription": "<p>你仅发出一个威力无比的词就能让你选定的一个生物震慑，不管它是否能听见那个词。该法术的持续时间和目标的当前总生命值相关。任何当前具有151或者更多生命值的生物都不受真言术：震影响。</p>\n<p>生命值</p>\n<p>持续时间</p>\n<p>50或更少</p>\n<p>4d4 轮</p>\n<p>51–100</p>\n<p>2d4 轮</p>\n<p>101–150</p>\n<p>1d4 轮</p>",
+      "source": "zzzzz_3r_chn.spells.px2RjwigDmFDmPYf",
+      "text": {
+        "subschool": "胁迫",
+        "types": "影响心灵"
+      }
+    },
+    "Erase": {
+      "name": "抹消术",
+      "shortDescription": "<p>抹消术可去除卷轴、一两页纸、羊皮纸之类上的魔法或一般文稿。你可以籍此移除<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.F0jrZnKV3IZFAtfx\" data-id=\"F0jrZnKV3IZFAtfx\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">爆裂符文</a>，<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.CI6AORRQdWyH3y6Q\" data-id=\"CI6AORRQdWyH3y6Q\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">守卫刻文</a>，<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.wZYvJ7nS9NWscjKy\" data-id=\"wZYvJ7nS9NWscjKy\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">蛇纹法印</a>，<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.MXpyOKWjqwLjNPEU\" data-id=\"MXpyOKWjqwLjNPEU\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">秘法印记</a>。但不能移除<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.olTqrte8hmw7W6eN\" data-id=\"olTqrte8hmw7W6eN\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">迷幻手稿</a>或诸如<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.VmzKFvPxeZ6X45hZ\" data-id=\"VmzKFvPxeZ6X45hZ\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">死亡徽记</a>的徽记法术。不被他人持有的非魔法文稿在你接触它后会自动抹消。否则，非魔法文稿有<span lang=\"EN-US\">90%</span>的几率被抹消。</p>\n<p>要抹消魔法文稿你接触它，同时你要通过<span lang=\"EN-US\">DC=15</span>的施法等级检定（<span lang=\"EN-US\">1d20+</span>施法者等级）才会被抹消。（若投出<span lang=\"EN-US\">1</span>或<span lang=\"EN-US\">2</span>，则视作自动失败。）若你在抹消爆裂符文，守卫结界，蛇纹法印时失败，则会触发这些法术。</p>",
+      "source": "zzzzz_3r_chn.spells.qDYgaZpuqg0EDcQb",
+      "text": {}
+    },
+    "Divine Favor": {
+      "name": "神恩",
+      "shortDescription": "<p>呼唤神的力量与智慧，你在攻击检定和伤害检定上获得每三个施法者等级<span lang=\"EN-US\">+1</span>幸运加值（至少<span lang=\"EN-US\">+1</span>，最多<span lang=\"EN-US\">+3</span>）。法术伤害无加值。</p>",
+      "source": "zzzzz_3r_chn.spells.qIdVROi2KGyeF8Ta",
+      "text": {}
+    },
+    "Vision": {
+      "name": "灵视",
+      "shortDescription": "<p>和通晓传奇（legend lore）一样，但更快也更费力。你可以提出一个关于某人、某地或某物的问题，然后施展此法术。若你就在该物体或该人边上，或者就在该地点，那么通过DC20的施法者等级检定（1D20+1每施法者等级；最多+25），你可以得到关于它的一个幻景。若仅仅知道该人、该物、该地的详细信息，则DC为25。若只是听到些传闻，并没有完整信息，则DC为30，且只能得到含糊的信息。</p>\n<p>消耗经验值：100点。</p>",
+      "source": "zzzzz_3r_chn.spells.qoJytXbn4c1DbdMb",
+      "text": {}
+    },
+    "Message": {
+      "name": "传讯术",
+      "shortDescription": "<p>你可以和目标生物轻声交谈而几乎不会被其他人听到。你要分别用手指指出每个你希望其收到你的讯息的生物。当你轻声说话时，所有在法术有效距离内的目标生物都会听到你说话。<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.HKQOchnBI88uBjoJ\" data-id=\"HKQOchnBI88uBjoJ\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">沉默术</a>、一英尺厚的石头、一英寸厚的普通金属（或一片薄铅片），<span lang=\"EN-US\">3</span>英尺厚的木头或泥土，都可以阻挡此法术。通过法术传递的讯息并不需要通过直线传递。只要你和目标之间有一条无障碍的路径，并且此路径的总路程在法术有效距离内，讯息就能绕过障碍物传递给目标。收到讯息的生物也可以轻声给你回话。此法术传递的是声音，而非意思。此法术并不会解决语言障碍。</p>\n<p>注意：在传递讯息时，你还是要开口说话，因此观察者还是能读你的唇语。</p>",
+      "source": "zzzzz_3r_chn.spells.qpsVSvRyg20PyfGY",
+      "text": {
+        "types": "依赖于语言"
+      }
+    },
+    "Create Water": {
+      "name": "造水术",
+      "shortDescription": "<div>\n<p align=\"left\">此法术造出如同洁净雨水的可饮用水。可以让水充满一片大小适中的区域，或三倍于此的区域<span lang=\"EN\">--</span>水可能会像倾盆大雨一样落下，或填充许多小容器。</p>\n<p align=\"left\">注意：咒法系法术不能在生物体内造出物质或物体。每加仑水约重<span lang=\"EN\">8</span>磅。一立方英尺可以容纳<span lang=\"EN\">8</span>加仑的水，大约<span lang=\"EN\">60</span>磅重。</p>\n</div>",
+      "source": "zzzzz_3r_chn.spells.rbvuFQQ2fTFmgIGH",
+      "text": {
+        "spellEffect": "每等级最多制造2加仑水",
+        "subschool": "创造",
+        "types": "水"
+      }
+    },
+    "Fox's Cunning": {
+      "name": "狐之狡黠",
+      "shortDescription": "<p>受术生物变得更聪明。法术给受术者智力提供+4增强加值，因此会给基于智力的技能检定及其它使用到智力修正值的地方带来通常的好处。被此法术影响的法师（和其他依赖智力的施法者）不会因增加的智力值而获得任何额外的奖励法术，但是在此法术影响下他们施展的法术其豁免DC会增加。该法术不会带来额外的技能点。</p>",
+      "source": "zzzzz_3r_chn.spells.uFNncGNlYcbfXwyF",
+      "text": {}
+    },
+    "Secret Page": {
+      "name": "秘密文页",
+      "shortDescription": "<p>秘密文页会改变页面的内容，让它们看起来是完全不同的东西。法术的内文甚至可以变得看起来是另一个法术。在秘密文页上可以施展<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.F0jrZnKV3IZFAtfx\" data-id=\"F0jrZnKV3IZFAtfx\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">爆裂符文</a>和<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.wZYvJ7nS9NWscjKy\" data-id=\"wZYvJ7nS9NWscjKy\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">蛇纹法印</a>。</p>\n<p>单独的<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.BGeAhjtsnDcY6iTV\" data-id=\"BGeAhjtsnDcY6iTV\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">通晓语言</a>法术无法揭示秘密文页的内容。你可以通过念出一个特别词语来显示原始内容。之后你可以细读实际内容，然后根据意愿将其返回到秘密文页状态。你也可以通过念两遍那个特殊词语来移除这个法术。<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.VQ0QrFKM2yYHt9lm\" data-id=\"VQ0QrFKM2yYHt9lm\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">侦测魔法</a>能发现页面上有微弱的魔法，但是无法揭示实际内容。除非和<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.BGeAhjtsnDcY6iTV\" data-id=\"BGeAhjtsnDcY6iTV\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">通晓语言</a>一起使用，否则<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.qftXpeBL3XWLYe2W\" data-id=\"qftXpeBL3XWLYe2W\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">真知术</a>能发现隐藏内容的存在，但是不能显示其内容。秘密文页可以被解除，隐藏的文字可以被<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.qDYgaZpuqg0EDcQb\" data-id=\"qDYgaZpuqg0EDcQb\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">抹消术</a>所毁掉。</p>",
+      "source": "zzzzz_3r_chn.spells.zmZLvkzAF8l9AE1G",
+      "text": {}
+    },
+    "Greater Scrying": {
+      "name": "高等探知",
+      "shortDescription": "<p>除了上面注明的之外，这个法术作用类似<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.i3NB6SzjTKwD9siQ\" data-id=\"i3NB6SzjTKwD9siQ\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">探知</a>。</p>\n<p>另外，以下所有法术都必然可以透过魔法感官来发挥作用：<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.FF427wJfkRQNepsc\" data-id=\"FF427wJfkRQNepsc\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">侦测混乱</a>，<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.SbmMc6Jr3B2Vicnw\" data-id=\"SbmMc6Jr3B2Vicnw\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">侦测邪恶</a>，<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.X6RdVVq0VK3wZSiK\" data-id=\"X6RdVVq0VK3wZSiK\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">侦测善良</a>，<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.sq0GVJvG06Wy4gFu\" data-id=\"sq0GVJvG06Wy4gFu\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">侦测秩序</a>，<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.VQ0QrFKM2yYHt9lm\" data-id=\"VQ0QrFKM2yYHt9lm\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">侦测魔法</a>，<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.qpsVSvRyg20PyfGY\" data-id=\"qpsVSvRyg20PyfGY\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">传讯术</a>，<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.TPjZCWxk1iXsJpqj\" data-id=\"TPjZCWxk1iXsJpqj\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">阅读魔法</a>，<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.X6DmImn7OOZzPtUa\" data-id=\"X6DmImn7OOZzPtUa\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">巧言术</a>。</p>\n<p>&nbsp;</p>\n<p><strong>法师、术士、或吟游诗人器材成分：</strong>精良锻造并高度抛光的银镜，至少价值<span lang=\"EN-US\">1,000</span>金币。该镜子至少要<span lang=\"EN-US\">2*4</span>英尺大。</p>\n<p><strong>牧师器材成分：</strong>价值至少<span lang=\"EN-US\">100</span>金币的圣水盆。</p>\n<p><strong>德鲁伊器材成分：</strong>天然水池。</p>",
+      "source": "zzzzz_3r_chn.spells.PkWr6vlf8aGWjWXq",
+      "text": {}
+    },
+    "Enhanced Diplomacy": {
+      "name": "增强交涉",
+      "shortDescription": "<p>你以神力增强受术者的交际技巧。受术者可在一次交涉或威吓检定上获得 +2 表现加值，须在掷骰前决定使用。持续 1 分钟，使用后结束。</p>",
+      "source": "https://aonprd.com/SpellDisplay.aspx?ItemName=Enhanced%20Diplomacy",
+      "text": {
+        "spellTarget": "接触的一个生物",
+        "spellDuration": "1 分钟，或直到使用"
+      }
+    },
+    "Inflict Light Wounds": {
+      "name": "造成轻伤",
+      "shortDescription": "<div>\n<p align=\"left\">当你的手放在生物身体上时，你引导负能量造成<span lang=\"EN-US\">1d8+</span>每施法者等级<span lang=\"EN-US\">1</span>点（最多<span lang=\"EN-US\">+5</span>）伤害。</p>\n<p align=\"left\">由于不死生物是用负能量作为能源，因此该法术治疗等量的伤害，而不是伤害它们。</p>\n</div>",
+      "source": "zzzzz_3r_chn.spells.7St8VlszF8ENPvIF",
+      "text": {}
+    },
+    "Comprehend Languages": {
+      "name": "通晓语言",
+      "shortDescription": "<div>\n<p align=\"left\">你可以懂得生物所说的话，或阅读原本看不懂的文字信息。无论哪种情况，你都必须接触到该生物或者文字。该法术只能让你看懂字面意思，并非帮助你了解其中的含义。该法术也同样只能让你听懂或阅读别的语言，但不能让你说或写出来。</p>\n<p align=\"left\">此法术可让你以每分钟一页（<span lang=\"EN\">250</span>字左右）的速度进行阅读。它不能读取魔法文件，但是该法术可以察觉文件附有魔法。该法术可被防护性法术阻碍（例如秘密文页（<span lang=\"EN-US\">secret page</span>）和迷幻手稿（<span lang=\"EN-US\">illusory script</span>））。它也不能破译文件中的密码或隐藏信息。</p>\n<p align=\"left\">通晓语言可以用<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.CFyRFIkx6f3jBART\" data-id=\"CFyRFIkx6f3jBART\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\" aria-describedby=\"tooltip\">魔法恒定术</a>恒定。</p>\n</div>",
+      "source": "zzzzz_3r_chn.spells.BGeAhjtsnDcY6iTV",
+      "text": {}
+    },
+    "Righteous Might": {
+      "name": "正气如虹",
+      "shortDescription": "<p>这个法术让你身体变大，你的高度翻倍，而你的重量增加到8倍。这变化使你的体型增大一级，并且在力量属性上得到+4体型加值，在体质属性上得到+2体型加值。你的天然护甲等级得到+2增强加值。你得到3/邪恶（如果你通常引导正能量）或3/善良（如果你通常引导负能量）的伤害减免。12级时此伤害减免变为6/邪恶或6/善良，15级时变为9/邪恶或9/善良（最高）。你的防御等级和攻击会随你的体型改变而变。本法术不会改变你的速度。你所占据的空间和触及范围由你的新体型决定。</p>\n<p>如果空间不足以容纳体型的增长，你将达到可能达到的最大体积，之后进行一次力量检定（使用你增加后的力量值）以决定是否能突破限制。如果你失败，你将被限制住你体型的障碍包围住但不会受到伤害——本法术不会以增大体积的方式来挤压你。</p>\n<p>所有你穿着和持有的装备都会同样的被本法术增大。近战和弹射武器造成更多的伤害。其他魔法物品的作用不会受到影响。任何增大的装备离开增大的生物的掌握（包括弹射和投掷武器）立刻会回到它的正常大小。这意味着投掷武器将造成正常的伤害（弹射物造成的伤害取决于发射它们的武器的大小）。</p>\n<p>多个增大体型的魔法效果不会叠加。</p>",
+      "source": "zzzzz_3r_chn.spells.FrDhKjuhOSdJc2Yb",
+      "text": {}
+    },
+    "Wall of Fire": {
+      "name": "火墙术",
+      "shortDescription": "<div>一道燃烧着紫色火焰的帘幕跃然而出，它不可移动。火墙的一面&mdash;&mdash;由你决定&mdash;&mdash;会喷出热浪，对10尺内的生物造成2d4点火焰伤害，对10尺外、20尺内的生物造成1d4点火焰伤害。火墙出现时就会造成伤害，自后每到你的行动回合，区域内的生物都会受伤。另外，火墙对试图穿越的生物造成2d6点火焰伤害，施法者每等级再+1点伤害（最多+20点）。火墙对不死生物造成双倍伤害。</div>\n<div>若你在有生物的地方召出火墙，该处的生物所受伤害和穿越火墙一样。以5英尺为单位，单位墙面在一轮中若受到20点以上的寒冷伤害，则该单位墙面消失。（和对正常物品造成伤害不同，此时寒冷伤害不必除以四。）</div>\n<div>火墙术可使用<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.CFyRFIkx6f3jBART\" data-id=\"CFyRFIkx6f3jBART\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\" aria-describedby=\"tooltip\">魔法恒定术</a>恒定。恒定的火墙在受到寒冷伤害时，会消失10分钟，然后恢复原状。</div>",
+      "source": "zzzzz_3r_chn.spells.PNZc3amjAdlurJsq",
+      "text": {
+        "spellEffect": "长度最多为20英尺/等级的火焰薄壁，或半径最多为5英尺每两级的火焰环壁；以上两者都是20英尺高",
+        "types": "火"
+      }
+    },
+    "Earthquake": {
+      "name": "地震术",
+      "shortDescription": "<p>影响区域：半径80尺扩散范围（可变）</p>\n<p>当你施展了地震术后，地面开始剧烈而高度局部化的震动。这震动使生物跌倒，建筑物倒塌，地面开裂等。这些效果将持续1轮，其间地面上的生物无法移动或攻击。地面上的施法者需通过专注检定（DC=20+法术等级）才能施法，否则会失去尝试施展的法术。地震会影响区域内所有地形、植被、建筑和生物。地震术的特殊效果由当地的地形决定。</p>\n<p>洞穴，山洞或隧道：地震使得天花板崩塌，对里面的所有生物造成8d6点钝击伤害（通过DC15的反射检定则伤害减半）并将生物埋入碎石（见下文）。施放在巨型山洞顶部的地震术可能危及到在实际作用区域外但是正好处在落石之下的生物。</p>\n<p>悬崖：地震术会使悬崖崩塌，造成山崩，平直的垂直向下崩塌。所有在其下落路径上的生物遭受8d6点钝击伤害（通过DC15的反射检定则伤害减半）并被埋入碎石（见下文）。</p>\n<p>开阔的地面：站在区域内的所有生物需通过DC15的反射检定，否则就会跌倒。土地会裂开，生物有25%的几率落入地缝（通过DC20的反射检定可避免跌入裂缝）。法术结束后，地缝会合拢，杀死依然陷在其中的所有生物。</p>\n<p>建筑物：所有地上的建筑物受到100点伤害，这足以摧毁普通的木结构或砖制建筑，但不足以摧毁石制或加固过的砖制建筑。硬度不会降低伤害，建筑也不会通过像物品一样的方式减半伤害。倒塌的建筑物内的所有生物受到8d6点钝击伤害（通过DC15的反射检定则伤害减半），并被埋入碎石（见下文）。</p>\n<p>河流、湖泊或沼泽：水底出现裂缝，吸走所有流水，由此形成泥地。湿地、沼泽在法术期间内则变成流沙吞噬生物和建筑物。区域内所有生物需通过DC15的反射检定，否则就会陷入泥地或流沙。法术结束后，被吸走的水会重新出现，这很可能会淹死被陷的生物。</p>\n<p>被埋入碎石：被埋的生物每分钟受到1d6点非致命伤害。若生物失去知觉，则每分钟进行一次DC15的体质检定，失败则受到1d6点正常伤害，直到被救或死亡。</p>",
+      "source": "zzzzz_3r_chn.spells.R84pWimeUvLYQPV9",
+      "text": {
+        "spellArea": "80英尺扩散范围（可变）",
+        "types": "土"
+      }
+    },
+    "Control Weather": {
+      "name": "操控天气",
+      "shortDescription": "<p align=\"left\">你可以改变当地的天气。你花费<span lang=\"EN\">10</span>分钟的时间来施法，然后等待<span lang=\"EN\">10</span>分钟法术就会生效。你可以变换与当地气候、季节相符合的天气出来。</p>\n<table style=\"width: 54.3338%; height: 105.333px;\" border=\"1\"><colgroup><col style=\"width: 15.3673%;\"><col style=\"width: 84.5199%;\"></colgroup>\n<tbody>\n<tr style=\"height: 18.6667px;\">\n<td style=\"height: 18.6667px;\"><strong>季节</strong></td>\n<td style=\"height: 18.6667px;\"><strong>可能出现的天气</strong></td>\n</tr>\n<tr style=\"height: 17.3333px;\">\n<td style=\"height: 17.3333px;\">春季</td>\n<td style=\"height: 17.3333px;\">龙卷风、雷暴、暴风雪或热天气</td>\n</tr>\n<tr style=\"height: 17.3333px;\">\n<td style=\"height: 17.3333px;\">夏季</td>\n<td style=\"height: 17.3333px;\">暴雨、热浪或大冰雹</td>\n</tr>\n<tr style=\"height: 17.3333px;\">\n<td style=\"height: 17.3333px;\">秋季</td>\n<td style=\"height: 17.3333px;\">冷或热天气、雾或雨夹雪</td>\n</tr>\n<tr style=\"height: 17.3333px;\">\n<td style=\"height: 17.3333px;\">冬季</td>\n<td style=\"height: 17.3333px;\">严寒、大风雪或回暖</td>\n</tr>\n<tr style=\"height: 17.3333px;\">\n<td style=\"height: 17.3333px;\">晚冬</td>\n<td style=\"height: 17.3333px;\">旋风级别的风力或早春（沿海地区）</td>\n</tr>\n</tbody>\n</table>\n<p align=\"left\">你能控制天气的大致趋向，例如风的方向和强度。但你不能控制天气的细节<span lang=\"EN-US\">--例如闪电在哪里劈落，龙卷风沿途路径等等。当你选择好要出现的天气，它将会在</span><span lang=\"EN-US\">10</span>分钟之后出现（天气会逐渐变化，而非突然）。天气将在剩下的时间持续，或直到你用一个标准动作指定新的天气（每次转换都需要<span lang=\"EN-US\">10</span>分钟）。情况完全相反的天气不可能同时存在。</p>\n<p align=\"left\">操纵天气可以消除天气状态（自然或非自然的），如同它制造天气。</p>\n<p align=\"left\">德鲁伊施展此法术时，持续时间翻倍，影响区域半径也增加至<span lang=\"EN-US\">3</span>英里。</p>",
+      "source": "zzzzz_3r_chn.spells.gPrhyHACnFtybVfh",
+      "text": {
+        "spellArea": "你为中心的2英里半径范围；见说明"
+      }
+    },
+    "Cure Light Wounds": {
+      "name": "治疗轻伤",
+      "shortDescription": "<p>用你的手掌接触一个活着的生物并将正能量导入，治疗1d8点伤害，每施法者等级再+1点（最高5点）。</p>\n<p>因为不死生物的能源为负能量，这个法术会对它们造成伤害而非治疗。一个不死生物可以应用法术抗力抵抗，也可通过意志豁免检定将伤害减半。</p>",
+      "source": "zzzzz_3r_chn.spells.lx681rDErdOKErnV",
+      "text": {
+        "subschool": "医疗"
+      }
+    },
+    "Bestow Curse": {
+      "name": "降咒",
+      "shortDescription": "<p>你对目标下了诅咒。在以下三种效果中选择一种。</p>\n<ul>\n<li>一项属性值<span lang=\"EN-US\">-6</span>（最低<span lang=\"EN-US\">1</span>）。</li>\n<li>攻击投骰、豁免、属性检定、技能检定上受到<span lang=\"EN-US\">-4</span>惩罚。</li>\n<li>每一轮里目标只有<span lang=\"EN-US\">50%</span>机会正常行动；另外<span lang=\"EN-US\">50%</span>机会它无法进行动作。</li>\n</ul>\n<p>你也可以创造出你自己的诅咒，但是不能比上面这些更强。</p>\n<p>由此法术产生的诅咒不能被解除，但是可以被<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.naZhUzoyA82gaKQv\" data-id=\"naZhUzoyA82gaKQv\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">破除结界</a>、<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.8wXGQBm2IqTbQxsS\" data-id=\"8wXGQBm2IqTbQxsS\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">祈愿术</a>、<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.nISse79c8rrg0DWW\" data-id=\"nISse79c8rrg0DWW\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">神迹术</a>、<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.GkY5YikMURNEAiLK\" data-id=\"GkY5YikMURNEAiLK\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">移除诅咒</a>、或<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.8wXGQBm2IqTbQxsS\" data-id=\"8wXGQBm2IqTbQxsS\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">祈愿术</a>所移除。</p>\n<p>降咒反制<a class=\"content-link\" draggable=\"true\" data-uuid=\"Compendium.D35E.spells.Item.GkY5YikMURNEAiLK\" data-id=\"GkY5YikMURNEAiLK\" data-type=\"Item\" data-pack=\"D35E.spells\" data-tooltip=\"法术 物品\">移除诅咒</a></p>",
+      "source": "zzzzz_3r_chn.spells.qd0jSlGfECAPMdfq",
+      "text": {}
+    },
+    "Storm of Vengeance": {
+      "name": "复仇风暴",
+      "shortDescription": "<p>此法术造出一团巨大凶暴的黑色暴风云。风暴挟带着闪电和霹雳雷鸣。云下的所有生物必须通过强韧检定否则耳聋1d4x10分钟。</p>\n<p>如果你施法后没能维持专注，则法术结束。若你维持专注，在以后的每一轮，法术都会产生额外效果（见下文）。每一种效果都在你的回合中生效。</p>\n<p>第二轮：影响区域中降酸雨，造成1d6点强酸伤害（无豁免）。</p>\n<p>第三轮：从云上召下6道闪电。由你决定闪电击向何方。任何两道闪电不能击向同一个目标。每道闪电造成10d6点电击伤害。生物若通过反射检定则伤害减半。</p>\n<p>第四轮：降冰雹，造成5d6点钝击伤害（无豁免）。</p>\n<p>第五到十轮：狂风暴雨降低了能见度。大雨遮蔽了所有视觉，即便有黑暗视觉，生物也无法看到5尺外的东西。5尺内的生物获得掩蔽（进行攻击有20%失手几率）。五英尺外的生物获得全掩蔽（50%失手几率，攻击者无法靠视觉确定目标位置）。移动速度降低四分之三。暴风雨区域内无法进行远程攻击。要在暴风雨区域内施法必须先通过专注检定，DC为复仇风暴的豁免DC+欲施法术的等级。</p>",
+      "source": "zzzzz_3r_chn.spells.xyMXIsTvJ9oBdcRx",
+      "text": {
+        "spellEffect": "半径360半径的暴风云",
+        "subschool": "召唤"
+      }
+    }
+  }
+}

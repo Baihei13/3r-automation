@@ -1,0 +1,109 @@
+<div class="dwt-calendar-content">
+  {{#if unavailable}}
+    <p class="dwt-calendar-empty">当前世界历法没有月份或星期数据，无法绘制月历。</p>
+  {{else}}
+  <header class="dwt-calendar-top">
+    <div><small>{{calendarName}}</small><strong>{{dateTime}}</strong></div>
+    <button type="button" data-action="today"><i class="fa-solid fa-calendar-day"></i> 回到今天</button>
+  </header>
+
+  <section class="dwt-calendar-month">
+    <nav class="dwt-calendar-navigation" aria-label="浏览月份">
+      <button type="button" data-action="previousMonth" title="上个月"><i class="fa-solid fa-chevron-left"></i></button>
+      <h2>{{year}}年 · {{monthName}}</h2>
+      <button type="button" data-action="nextMonth" title="下个月"><i class="fa-solid fa-chevron-right"></i></button>
+    </nav>
+    <div class="dwt-calendar-grid" role="grid" aria-label="{{year}}年 {{monthName}}" style="--dwt-weekdays: {{weekdayCount}}">
+      {{#each weekdays}}<div class="dwt-calendar-weekday" role="columnheader">{{name}}</div>{{/each}}
+      {{#each cells}}
+        {{#if blank}}<span class="dwt-calendar-blank" aria-hidden="true"></span>
+        {{else}}<button type="button" class="dwt-calendar-day {{#if today}}today{{/if}} {{#if selected}}selected{{/if}}"
+          data-action="selectDay" data-day="{{day}}" aria-label="{{day}}日" {{#if today}}aria-current="date"{{/if}}>{{day}}{{#if hasEvent}}<span class="dwt-calendar-event-dot" aria-hidden="true"></span>{{/if}}</button>{{/if}}
+      {{/each}}
+    </div>
+    {{#if noDays}}<p class="dwt-calendar-empty">此闰日只在闰年出现。</p>{{/if}}
+    <div class="dwt-calendar-selection">
+      <strong>选中：{{selectedDate}}</strong>
+      {{#if isGM}}
+      <label>时 <input type="number" name="hour" value="{{hour}}" min="0" max="{{maxHour}}" /></label>
+      <label>分 <input type="number" name="minute" value="{{minute}}" min="0" max="{{maxMinute}}" /></label>
+      {{#unless noDays}}<button type="button" data-action="setDate">设为世界时间</button>{{/unless}}
+      {{/if}}
+    </div>
+    {{#if isGM}}<p class="dwt-weather-note">设为过去的日期不会恢复已经到期的效果。</p>{{/if}}
+  </section>
+
+  <section class="dwt-calendar-events">
+    <h2>{{selectedDate}}的记录</h2>
+    {{#each events}}
+    <article class="dwt-calendar-event"><div><strong>{{title}}</strong>{{#if isYearly}} <small>每年</small>{{/if}}{{#if detail}}<p>{{detail}}</p>{{/if}}</div>
+      {{#if ../isGM}}<button type="button" data-action="deleteEvent" data-event-id="{{id}}" title="删除记录" aria-label="删除记录"><i class="fa-solid fa-trash"></i></button>{{/if}}
+    </article>
+    {{else}}<p class="dwt-calendar-empty">这一天还没有记录。</p>{{/each}}
+    {{#if isGM}}{{#unless noDays}}<div class="dwt-calendar-event-form">
+      <input type="text" name="eventTitle" maxlength="100" placeholder="事件标题" aria-label="事件标题" />
+      <input type="text" name="eventDetail" maxlength="500" placeholder="说明（可选）" aria-label="事件说明" />
+      <label><input type="checkbox" name="eventRepeat" /> 每年重复</label>
+      <button type="button" data-action="addEvent">添加记录</button>
+    </div>{{/unless}}{{/if}}
+  </section>
+
+  {{#if isGM}}
+  <section class="dwt-calendar-io">
+    <h2>导入／导出日历</h2>
+    <p>可导出本日历的历法和日期记录，或读取本模组、Simple Calendar 的 JSON 文件。只允许 GM 操作。</p>
+    <div class="dwt-calendar-io-actions">
+      <button type="button" data-action="exportCalendar"><i class="fa-solid fa-download"></i> 导出 JSON 备份</button>
+      <label>选择 JSON 文件 <input type="file" name="calendarFile" accept=".json,application/json" /></label>
+      <button type="button" data-action="previewImport"><i class="fa-solid fa-file-import"></i> 读取并预览</button>
+    </div>
+    {{#if pendingImport}}
+    <div class="dwt-calendar-import-options">
+      <strong>{{pendingImport.source}}：{{pendingImport.calendarName}}</strong>
+      <p>可导入记录 {{pendingImport.eventCount}} 条；跳过不支持的记录 {{pendingImport.skipped}} 条。</p>
+      <p>导入后的日期记录对所有玩家可见；请先检查文件中是否有不想公开的内容。</p>
+      <label><input type="checkbox" name="importDefinition" /> 导入历法定义（改变月份、星期与日期显示）</label>
+      <label><input type="checkbox" name="importEvents" checked /> 导入日期记录／节日</label>
+      <label><input type="checkbox" name="replaceEvents" /> 替换现有日期记录（不勾选则合并并跳过重复）</label>
+      {{#unless pendingImport.sameMonths}}<p class="dwt-calendar-io-warning">文件的月份与当前历法不同。要导入这些节日，请同时勾选“导入历法定义”。若现有记录不为空，还须勾选“替换现有日期记录”，以免旧记录错位。</p>{{/unless}}
+      <p>导入历法后，同一世界时间会按新历法显示不同日期；不会推进时间，也不会改写现有计时效果的结束秒数。</p>
+      <div class="dwt-calendar-io-actions">
+        <button type="button" data-action="applyImport">确认导入所选内容</button>
+        <button type="button" data-action="cancelImport">取消</button>
+      </div>
+    </div>
+    {{/if}}
+  </section>
+  {{/if}}
+
+  <section class="dwt-calendar-weather">
+    <div class="dwt-calendar-weather-heading"><h2>场景天气</h2><small>{{weather.sceneName}}</small></div>
+    {{#if hasScene}}
+    <div class="dwt-weather-current">
+      <i class="fa-solid {{weather.icon}}" aria-hidden="true"></i>
+      <strong>{{weather.name}}</strong>
+      {{#if weather.temperature}}<span>{{weather.temperature}}</span>{{/if}}
+      <small>{{weather.modeLabel}}</small>
+    </div>
+    {{#if isGM}}
+    <div class="dwt-weather-form">
+      <label>天气
+        <select name="weatherType">{{#each weatherTypes}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select>
+      </label>
+      <label>气温 °C <input type="number" name="temperature" value="{{weather.tempValue}}" min="-80" max="70" step="1" /></label>
+      <label>气候
+        <select name="climate">{{#each climates}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select>
+      </label>
+      <div class="dwt-weather-buttons">
+        <button type="button" data-action="saveWeather"><i class="fa-solid fa-cloud"></i> 手动设定</button>
+        <button type="button" data-action="autoWeather"><i class="fa-solid fa-wand-magic-sparkles"></i> 每日自动生成</button>
+        {{#if weather.managed}}<button type="button" data-action="releaseWeather">停止接管</button>{{/if}}
+        {{#if weather.isAuto}}<button type="button" data-action="rerollWeather">重生成今天</button>{{/if}}
+      </div>
+    </div>
+    {{/if}}
+    <p class="dwt-weather-note">天气按场景保存；雨、雪、雾等会同步到 Foundry 的场景特效。自动天气按当前历法日期和气候生成。</p>
+    {{else}}<p class="dwt-calendar-empty">打开一个场景后可查看或设置天气。</p>{{/if}}
+  </section>
+  {{/if}}
+</div>

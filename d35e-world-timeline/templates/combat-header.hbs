@@ -1,0 +1,26 @@
+<header class="combat-tracker-header dwt-combat-header">
+  <div class="dwt-combat-title"><i class="fa-solid fa-swords"></i><span>3R 战斗控制台</span></div>
+  {{#if user.isGM}}
+  <nav class="dwt-combat-encounters" aria-label="战斗列表">
+    <button type="button" data-action="createCombat" title="新建战斗"><i class="fa-solid fa-plus"></i></button>
+    {{#if displayCycle}}
+      <button type="button" data-action="cycleCombat" {{#if previousId}}data-combat-id="{{previousId}}"{{else}}disabled{{/if}} title="上一场战斗"><i class="fa-solid fa-chevron-left"></i></button>
+      <span>{{currentIndex}} / {{combats.length}}</span>
+      <button type="button" data-action="cycleCombat" {{#if nextId}}data-combat-id="{{nextId}}"{{else}}disabled{{/if}} title="下一场战斗"><i class="fa-solid fa-chevron-right"></i></button>
+    {{else}}
+      {{#each combats}}<button type="button" data-action="cycleCombat" data-combat-id="{{id}}" class="{{#if active}}active{{/if}}" title="{{name}}">{{label}}</button>{{/each}}
+    {{/if}}
+    <button type="button" data-action="trackerSettings" title="战斗设置"><i class="fa-solid fa-gear"></i></button>
+  </nav>
+  {{/if}}
+  <div class="dwt-combat-utility">
+    <strong>{{#if hasCombat}}{{#if combat.name}}{{combat.name}}{{else}}战斗{{/if}} · {{#if combat.round}}第 {{combat.round}} 轮{{else}}尚未开始{{/if}}{{else}}当前没有战斗{{/if}}</strong>
+    {{#if user.isGM}}{{#if hasCombat}}
+    <div>
+      <button type="button" class="combat-control" data-action="rollAll" {{#unless combat.turns.length}}disabled{{/unless}} title="全部投先攻"><i class="fa-solid fa-users"></i> 全部先攻</button>
+      <button type="button" class="combat-control" data-action="rollNPC" {{#unless combat.turns.length}}disabled{{/unless}} title="NPC 投先攻"><i class="fa-solid fa-dice-d20"></i> NPC 先攻</button>
+      <button type="button" class="encounter-context-menu" title="更多战斗操作"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+    </div>
+    {{/if}}{{/if}}
+  </div>
+</header>

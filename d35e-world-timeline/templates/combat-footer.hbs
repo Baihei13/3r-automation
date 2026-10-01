@@ -1,0 +1,18 @@
+<nav class="combat-controls dwt-combat-footer" aria-label="回合控制">
+  {{#if hasCombat}}
+    {{#if user.isGM}}
+      {{#if combat.round}}
+        <button type="button" class="combat-control" data-action="previousRound" title="上一轮"><i class="fa-solid fa-backward-step"></i></button>
+        <button type="button" class="combat-control" data-action="previousTurn" title="上一位"><i class="fa-solid fa-arrow-left"></i></button>
+        <button type="button" class="combat-control dwt-primary" data-action="nextTurn"><i class="fa-solid fa-arrow-right"></i> 下一位</button>
+        <button type="button" class="combat-control" data-action="nextRound" title="下一轮"><i class="fa-solid fa-forward-step"></i></button>
+        <button type="button" class="combat-control" data-action="endCombat" title="结束战斗"><i class="fa-solid fa-xmark"></i></button>
+      {{else}}
+        <button type="button" class="combat-control dwt-primary" data-action="startCombat"><i class="fa-solid fa-swords"></i> 开始战斗</button>
+      {{/if}}
+    {{else if control}}
+      <button type="button" class="combat-control" data-action="previousTurn" title="上一位"><i class="fa-solid fa-arrow-left"></i></button>
+      <button type="button" class="combat-control dwt-primary" data-action="nextTurn"><i class="fa-solid fa-check"></i> 结束我的回合</button>
+    {{/if}}
+  {{/if}}
+</nav>

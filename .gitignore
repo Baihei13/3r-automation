@@ -1,0 +1,39 @@
+# Local development receipts and scratch files
+.local-publish-receipt.json
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+*.bak
+node_modules/
+
+# Foundry-generated world data and runtime databases
+/Data/
+/Config/
+/Logs/
+/worlds/
+/packs/
+**/packs/
+*.ldb
+*.sst
+LOCK
+CURRENT
+MANIFEST-*
+
+# Local rulebook library / original office documents
+/references/3r-rules/
+/3r+pf/
+/doc-extract/
+*.chm
+*.doc
+*.docx
+**/character-originals.json
+**/original-images/
+**/local-character-presets.*
+
+# Editor / operating system files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

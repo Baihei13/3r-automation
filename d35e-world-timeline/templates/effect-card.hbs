@@ -1,0 +1,19 @@
+<div class="dwt-effect-card-head">
+  <div class="dwt-effect-card-title">
+    <small>{{kind}} · {{actorName}}</small>
+    <h2>{{name}}</h2>
+  </div>
+  <div class="dwt-effect-card-actions">
+    {{#if canEdit}}<button type="button" data-dwt-card-action="edit" title="打开效果文档" aria-label="打开效果文档"><i class="fa-solid fa-pen"></i></button>{{/if}}
+    <button type="button" data-dwt-card-action="close" title="关闭详情" aria-label="关闭详情"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+</div>
+<div class="dwt-effect-card-meta">
+  <span><i class="fa-regular fa-clock"></i> {{time}}</span>
+  {{#if sourceName}}<span>来源：{{sourceName}}</span>{{/if}}
+</div>
+{{#if canRemove}}<div class="dwt-effect-card-hint">GM 右键图标可移除效果</div>{{/if}}
+{{#if canAdjustTime}}<button type="button" class="dwt-effect-card-time" data-dwt-card-action="time"><i class="fa-solid fa-sliders"></i> 在时间轴中调整</button>{{/if}}
+<div class="dwt-effect-card-description">
+  {{#if hasDescription}}{{{description}}}{{else}}<p>这个效果没有附带说明。</p>{{/if}}
+</div>
