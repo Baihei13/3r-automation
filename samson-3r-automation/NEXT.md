@@ -4,6 +4,7 @@
 
 ## 当前交付：Foundry安装清单与独立安装包
 
+- **发布已完成**：GitHub v0.4.9 Release已公开并标为latest，目标提交504473f58cc022f9c705138d292b6cf7e1ebefdd；四附件均uploaded。两个latest清单已通过只读HTTP获取，分别返回0.4.9和0.7.2及正确固定下载地址。ZIP文件目录已核对：自动化37条、时间轴19条（含目录项），根均有module.json。实际Foundry安装、加载和运行验收仍未执行。
 - 用户明确需要填入Foundry的下载地址。补两个公开模块的url/manifest/download，不改规则代码、版本号或本机私有安装目录。manifest指向GitHub最新Release中的命名清单，download指向v0.4.9的独立ZIP；两个模块分别安装。
 - 从仅规则仓库指定提交的模块子树用git archive生成ZIP，根目录直接有module.json，不含兄弟模块、Git资料、原卡、图片、角色预设或CHM。发布同时上传两个命名清单和两个ZIP，后续每次Release都保留此四附件约定。
 - 本机v14 BasePackage定义manifest/download；PackageInstaller优先读ZIP根manifest并按模块ID安装。仅查源码和包内文件结构，不启动Foundry、不运行测试/语法检查/浏览器验证。公开链接核对不是实际安装验收；发布结果另留本地凭据。

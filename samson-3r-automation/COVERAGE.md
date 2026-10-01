@@ -4,6 +4,8 @@
 
 ## 2026-10-01 Foundry安装入口
 
+v0.4.9 Release已公开，四附件uploaded；两个latest清单已只读获取，版本与download字段吻合。模块ZIP根目录与文件清单已核对；实际Foundry安装/游戏运行仍待用户。
+
 | 条目 | 实现与保护 | 状态 |
 | --- | --- | --- |
 | 模块清单 | 两个公开module.json补url、latest命名manifest及固定v0.4.9的download，保留原ID/版本/兼容字段 | 文件已保存；公开链接与发布结果另留凭据 |
