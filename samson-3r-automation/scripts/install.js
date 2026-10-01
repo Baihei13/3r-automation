@@ -91,6 +91,12 @@ function asSeed(document, key, source, displayName = null) {
   return data;
 }
 
+// Class skill eligibility is independent of any character's starting ranks.
+// Native D35E knowledge IDs, including nobility and psionics.
+const CLOISTERED_KNOWLEDGE_SKILLS = [
+  "kar", "kdu", "ken", "kge", "khi", "klo", "kna", "kno", "kpl", "kre", "kps"
+];
+
 const CLOISTERED_LEVELS = {
   Message: 0, Erase: 1, Identify: 1, "Unseen Servant": 1,
   "Fox's Cunning": 2, "Illusory Script": 3, "Secret Page": 3, Tongues: 3,
@@ -105,7 +111,7 @@ async function cloisteredClass(spellPack) {
     customTag: data.system.customTag || "cloisteredcleric",
     turnUndeadLevelFormula: "@level", automaticFeatures: false,
     spellcastingAbility: "wis", spellslotAbility: "wis",
-    classSkills: { ...data.system.classSkills, ...Object.fromEntries([...STARTING_KNOWLEDGE,"kno","kps"].map(skill => [skill, true])), dsc: true, spk: true },
+    classSkills: { ...data.system.classSkills, ...Object.fromEntries(CLOISTERED_KNOWLEDGE_SKILLS.map(skill => [skill, true])), dsc: true, spk: true },
     savingThrows: { fort: { value: "high" }, ref: { value: "low" }, will: { value: "high" } },
     description: { value: ruleSection("cloistered-cleric") }
   });

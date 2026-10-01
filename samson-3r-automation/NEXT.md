@@ -1,6 +1,14 @@
 # 公开版续接记录
 
-2026-10-01，3r自动化0.4.9，时间轴0.7.2，初始接口环境Foundryv14 / D35E3.1.0。
+2026-10-01，3r自动化0.4.10，时间轴0.7.2，初始接口环境Foundryv14 / D35E3.1.0。
+
+## 最新修复：0.4.10公开版安装中断
+
+- 用户另一电脑截图：3r自动化安装未完成，STARTING_KNOWLEDGE is not defined。源码确认0.4.9公开install.js调用该标识，但导入已在公开版拆除角色预设时移除；catalog.js仍有导出。本机私有install.js保留导入，故未暴露同一缺陷。不是硬件或操作系统判断差异。
+- 修道牧师使用独立CLOISTERED_KNOWLEDGE_SKILLS，按本机D35E.config列出kar/kdu/ken/kge/khi/klo/kna/kno/kpl/kre/kps。只标本职资格，不分配任何级数；本机私人版同一职业生成逻辑也独立化，角色起始数据仍保留。
+- 只读核对ready→installSamson、sourcePack/ensureItems、coreSpells/cloisteredClass、linkDomains和characters-install/content的导入及调用。该异常中断的是职业生成及后续安装；修正版由active GM ready重试，沿用world合集和flags.key补缺，不要求删合集或重建角色。不据源码核对宣称整个安装环境已通过验证。
+- 公开模块0.4.10、两个download改指固定v0.4.10，时间轴功能版本仍0.7.2；稳定latest清单地址不变。安装包仅从公开Git提交生成，四附件随同发布；当前发布与链接结果待下方完成记录补充。
+- 已实现未验证：无测试、语法检查、Foundry、浏览器或游戏操作；新电脑实际安装恢复、加载/迁移/骰子仍待用户。原未完成项保留，旧发布说明为历史状态。
 
 ## 当前交付：Foundry安装清单与独立安装包
 
