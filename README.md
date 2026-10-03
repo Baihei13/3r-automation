@@ -6,10 +6,13 @@ Foundry VTT v14 / D35E 3.1.0 的3R与PF1规则自动化及配套世界时间界�
 | --- | --- | --- |
 | samson-3r-automation | 3r自动化 | 0.4.10 |
 | d35e-world-timeline | 3R 世界时间轴 | 0.7.2 |
+| three-r-combat-hud | 3r战斗HUD | 0.5.0 |
 
 这是仅含规则的公开源码版。没有角色原卡、人物背景、完整角色预设、原卡图片、规则书CHM、世界数据库或系统安装文件。能力正文独立保存在 rules-content.zh.json；法术译文保存在 spell-descriptions.zh.json。内部模块ID保留，旧世界引用不改名。
 
 ## 安装
+
+新增独立[3r战斗HUD](three-r-combat-hud/README.md)源码0.5.0，可手动复制其完整目录到Foundry模块目录；本次没有为HUD新增Release、ZIP或安装器清单。HUD包含八套自写CSS主题（P5风格黑红、2077风格黄黑、玻璃/奇幻/羊皮纸等），没有第三方主题文件/纹理或角色原卡/人物素材。Git上传不代表游戏验证。
 
 在Foundry设置页打开“附加模块 → 安装模块”，分别把下面地址填入“清单URL”：
 

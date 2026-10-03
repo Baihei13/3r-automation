@@ -1,0 +1,177 @@
+<div class="trh-shell">
+  {{#if hasActor}}
+  {{#unless isCommand}}<div class="trh-bar">{{/unless}}
+    <aside class="trh-identity" aria-label="当前角色">
+      <div class="trh-identity-surface" aria-hidden="true"></div>
+      <div class="trh-portrait-wrap">
+        <div class="trh-portrait-frame" aria-hidden="true"></div>
+        <button type="button" class="trh-portrait" style="--trh-health: {{hpPercent}}%" data-trh-action="sheet" title="打开{{actorName}}的角色卡；生命 {{hp}}"><img src="{{actorImage}}" alt="{{actorName}}"></button>
+        {{#unless isCommand}}<strong class="trh-portrait-hp" title="生命 {{hp}}">{{hp}}</strong>{{/unless}}
+      </div>
+      <div class="trh-identity-stats">
+      <button type="button" class="trh-actor-name" data-trh-action="sheet" title="打开{{actorName}}的角色卡">{{actorName}}</button>
+      {{#if isCommand}}<div class="trh-vital-bar" title="当前生命 {{hp}}"><span class="trh-bar-tag">HP</span><div class="trh-vital-track"><div class="trh-vital-fill" style="width: {{hpPercent}}%"></div><strong>{{hp}}</strong></div></div>{{/if}}
+      <div class="trh-defenses" aria-label="防御与快捷豁免">
+        <span class="trh-defense-heading"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> 防御</span>
+        <div class="trh-defense-grid">{{#each defenses}}
+          <div class="trh-stat-entry">
+            {{#if isSave}}<button type="button" class="trh-defense-value is-save" data-trh-action="check" data-kind="save" data-key="{{id}}" aria-label="{{label}} {{value}}；点击检定" aria-describedby="trh-source-{{id}}"><small>{{name}}</small><b>{{value}}</b></button>
+            {{else}}<span class="trh-defense-value" tabindex="0" aria-label="{{label}} {{value}}" aria-describedby="trh-source-{{id}}"><small>{{name}}</small><b>{{value}}</b></span>{{/if}}
+            <div class="trh-source-tooltip" role="tooltip" id="trh-source-{{id}}"><strong>{{label}} <b>{{value}}</b></strong><div class="trh-source-list">{{#each sources}}<span><span>{{name}}</span><b>{{value}}</b></span>{{/each}}</div>{{#if note}}<p>{{note}}</p>{{/if}}{{#if isSave}}<small>点击进行豁免检定</small>{{/if}}</div>
+          </div>
+        {{/each}}</div>
+      </div>
+      {{#if tempHp}}<span class="trh-temp">临时 {{tempHp}}</span>{{/if}}
+      {{#if identityResources}}<div class="trh-identity-resources" aria-label="角色资源">{{#each identityResources}}<div class="trh-resource-pool" title="{{name}} {{value}}{{max}}"><span>{{name}}</span><strong>{{value}}{{max}}</strong>{{#if hasCapacity}}<div class="trh-resource-track"><div style="width: {{percent}}%"></div></div>{{/if}}</div>{{/each}}</div>{{/if}}
+      </div>
+    </aside>
+  {{#if isCommand}}<div class="trh-bar">{{/if}}
+    <section class="trh-dock {{#if collapsed}}is-collapsed{{/if}}" aria-label="3r战斗操作栏">
+      <div class="trh-resize-handles" aria-label="调整面板大小">
+        <button type="button" class="trh-resize trh-resize-n" data-trh-resize="n" title="拖动上边缩放；方向键微调" aria-label="调整上边界"></button>
+        <button type="button" class="trh-resize trh-resize-s" data-trh-resize="s" title="拖动下边缩放；方向键微调" aria-label="调整下边界"></button>
+        <button type="button" class="trh-resize trh-resize-e" data-trh-resize="e" title="拖动右边缩放；方向键微调" aria-label="调整右边界"></button>
+        <button type="button" class="trh-resize trh-resize-w" data-trh-resize="w" title="拖动左边缩放；方向键微调" aria-label="调整左边界"></button>
+        <button type="button" class="trh-resize trh-resize-ne" data-trh-resize="ne" title="拖动右上角缩放" aria-label="调整右上角"></button>
+        <button type="button" class="trh-resize trh-resize-nw" data-trh-resize="nw" title="拖动左上角缩放" aria-label="调整左上角"></button>
+        <button type="button" class="trh-resize trh-resize-se" data-trh-resize="se" title="拖动右下角缩放" aria-label="调整右下角"></button>
+        <button type="button" class="trh-resize trh-resize-sw" data-trh-resize="sw" title="拖动左下角缩放" aria-label="调整左下角"></button>
+      </div>
+      <header class="trh-topline" title="拖动空白处移动操作栏">
+        <div class="trh-header-targets">
+        {{#if hasTargets}}<div class="trh-targets" aria-label="当前目标"><span class="trh-targets-label">目标</span>{{#each targets}}<span class="trh-target" title="{{name}}"><img src="{{img}}" alt="">{{name}}</span>{{/each}}<button type="button" class="trh-target-clear" data-trh-action="clear-targets" title="取消当前目标">×</button></div>{{/if}}
+        </div>
+        <span class="trh-round {{#if inCombat}}is-live{{/if}}">{{#if inCombat}}第 {{round}} 轮{{else}}战斗外{{/if}}</span>
+        <div class="trh-window-tools">
+          <button type="button" data-trh-action="collapse" title="折叠／展开操作栏">{{#if collapsed}}展开{{else}}折叠{{/if}}</button>
+          <button type="button" data-trh-action="toggle" title="隐藏操作栏，Alt+H重新打开">隐藏</button>
+        </div>
+      </header>
+      <div class="trh-main">
+        <div class="trh-center">
+          <div class="trh-toolbar">
+            {{#if isCommand}}
+            <button type="button" class="trh-menu-identity" data-trh-action="sheet" title="打开角色卡"><span><strong>{{actorName}}</strong><small>当前操纵角色</small></span><span class="trh-menu-portrait"><img src="{{actorImage}}" alt=""></span></button>
+            {{#if hasQuickFavorites}}<div class="trh-quick-favorites" aria-label="收藏快捷操作">{{#each quickFavorites}}
+              {{#if isCommon}}<button type="button" data-trh-action="common" data-common="{{id}}" title="{{name}}"><i class="fa-solid fa-dice-d20" aria-hidden="true"></i><span>{{name}}</span></button>
+              {{else}}<button type="button" data-trh-action="use" data-item-id="{{id}}" title="{{name}} · {{resource}}"><img src="{{img}}" alt=""><span>{{name}}</span></button>{{/if}}
+            {{/each}}</div>{{/if}}
+            <nav class="trh-tabs trh-primary-tabs" aria-label="操作分类">{{#each mainTabs}}<button type="button" data-trh-action="tab" data-tab="{{id}}" class="trh-category-button {{#if active}}is-active{{/if}} {{#if hero}}is-hero{{/if}}" aria-pressed="{{active}}"><span class="trh-btn-content"><span>{{name}}</span><i class="fa-solid {{icon}}" aria-hidden="true"></i></span></button>{{/each}}</nav>
+            {{else}}
+            <nav class="trh-tabs" aria-label="操作分类">{{#each tabs}}<button type="button" data-trh-action="tab" data-tab="{{id}}" class="{{#if active}}is-active{{/if}}" aria-pressed="{{active}}">{{name}}</button>{{/each}}</nav>
+            {{#if isSpells}}<div class="trh-spell-filters"><select name="trh-book" aria-label="职业／法术书">{{#each books}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select><select name="trh-level" aria-label="法术环级">{{#each levels}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></div>{{/if}}
+            {{/if}}
+          </div>
+          <div class="trh-list-panel">
+            {{#if isCommand}}
+            <div class="trh-inline-search"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input type="search" name="trh-search" value="{{query}}" placeholder="按名称查找…" aria-label="按名称查找"></div>
+            {{#if isUtility}}<nav class="trh-utility-tabs" aria-label="实用分类">{{#each utilityTabs}}<button type="button" data-trh-action="tab" data-tab="{{id}}" class="{{#if active}}is-active{{/if}}" aria-pressed="{{active}}">{{name}}</button>{{/each}}</nav>{{/if}}
+            {{/if}}
+            {{#if isCommand}}{{#if isSpells}}<div class="trh-spell-filters"><select name="trh-book" aria-label="职业／法术书">{{#each books}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select><select name="trh-level" aria-label="法术环级">{{#each levels}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></div>{{/if}}{{/if}}
+          {{#if filtered}}<div class="trh-filter-note"><span>已筛选 {{actionFilterName}} {{query}} {{filterBook}} {{filterLevel}}</span><button type="button" data-trh-action="clear-filters">清除筛选</button></div>{{/if}}
+          <div class="trh-grid {{#if isCheckPage}}is-checks{{/if}}" aria-label="操作按钮；右键查看详情，可拖动排序">
+            {{#if isCheckPage}}
+            {{#if isChecks}}
+            <div class="trh-check-overview">
+              <div class="trh-ac-row"><span class="trh-ac"><small>AC</small><b>{{ac}}</b></span><span class="trh-ac"><small>接触</small><b>{{touchAc}}</b></span><span class="trh-ac"><small>措手不及</small><b>{{flatAc}}</b></span></div>
+              <button type="button" class="trh-init" data-trh-action="initiative">先攻 <b>{{initiative}}</b></button>
+            </div>
+            <h3>属性检定</h3><div class="trh-checks-row">{{#each checks.abilities}}<button type="button" data-trh-action="check" data-kind="ability" data-key="{{id}}"><span>{{name}}</span><strong>{{value}}</strong><small>修正 {{mod}}</small></button>{{/each}}</div>
+            <h3>豁免</h3><div class="trh-checks-row">{{#each checks.saves}}<button type="button" data-trh-action="check" data-kind="save" data-key="{{id}}"><span>{{name}}</span><strong>{{value}}</strong></button>{{/each}}</div>
+            {{/if}}
+            {{#if isSkills}}<div class="trh-checks-row trh-skills-list">{{#each checks.skills}}<button type="button" data-trh-action="check" data-kind="skill" data-key="{{id}}"><span>{{name}}</span><strong>{{value}}</strong></button>{{else}}<span class="trh-muted">没有符合查找条件的技能</span>{{/each}}</div>{{/if}}
+            {{else}}
+            {{#each sections}}
+            <section class="trh-card-section">{{#if showTitle}}<h3>{{name}}</h3>{{/if}}<div class="trh-card-grid">
+            {{#each cards}}
+            {{#if isCommon}}<article class="trh-card trh-common-card {{#if favorite}}is-favorite{{/if}}">
+              <div class="trh-row-content">
+              <button type="button" class="trh-common-action" data-trh-action="common" data-common="{{id}}" title="{{text}}"><strong>{{name}}</strong><small>{{cost}}</small></button>
+              <button type="button" class="trh-favorite" data-trh-action="favorite-common" data-common="{{id}}" title="收藏／取消收藏：{{name}}" aria-label="收藏／取消收藏：{{name}}" aria-pressed="{{favorite}}"><i class="fa-{{#if favorite}}solid{{else}}regular{{/if}} fa-star" aria-hidden="true"></i></button>
+              </div>
+            </article>
+            {{else}}
+            <article class="trh-card {{#if low}}is-low{{/if}} {{#if favorite}}is-favorite{{/if}}" draggable="true" data-item-id="{{id}}">
+              <div class="trh-row-content">
+              <button type="button" class="trh-card-use" data-trh-action="use" data-item-id="{{id}}" title="{{name}} · {{action}} · {{resource}}{{#if note}} · {{note}}{{/if}}&#10;右键查看完整条目，拖动可排序">
+                <span class="trh-icon"><img src="{{img}}" alt="" loading="lazy">{{#if resource}}<span class="trh-uses">{{resource}}</span>{{/if}}</span><strong class="trh-item-name">{{name}}</strong><small class="trh-item-meta">{{action}}{{#if note}} · {{note}}{{/if}}</small>
+              </button>
+              <button type="button" class="trh-favorite" data-trh-action="favorite" data-item-id="{{id}}" title="收藏／取消收藏：{{name}}" aria-label="收藏／取消收藏：{{name}}"><i class="fa-{{#if favorite}}solid{{else}}regular{{/if}} fa-star" aria-hidden="true"></i></button>
+              </div>
+            </article>
+            {{/if}}
+            {{/each}}
+            </div></section>
+            {{else}}<div class="trh-empty-grid"><span>此分类暂无符合筛选的操作</span><small>星号收藏 · 右键详情 · 拖动排序</small></div>{{/each}}
+            {{/if}}
+          </div>
+          </div>
+        </div>
+      </div>
+      <footer class="trh-footer">
+        <div class="trh-action-strip" aria-label="剩余动作；点击筛选，不减少动作">
+          <span class="trh-strip-label">剩余</span>
+          <div class="trh-chips">{{#each stripActions}}<button type="button" class="trh-action-chip {{#if exhausted}}is-exhausted{{/if}} {{#if active}}is-active{{/if}}" data-trh-action="filter-action" data-kind="{{id}}" aria-pressed="{{active}}" title="筛选{{name}}操作；剩余{{remaining}}。再次点击取消筛选，增减请用右下角记录。"><span>{{name}}</span><b>{{remaining}}</b></button>{{/each}}</div>
+        </div>
+        <div class="trh-bottomline">
+          <div class="trh-movement" aria-label="移动距离">
+            <span class="trh-move-chip">移速 <b>{{movement.speed}}</b> 尺</span>
+            {{#if movement.tracking}}
+            <span class="trh-move-chip">已移 <b>{{movement.distance}}</b> {{movement.units}}</span>
+            <span class="trh-move-chip" title="普通模式以一次速度为参考">余量 <b>{{movement.normalLeft}}</b> {{movement.units}}</span>
+            {{#if movement.stepping}}<span class="trh-move-chip trh-step">快步余量 <b>{{movement.stepLeft}}</b> {{movement.units}}</span>{{/if}}
+            {{/if}}
+          </div>
+          <div class="trh-tools" aria-label="HUD工具">
+            <button type="button" data-trh-action="drawer" data-drawer="appearance" aria-expanded="{{showAppearance}}" title="切换主题、布局与背景透明度"><i class="fa-solid fa-palette" aria-hidden="true"></i> 外观</button>
+            <button type="button" data-trh-action="drawer" data-drawer="search" aria-expanded="{{showSearch}}">查找</button>
+            <button type="button" data-trh-action="drawer" data-drawer="resources" aria-expanded="{{showResources}}">资源</button>
+            <button type="button" data-trh-action="drawer" data-drawer="actions" aria-expanded="{{showActions}}">记录</button>
+            {{#if canEndTurn}}<button type="button" class="trh-primary" data-trh-action="end-turn">结束回合</button>{{/if}}
+          </div>
+        </div>
+      </footer>
+      {{#if status}}<div class="trh-status" role="status" title="{{status}}">{{status}}</div>{{/if}}
+      {{#if showAppearance}}
+      <aside class="trh-drawer trh-appearance" aria-label="外观设置">
+        <div class="trh-drawer-heading"><strong>外观 · 只影响你的HUD</strong><button type="button" data-trh-action="drawer" data-drawer="appearance">关闭</button></div>
+        <label>主题<select name="trh-theme">{{#each themeChoices}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></label>
+        <label>布局<select name="trh-layout">{{#each layoutChoices}}<option value="{{id}}" {{#if selected}}selected{{/if}}>{{name}}</option>{{/each}}</select></label>
+        {{#if isCommand}}<label><input type="checkbox" name="trh-solid-panels" {{#if solidPanels}}checked{{/if}}>使用实心卡片</label>{{/if}}
+        <label>背景不透明度<input type="range" name="trh-opacity" min="10" max="100" step="5" value="{{opacityPercent}}" {{#if isCommand}}{{#if solidPanels}}disabled{{/if}}{{/if}}><span>{{opacityPercent}}%</span></label>
+        <p>名称与图标保持清晰。自选背景的图片路径在模组设置中填写。</p>
+        <button type="button" data-trh-action="reset-frame">还原面板大小与位置</button>
+      </aside>
+      {{/if}}
+      {{#if showSearch}}
+      {{#unless isCommand}}
+      <aside class="trh-drawer" aria-label="查找条目">
+        <div class="trh-drawer-heading"><strong>查找条目</strong><button type="button" data-trh-action="drawer" data-drawer="search">关闭</button></div>
+        <div class="trh-filters"><input type="search" name="trh-search" placeholder="按名字查找…" aria-label="按名字查找" value="{{query}}">
+          <button type="button" data-trh-action="clear-filters">清除筛选</button>
+        </div>
+      </aside>
+      {{/unless}}
+      {{/if}}
+      {{#if showResources}}
+      <aside class="trh-drawer" aria-label="法术资源">
+        <div class="trh-drawer-heading"><strong>角色与法术资源</strong><button type="button" data-trh-action="drawer" data-drawer="resources">关闭</button></div>
+        {{#if identityResources}}<div class="trh-pool-list">{{#each identityResources}}<span>{{name}} <b>{{value}}{{max}}</b></span>{{/each}}</div>{{/if}}
+        <div class="trh-resources">{{#each resources}}<div class="trh-book"><strong>{{name}}</strong><span class="trh-cl">施法者等级 {{cl}}</span>{{#if power}}<span class="trh-slot">灵能点 {{power}}</span>{{/if}}{{#each levels}}<span class="trh-slot" title="{{title}}">{{level}}环 <b>{{value}}{{max}}</b></span>{{/each}}</div>{{else}}<span class="trh-muted">次数和数量直接显示在各条目按钮上</span>{{/each}}</div>
+      </aside>
+      {{/if}}
+      {{#if showActions}}
+      <aside class="trh-drawer" aria-label="仅作提醒的动作记录">
+        <div class="trh-drawer-heading"><strong>动作记录 · 只提醒</strong><button type="button" data-trh-action="drawer" data-drawer="actions">关闭</button></div>
+        <div class="trh-counters">{{#each reminder.actions}}<div class="trh-counter {{#if count}}has-count{{/if}}"><span>{{name}}剩余</span><button type="button" data-trh-action="count" data-kind="{{id}}" data-delta="1" title="记录使用一次{{name}}">−</button><strong>{{remaining}}</strong><button type="button" data-trh-action="count" data-kind="{{id}}" data-delta="-1" title="返还一次{{name}}提醒">+</button></div>{{/each}}</div>
+        <div class="trh-counter-tools"><button type="button" data-trh-action="undo">撤销记录</button><button type="button" data-trh-action="reset">清空本轮记录</button></div>
+        {{#if reminder.native}}<div class="trh-native">系统：{{reminder.native}}</div>{{/if}}
+        <div class="trh-reminders">{{#each reminder.messages}}<p>{{this}}</p>{{/each}}</div>
+        <div class="trh-history">{{#each reminder.history}}<div title="{{label}}"><b>{{name}} {{delta}}</b><span>{{source}} · {{label}}</span></div>{{/each}}</div>
+      </aside>
+      {{/if}}
+    </section>
+    <div class="trh-rest-control"><button type="button" class="trh-long-rest" data-trh-action="rest" title="长休：打开原生休息窗口，选择恢复项目" aria-label="长休，打开休息窗口"><i class="fa-solid fa-bed" aria-hidden="true"></i><span>长休</span></button></div>
+  </div>
+  {{/if}}
+</div>
