@@ -48,6 +48,10 @@ function visibleEffects(actor) {
   const representedStatuses = new Set();
   for (const effect of actor.effects) {
     if (effect.disabled || effect.isSuppressed || buffUuids.has(effect.origin)) continue;
+    // Old automatic cast markers remain available in the timeline, but are not
+    // buffs. Only hide this module's empty markers, never native/other effects.
+    if (effect.getFlag(MODULE_ID, "autoSpell") && !effect.changes?.length
+      && !effect.statuses?.size && !effect.origin) continue;
     for (const status of effect.statuses ?? []) representedStatuses.add(status);
     const t = effect.getFlag(MODULE_ID, "timer") ?? nativeEffectTimer(effect);
     const seconds = t ? remaining(t, now) : null;

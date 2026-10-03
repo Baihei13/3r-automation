@@ -16,10 +16,16 @@ import { throwTanglefoot, escapeTanglefoot, captureTanglefootAttack, clearTangle
 import { installStackingRules } from "./stacking.js";
 import { createTransientView } from "./transient-view.js";
 import { describeAttackSources, localizeChatHtml } from "./presentation.js";
-import { effectDeadline, effectIsActive } from "./effect-state.js";
+import { effectDeadline, effectIsActive, repairTimedBuffs, expireTimedBuff } from "./effect-state.js";
 import { installFragileRules, prepareFragileAttack, finishFragileAttack, fragileDamageOptions, fragileState, weaponFor } from "./fragile.js";
 import { installSneakRules, prepareSneakAttack, finishSneakAttack, sneakDamage } from "./sneak-attack.js";
 import { applyWeaponFinesse } from "./weapon-finesse.js";
+import { installCheckOptions, withOptionalCheck, withOptionalAttack } from "./check-options.js";
+import { installNativeConditions, syncNativeConditions, actionRestriction } from "./native-conditions.js";
+import { cardSpell, prepareCardCast, installCardSpells } from "./card-spells.js";
+import { itemRepairs } from "./item-data.js";
+import { familiarBonusApplies, installCardFamiliar } from "./card-familiar.js";
+import { installCardSelections } from "./card-selections.js";
 
 export const key = item => item?.flags?.[MODULE_ID]?.key;
 export const has = (actor,k) => actor.items.some(i=>key(i)===k && effectIsActive(i));
@@ -65,9 +71,14 @@ export const curseLevel = (actor,curse) => {
 export function timedBuff(name,k,seconds,changes=[],extra={}) {
   if(seconds!=null&&(!Number.isFinite(seconds)||seconds<=0))throw new Error(`${name}的持续时间无效，未创建增益。`);
   const now=game.time.worldTime;
+  // Pending mending is a casting task: utilityTime completes it before expiry.
+  const nativeTimed=Number.isFinite(seconds)&&k!=="mending-casting";
+  const cl=Number(extra.cl);
   return {name,type:"buff",img:"icons/svg/aura.svg",system:{active:true,buffType:"temp",changes,
-    description:{value:`<p>${name}</p>`},timeline:{enabled:false,total:seconds/6,elapsed:0,deleteOnExpiry:false}},
-    flags:{[MODULE_ID]:{key:k,...extra,...(Number.isFinite(seconds)?{expiresAt:now+seconds}:{})},
+    level:Number.isFinite(cl)&&cl>0?cl:0,
+    description:{value:`<p>${name}</p>`},timeline:{enabled:nativeTimed,total:seconds==null?0:seconds/6,
+      formula:nativeTimed?String(seconds/6):"",elapsed:0,deleteOnExpiry:nativeTimed}},
+    flags:{[MODULE_ID]:{key:k,...extra,...(nativeTimed?{nativeTimerVersion:1}:{}),...(Number.isFinite(seconds)?{expiresAt:now+seconds}:{})},
       ...(Number.isFinite(seconds)?{"d35e-world-timeline":{timer:{start:now,seconds,end:now+seconds}}}:{})}};
 }
 export async function replaceTimedBuff(actor,data) {
@@ -188,6 +199,10 @@ export async function syncLuck(actor) {
 export async function completeActors() {
   if (!activeGM())return;
   for (const actor of worldActors()) {
+    await repairTimedBuffs(actor);
+    const cardRepairs=actor.items.map(item=>({_id:item.id,...itemRepairs(item)})).filter(update=>Object.keys(update).length>1);
+    if(cardRepairs.length)await actor.updateEmbeddedDocuments("Item",cardRepairs);
+    await syncNativeConditions(actor);
     const witch=actor.items.find(i=>key(i)==="witch");
     if(witch&&has(actor,"witch-watcher")&&!witch.getFlag(MODULE_ID,"watcherSlotsRepaired")) {
       const seed=allSeeds().find(i=>key(i)==="witch");
@@ -253,6 +268,11 @@ async function endWard(actor) {
   }
 }
 export function activateRules() {
+  installNativeConditions();
+  installCardFamiliar();
+  installCardSelections();
+  installCardSpells();
+  installCheckOptions();
   installStackingRules();
   installFragileRules();
   installSneakRules();
@@ -264,6 +284,7 @@ export function activateRules() {
   const actorRollData=CONFIG.Actor.documentClass.prototype.getRollData;
   CONFIG.Actor.documentClass.prototype.getRollData=function(...args) {
     const data=actorRollData.apply(this,args);
+    data.rhamphorhynchusNearby=this.items.some(item=>key(item)==="rhamphorhynchus-familiar")?familiarBonusApplies(this):0;
     data.nobleSelectedAtLevel=Number(this.items.find(i=>key(i)==="noble-scion")?.getFlag(MODULE_ID,"selectedAtLevel"))||0;
     data.celestialGood=["lg","ng","cg","守序善良","中立善良","混乱善良"].includes(this.system.details.alignment)?1:0;
     data.shadowStanceKnown=this.items.some(i=>i.type==="buff"&&i.uuid===this.getFlag(MODULE_ID,"shadowStance"))?1:0;
@@ -278,6 +299,8 @@ export function activateRules() {
   const useSpell=ItemUse.prototype.useSpell;
   ItemUse.prototype.useSpell=async function(ev,options={},actor=this.item.actor) {
     const item=options.replacementItem??this.item;
+    const restriction=actionRestriction(actor,item);
+    if(restriction)return ui.notifications.warn(restriction);
     const book=actor.system.attributes?.spells?.spellbooks?.[item.system.spellbook??"primary"];
     if(book?.ability && Number(actor.system.abilities[book.ability].total)<10+Number(item.system.level))
       return ui.notifications.warn("施法属性尚未达到10＋法术环级，不能施放。");
@@ -294,6 +317,9 @@ export function activateRules() {
       context.cl=casterLevel(item,actor);
       context.utility=await prepareUtility(item,actor,context.cl);
       if(context.utility===false)return;
+      const card=await prepareCardCast(item,actor,context.targets);
+      if(card===false)return;
+      context.utility={...context.utility,...card};
       return await useSpell.call(this,ev,options,actor);
     } finally{castContexts=castContexts.filter(c=>c!==context);}
   };
@@ -303,20 +329,23 @@ export function activateRules() {
     const actor=actorForMessage(message);
     const context=castContexts.find(c=>c.item.id===data.item?.id&&c.actor.uuid===actor?.uuid);
     const targets=context&&personalSpell(context.item)?[actor]:data.targets?.length?data.targets.map(t=>canvas.scene?.tokens.get(t.id)?.actor).filter(Boolean):context?.targets??[];
-    if(context)message.updateSource({[`flags.${MODULE_ID}.cast`]:{actual:true,automated:handlesSpell(context.item),targetUuids:targets.map(t=>t.uuid),extendSelf:has(actor,"reclusive")&&curseLevel(actor,"reclusive")>=5&&targets.length===1&&targets[0].uuid===actor.uuid,weaponId:context.weaponId,cl:Number(data.cl)>0?Number(data.cl):context.cl,...context.utility}});
+    if(context)message.updateSource({[`flags.${MODULE_ID}.cast`]:{actual:true,automated:handlesSpell(context.item)||Boolean(cardSpell(context.item)),targetUuids:targets.map(t=>t.uuid),extendSelf:has(actor,"reclusive")&&curseLevel(actor,"reclusive")>=5&&targets.length===1&&targets[0].uuid===actor.uuid,weaponId:context.weaponId,cl:Number(data.cl)>0?Number(data.cl):context.cl,...context.utility}});
   });
   Hooks.on("createChatMessage",message=> {
     if(!activeGM())return;
     const cast=message.getFlag(MODULE_ID,"cast");const data=message.flags?.D35E?.chatTemplateData;
     if(data?.isSpell&&cast?.actual&&cast.automated && !(data.spellFailureSuccess===false && game.settings.get("D35E","fizzleSpellOnArcaneFailure"))) {
       const actor=actorForMessage(message); const item=actor?.items.get(data.item?.id);
-      if(!item)return;
+      if(!item||!handlesSpell(item))return;
       // Native action spells also post their description; only the actual action card creates the buff.
       if(item.hasAction&&message.flags.D35E.template!=="systems/D35E/templates/chat/attack-roll.html")return;
       Promise.all(cast.targetUuids.map(u=>fromUuid(u))).then(targets=>applySpellBuff(item,actor,{cl:cast.cl,weaponId:cast.weaponId,objectUuid:cast.objectUuid,gallons:cast.gallons,targets:targets.filter(Boolean)})).catch(report);
     }
-    if(message.flags?.D35E?.template==="systems/D35E/templates/chat/saving-throw.html"&&data?.target&&data.success===false)
-      endWard(actorForMessage(message)).catch(report);
+    if(message.flags?.D35E?.template==="systems/D35E/templates/chat/saving-throw.html"&&data?.target) {
+      const roll=message.rolls?.[0],die=roll?.dice?.find(term=>term.faces===20)?.results?.find(row=>row.active!==false)?.result;
+      const failed=die===1||(die!==20&&Number(data.total)<Number(data.target));
+      if(failed)endWard(actorForMessage(message)).catch(report);
+    }
     if(message.flags?.D35E?.template==="systems/D35E/templates/chat/attack-roll.html" && data?.targets?.length===1 && data.attacks?.length) {
       const target=canvas.scene?.tokens.get(data.targets[0].id)?.actor;
       if(target&&has(target,"witch-ward")) {
@@ -360,7 +389,14 @@ export function activateRules() {
   ItemRolls.prototype.rollDamage=function(options={}) {
     const item=this.item;
     const existing=item.actor?typedBonus(item.actor,"enh",["damage",["mwak","rwak"].includes(item.system.actionType)?"wdamage":"sdamage"]):0;
-    const data=options.data?foundry.utils.deepClone(options.data):undefined;
+    let data=options.data?foundry.utils.deepClone(options.data):undefined;
+    if(item.actor&&item.actor.items.some(effect=>effectIsActive(effect)&&effect.getFlag(MODULE_ID,"cardEffect")==="enlarge-person")&&["mwak","rwak"].includes(item.system.actionType)) {
+      data??=foundry.utils.deepClone(item.actor.getRollData());
+      data.item??=foundry.utils.deepClone(item.system);
+      const sizes=["fine","dim","tiny","sm","med","lg","huge","grg","col"];
+      // Core-created attacks use already-sized base dice plus @sizeDifference.
+      data.sizeDifference=sizes.indexOf(item.actor.system.traits.actualSize)-sizes.indexOf(item.actor.system.traits.size);
+    }
     return damage.call(this,{...options,...(data?{data}:{}),replacedEnh:Math.max(0,Number(options.replacedEnh??0)-existing)});
   };
   const form=ItemUse.prototype.extractFormData;
@@ -377,15 +413,23 @@ export function activateRules() {
     const owner=this.item?.actor;
     const promise=owner&&promiseAttacks.get(owner.uuid);
     if(promise&&promise.item===this.item.id&&!promise.used&&!options.critical) {
-      const value=Math.max(0,4-typedBonus(owner,"morale",["attack",this.item.system.actionType==="rwak"?"rattack":"mattack"]));
-      options.extraParts=[...(options.extraParts??[]),{part:String(value),value,source:"守律：本次履约（+4士气，按同类最高加值）"}];
-      promise.used=true;
+      const targets=["attack",["rwak","rsak"].includes(this.item.system.actionType)?"rattack":"mattack"];
+      if(promise.promise!==false) {
+        const value=Math.max(0,4-typedBonus(owner,"morale",targets));
+        options.extraParts=[...(options.extraParts??[]),{part:String(value),value,source:"士气加值"}];
+      }
+      if(promise.guidanceId&&owner.items.has(promise.guidanceId)) {
+        const value=Math.max(0,1-typedBonus(owner,"competence",targets));
+        options.extraParts=[...(options.extraParts??[]),{part:String(value),value,source:"表现加值"}];
+      }
+      promise.pending=true;
     }
     const targets=[...game.user.targets].filter(t=>t.actor);
     // Ward must still contribute AC to this attack; clear it after determining the hit.
     const ac=targets.length===1 ? Number(targets[0].actor.system.attributes.ac[
       this.item?.system.ability?.vsTouchAc?"touch":targets[0].actor.system.attributes.conditions?.flatFooted?"flatFooted":"normal"].total) : null;
     const result=await addAttack.call(this,options);
+    if(promise?.pending && this.attack?.total!=null) { promise.used=true; promise.pending=false; }
     finishSneakAttack(this,options);
     await finishFragileAttack(this,options);
     for(const data of [this.attack,this.critConfirm])if(data?.tooltip)data.tooltip=localizeChatHtml(data.tooltip);
@@ -402,12 +446,14 @@ export function activateRules() {
   const use=ItemUse.prototype.useAttack;
   ItemUse.prototype.useAttack=async function(...args) {
     const actor=args[1]??this.item.actor;
+    const restriction=actionRestriction(actor,this.item);
+    if(restriction)return ui.notifications.warn(restriction);
     if(fragileState(weaponFor(this.item))==="destroyed")return ui.notifications.warn("武器已摧毁，不能攻击。");
     if(actor?.isOwner&&actor.items.some(i=>["buff","aura"].includes(i.type)&&i.system.active&&!effectIsActive(i))) {
       if(activeGM())await processRuleTime();
       await actor.refresh();
     }
-    return use.apply(this,args);
+    return withOptionalAttack(actor,this.item,promiseAttacks,()=>use.apply(this,args));
   };
   Hooks.on("D35E.ChatAttack.preAddDamage",(chatAttack,options)=> {
     if(chatAttack.rollData.shadowBladeDex!=null)options.extraParts=[...(options.extraParts??[]),[`@critMult*(${chatAttack.rollData.shadowBladeDex})`,"影之刃：敏捷伤害修正（无名加值）","base"]];
@@ -426,6 +472,7 @@ export function activateRules() {
     if(has(actor,"shadow-blade")&&stance?.system.active&&shadowWeapon&&item.system.actionType==="mwak")data.shadowBladeDex=Number(actor.system.abilities.dex.mod);
   });
   Hooks.on("D35E.ItemUse.preUseItem",(item,actor,hook)=> {
+    if(hook.customUse)return;
     if(fragileState(weaponFor(item))==="destroyed"){hook.customUse=true;ui.notifications.warn("武器已摧毁，不能使用。");return;}
     if(key(item)==="tanglefoot"){hook.customUse=true;throwTanglefoot(item).catch(report);return;}
     if(key(item)==="tanglefoot-escape"){hook.customUse=true;escapeTanglefoot(actor).catch(report);return;}
@@ -443,28 +490,30 @@ export function activateRules() {
   });
   const rollSkill=CONFIG.Actor.documentClass.prototype.rollSkill;
   CONFIG.Actor.documentClass.prototype.rollSkill=async function(skill,options={}) {
-    const diplomacy=this.items.find(i=>key(i)==="spell-effect-diplomacy"&&i.system.active);
-    let benefit=null,temporary=null;
-    if(has(this,"celestial-agenda")&&["lg","ng","cg","守序善良","中立善良","混乱善良"].includes(this.system.details.alignment)
+    let temporary=null;
+    if(!["blf","int","slt"].includes(skill)&&has(this,"celestial-agenda")&&["lg","ng","cg","守序善良","中立善良","混乱善良"].includes(this.system.details.alignment)
       && await Dialog.confirm({title:"神圣之路：检定用途",content:"<p>本次技能检定是在欺骗或威胁他人吗？符合时承受−2减值。</p>"}))
       temporary=await replaceTimedBuff(this,timedBuff("神圣之路：欺骗／威胁","celestial-deception-check",null,[["-2","skill",`skill.${skill}`,"penalty"]]));
     const additional=temporary;
     temporary=null;
-    if(diplomacy && ["dip","int"].includes(skill) && await Dialog.confirm({title:"使用增强交涉？",content:"<p>本次检定获得+2表现加值，使用后法术结束。</p>"})) {
-      benefit=diplomacy;
-      temporary=await replaceTimedBuff(this,timedBuff("增强交涉：本次检定","diplomacy-check",null,[["2","skill",`skill.${skill}`,"competence"]]));
-    }
     if(skill==="src"&&has(this,"trapfinding")&&await Dialog.confirm({title:"本次是在搜索陷阱吗？",content:"<p>寻找陷阱只对搜索陷阱额外加值；一般搜索不加。</p>"})) {
       const level=Number(this.items.find(i=>key(i)==="unchained-rogue")?.system.levels)||1;
       temporary=await replaceTimedBuff(this,timedBuff("寻找陷阱：本次搜索","trap-search-check",null,[[String(Math.max(1,Math.floor(level/2))),"skill","skill.src","untyped"]]));
     }
     let result;
-    try {result=await rollSkill.call(this,skill,options);return result;}
+    try {result=await withOptionalCheck(this,"skill",skill,options,(view,next=options)=>rollSkill.call(view,skill,next));return result;}
     finally {
       if(temporary&&this.items.has(temporary.id))await temporary.delete();
       if(additional&&this.items.has(additional.id))await additional.delete();
-      if(benefit&&result?.total!=null)await benefit.update({"system.active":false});
     }
+  };
+  const rollSave=CONFIG.Actor.documentClass.prototype.rollSavingThrow;
+  CONFIG.Actor.documentClass.prototype.rollSavingThrow=function(save,ability,target,options={}) {
+    return withOptionalCheck(this,"save",save,options,(view,next=options)=>rollSave.call(view,save,ability,target,next));
+  };
+  const rollAbility=CONFIG.Actor.documentClass.prototype.rollAbilityTest;
+  CONFIG.Actor.documentClass.prototype.rollAbilityTest=function(ability,options={}) {
+    return withOptionalCheck(this,"ability",ability,options,(view,next=options)=>rollAbility.call(view,ability,next));
   };
   Hooks.on("preUpdateActor",(actor,change)=> {
     const next=change["system.attributes.hp.temp"]??change.system?.attributes?.hp?.temp;
@@ -489,13 +538,24 @@ export function activateRules() {
     else if(change["system.active"]===true||change.system?.active===true)item.actor.update({"system.attributes.conditions.entangled":true}).then(()=>item.actor.refresh()).catch(report);
   });
   Hooks.on("deleteItem",item=> {if(activeGM()&&item.actor&&key(item)==="tanglefoot-entangled")clearTanglefoot(item.actor,item).catch(report);});
+  Hooks.on("deleteItem",item=> {if(activeGM()&&item.actor&&key(item)==="covenant-health")revokeHealth(item.actor,item).catch(report);});
   Hooks.on("updateItem",(item,change)=> {if(item.actor&&(change["system.levels"]!=null||change.system?.levels!=null))syncProgression(item.actor).catch(report);});
   Hooks.on("updateActor",(actor,change)=>{if(change[`flags.${MODULE_ID}.fixedCurse`]!=null||change.flags?.[MODULE_ID]?.fixedCurse!=null||change.system?.abilities||change.system?.details?.alignment||Object.keys(change).some(k=>k.startsWith("system.abilities.")||k==="system.details.alignment"))syncProgression(actor).catch(report);});
   Hooks.on("deleteItem",item=> {if(item.actor){syncLuck(item.actor).catch(report);syncSpellResistance(item.actor).catch(report);syncProgression(item.actor).catch(report);}});
   const rest=CONFIG.Actor.documentClass.prototype.rest;
   if(rest)CONFIG.Actor.documentClass.prototype.rest=async function(health,daily,...args) {
     const result=await rest.call(this,health,daily,...args);
-    if(daily) {await this.setFlag(MODULE_ID,"samsaranSpells",{used:[]});const record=this.getFlag(MODULE_ID,"covenant");if(record)await this.setFlag(MODULE_ID,"covenant",{...record,used:0,preparedAt:game.time.worldTime});}
+    if(result?.completed===false || result?.remote)return result;
+    if(daily) {
+      const fatigue=this.items.filter(item=>key(item)==="pesh-vigor-fatigue");
+      if(fatigue.length)await this.deleteEmbeddedDocuments("Item",fatigue.map(item=>item.id));
+      const changes={};
+      if(this.getFlag(MODULE_ID,"samsaranSpells") || has(this,"samsaran-magic")) changes[`flags.${MODULE_ID}.samsaranSpells`]={used:[]};
+      if(this.getFlag(MODULE_ID,"promise") || has(this,"legalistic")) changes[`flags.${MODULE_ID}.promise`]={day:Math.floor(game.time.worldTime/86400),used:false,recoveredAt:game.time.worldTime};
+      const record=this.getFlag(MODULE_ID,"covenant");
+      if(record)changes[`flags.${MODULE_ID}.covenant`]={...record,used:0,preparedAt:game.time.worldTime};
+      if(Object.keys(changes).length)await this.update(changes);
+    }
     return result;
   };
   Hooks.on("D35E.ItemSpellHelper.postAdjustSpellCL",(item,data)=> {
@@ -565,13 +625,15 @@ async function processTime() {
   for(const actor of worldActors()) {
     await utilityTime(actor);
     for(const item of actor.items.filter(i=>i.type==="buff")) {
-      if(!item.system.active) {if(key(item)==="covenant-health")await revokeHealth(actor,item);continue;}
+      // An inactive, suppressed spell must survive until its suspended timer resumes.
+      if((actor.getFlag(MODULE_ID,"suppressedSpells")??[]).some(entry=>entry.uuid===item.uuid))continue;
       const end=effectDeadline(item);
       if(Number.isFinite(end)&&end<=game.time.worldTime) {
         if(key(item)==="covenant-health")await revokeHealth(actor,item);
         if(key(item)==="tanglefoot-entangled")await clearTanglefoot(actor,item);
-        else await item.update({"system.active":false});
+        await expireTimedBuff(item);
       }
+      else if(!item.system.active&&key(item)==="covenant-health")await revokeHealth(actor,item);
     }
     const suppressed=actor.getFlag(MODULE_ID,"suppressedSpells")??[];
     const kept=[];
@@ -622,4 +684,3 @@ async function revokeHealth(actor,item) {
   if(record.owner===item.uuid)await actor.update({"system.attributes.hp.temp":record.other??0});
   await actor.unsetFlag(MODULE_ID,"temporaryHealth");
 }
-

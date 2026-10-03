@@ -120,7 +120,7 @@ export const CHARACTER_ITEMS = {
       { senses: { lowLight: true,lowLightMultiplier:2 } }),
     feat("lifebound", "生命之缚", "arg", "feature", "对即死、负能量、移除负向等级的豁免以及负生命值下的稳定检定 +2 种族加值；只在对应情形适用。"),
     feat("samsaran-magic", "轮回者魔法", "arg", "feature", "魅力至少 11 时，通晓语言、观命术、稳定伤势各每日 1 次。"),
-    feat("mystic-past-life", "前世秘术", "arg", "feature", "可将同类型施法职业的法术加入当前列表，数量为1+施法关键属性修正，在1级确定。具体法术由玩家选择。")
+    feat("mystic-past-life", "前世秘术", "arg", "feature", "将另一施法职业的法术加入当前施法职业的法术表，数量等于1＋施法关键属性修正值，在1级时固定。来源法术必须同为奥术或同为神术，可以选择尚不能施放的高环法术。取代前世残片。")
   ],
   apg: [
     entry("bec-de-corbin", "鸦嘴战锤（黑曜石）", "weapon", "apg", "weapon", "黑曜石通常不允许制作这种双手武器，使用这个材质特例前须由DM明确允许。黑曜石使价格为普通武器的一半、重量为75%、硬度为一半，具有易碎特性。黑曜石通常限于造成挥砍或穿刺伤害的轻型、单手武器及矛尖、箭头，不能制作护甲；材料魔法强化后移除易碎，可制作石头允许的装备。材料强化另需每磅100金币，与魔化武器的临时增强加值分开。易碎：攻击天然骰出1时破损，已破损时再次出1则摧毁；精制品和普通魔法附魔不会自行移除易碎。破损损失最大HP的一半（向下取整）加1；解除破损仅恢复这部分损失，不恢复破武等其他伤害。破损时攻击与伤害−2，重击为20／×2。武器来源：《进阶玩家手册》；材质与易碎来源：《终极装备》。", {
@@ -134,7 +134,7 @@ export const CHARACTER_ITEMS = {
       spellcastingType: "arcane", spellcastingSpontaneus: false, hasSpellbook: true,
       spellcastingAbility: "int", spellslotAbility: "int", spellsPerLevel: WITCH_SLOTS
     }),
-    feat("extra-hex", "额外巫术", "apg", "feat", "额外获得一项符合前提的女巫巫术，具体巫术由玩家选择。"),
+    feat("extra-hex", "额外巫术", "apg", "feat", "额外获得一项符合前提的女巫巫术。"),
     feat("ward", "守护", "apg", "hex", "给另一生物 +2 偏斜 AC 与 +2 抗力豁免；首次被命中或豁免失败时消失，同时只能有一个目标；不能对自身使用。"),
     feat("cackle", "尖笑", "apg", "hex", "移动动作，令 30 尺内符合条件的既有巫术效果延长 1 轮；幸庇按其特殊说明也可延长。"),
     klass("oracle", "先知", "apg", "自发神术施法，以魅力施法。双重诅咒改变职业能力。", {

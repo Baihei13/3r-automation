@@ -29,15 +29,9 @@ export async function syncProgression(actor) {
       fixedCurse:actor.getFlag(MODULE_ID,"fixedCurse")??null};
     if(JSON.stringify(actor.getFlag(MODULE_ID,"progression"))!==JSON.stringify(record)) {
       await actor.setFlag(MODULE_ID,"progression",record);
-      const classItems=actor.items.filter(i=>["witch","unchained-rogue","dual-cursed-oracle"].includes(key(i)));
-      for(const item of classItems) {
-        const summary=key(item)==="witch"?`女巫${witch}级：巫术名额${record.hexes}（庇护主奖励守护不占名额）；${record.majorHex?"强力巫术已开放":"强力巫术10级开放"}；${record.grandHex?"高等巫术已开放":"高等巫术18级开放"}。魔宠种类与法术选择保持待选。`
-          :key(item)==="unchained-rogue"?`游荡者${rogue}级：巧技训练可选择${record.finesseChoices}种武器；选择后固定。影之刃仍须真实掌握且正在使用影手步法。`
-          :`先知${oracle}级：启示名额${record.revelations}。不成长诅咒：${record.fixedCurse??"尚未选择；暂不启用5级以上成长能力"}。`;
-        const value=item.system.description.value.replace(/<section data-3r-progress>[\s\S]*?<\/section>/g,"");
-        await item.update({"system.description.value":`${value}<section data-3r-progress><p>${summary}</p></section>`});
-      }
     }
+    for(const item of actor.items.filter(i=>i.type==="class"&&i.system.description?.value?.includes("data-3r-progress")))
+      await item.update({[`flags.${MODULE_ID}.previousProgressText`]:item.system.description.value,"system.description.value":item.system.description.value.replace(/<section data-3r-progress>[\s\S]*?<\/section>/g,"")});
     const reclusive=actor.items.find(i=>key(i)==="reclusive");
     if(reclusive) {
       const level=curseLevel(actor,"reclusive");
@@ -56,19 +50,46 @@ export async function syncProgression(actor) {
       if(Number(fortune.system.uses.max)!==max)await fortune.update({"system.uses.max":max,"system.uses.value":Math.min(Number(fortune.system.uses.value)||0,max)});
     }
     if(oracle)await bonusSpells(actor,oracle);
-    if(witch&&has(actor,"celestial-agenda")) {
-      const additions=[];
-      for(const [required,k]of [[4,"pf-spell-castigate"],[10,"pf-spell-rebuke"]])if(witch>=required&&!actor.items.some(i=>key(i)===k)) {
-        const seed=allSeeds().find(i=>key(i)===k);if(seed)additions.push(foundry.utils.deepClone(seed));
-      }
-      if(additions.length)await actor.createEmbeddedDocuments("Item",additions);
-      if(witch>=16&&!actor.items.some(i=>key(i)==="celestial-planar-ally")) {
-        const pack=game.packs.get("D35E.spells"),index=await pack?.getIndex();
-        const entry=index?.find(i=>i.name==="Greater Planar Ally");
-        if(entry){const data=(await pack.getDocument(entry._id)).toObject();for(const field of ["_id","folder","ownership","_stats"])delete data[field];data.name="高等异界盟友（仅善良）";data.system.level=8;data.system.spellbook="primary";data.flags??={};data.flags[MODULE_ID]={key:"celestial-planar-ally",source:"pf",category:"spell"};data.system.description.value+="<p>神圣之路庇护主限制：只呼唤善良异界生物；所呼唤对象和酬劳由GM选择确认。</p>";await actor.createEmbeddedDocuments("Item",[data]);}
+    if(witch&&has(actor,"celestial-agenda"))await syncPatronSpells(actor,witch);
+  } finally {pending.delete(actor.uuid);}
+}
+const patronSpells={
+  endurance:["Endure Elements","Castigate","Protection from Energy","Spell Immunity","Rebuke","Mass Bear's Endurance","Greater Restoration","Greater Planar Ally","Miracle"],
+  healing:["Remove Fear","Castigate","Remove Disease","Restoration","Rebuke","Pillar of Life","Greater Restoration","Greater Planar Ally","True Resurrection"],
+  light:["Dancing Lantern","Castigate","Daylight","Rainbow Pattern","Rebuke","Sirocco","Sunbeam","Greater Planar Ally","Fiery Body"],
+  portents:["Ill Omen","Castigate","Blood Biography","Divination","Rebuke","Legend Lore","Vision","Greater Planar Ally","Foresight"]
+};
+export async function syncPatronSpells(actor,level) {
+  const names=patronSpells[actor.getFlag(MODULE_ID,"patronTheme")];
+  if(!names)return;
+  const granted=actor.getFlag(MODULE_ID,"patronGranted")??[],next=[...granted],missing=[];
+  for(let index=0;index<names.length&&level>=2*(index+1);index++) {
+    const english=names[index],required=2*(index+1),grantKey=`celestial-patron-${required}`;
+    const localKey=required===4?"pf-spell-castigate":required===10?"pf-spell-rebuke":english==="Ill Omen"?"pf-spell-ill-omen":null;
+    if(granted.includes(required))continue;
+    if(actor.items.some(item=>item.type==="spell"&&(key(item)===grantKey||localKey&&key(item)===localKey||required===16&&key(item)==="celestial-planar-ally"||item.name===english))){next.push(required);continue;}
+    let data=localKey&&allSeeds().find(item=>key(item)===localKey);
+    if(data)data=foundry.utils.deepClone(data);
+    else {
+      for(const collection of ["D35E.spells","zzzzz_3r_chn.spells"]) {
+        const pack=game.packs.get(collection);if(!pack)continue;
+        const entries=await pack.getIndex();
+        const entry=entries.find(row=>row.name===english||row.name.startsWith(`${english} (`));
+        if(entry){data=(await pack.getDocument(entry._id)).toObject();break;}
       }
     }
-  } finally {pending.delete(actor.uuid);}
+    if(!data){missing.push({level:required,spell:english});continue;}
+    for(const field of ["_id","folder","ownership","_stats"])delete data[field];
+    data.system.level=index+1;data.system.spellbook="primary";
+    data.system.preparation={...data.system.preparation,preparedAmount:0,maxAmount:0};
+    data.flags??={};data.flags[MODULE_ID]={...data.flags[MODULE_ID],key:localKey||grantKey,source:"pf",category:"spell",patronSpell:true};
+    data.system.learnedAt??={};data.system.learnedAt.class??=[];
+    if(!data.system.learnedAt.class.some(([name])=>name==="Witch"))data.system.learnedAt.class.push(["Witch",index+1]);
+    if(required===16)data.system.description.value+="<p>此庇护主只允许呼唤善良异界生物。异界盟友依照法术规则要求相应酬劳。</p>";
+    await actor.createEmbeddedDocuments("Item",[data]);next.push(required);
+  }
+  if(JSON.stringify(granted)!==JSON.stringify(next))await actor.setFlag(MODULE_ID,"patronGranted",next);
+  if(JSON.stringify(actor.getFlag(MODULE_ID,"missingPatronSpells"))!==JSON.stringify(missing))await actor.setFlag(MODULE_ID,"missingPatronSpells",missing);
 }
 const bonuses=[
   [2,"Ill Omen","凶兆","apg"],[4,"Oracle's Burden","先知负担","apg"],[6,"Bestow Curse","降咒","pf"],

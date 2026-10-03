@@ -114,6 +114,19 @@ function threatens(source,target,item=null) {
   }
   return {value:unknown?null:false,reason:reasons.size?[...reasons].join("；"):"没有已装备的可用近战武器或天然攻击"};
 }
+// Reuse the same equipped-weapon, reach and wall checks for movement opportunities.
+export function movementThreats(document, movement) {
+  const mover = document.object;
+  if (!mover?.actor || !canvas.grid?.size) return [];
+  const path = [movement.origin, ...movement.passed.waypoints];
+  const cell = point => `${Math.floor((point.x + mover.w / 2) / canvas.grid.size)}:${Math.floor((point.y + mover.h / 2) / canvas.grid.size)}`;
+  const departed = path.slice(0, -1).filter((point, index) => cell(point) !== cell(path[index + 1]));
+  const at = point => ({ actor: mover.actor, x: point.x, y: point.y, w: mover.w, h: mover.h, document: { elevation: point.elevation } });
+  return (canvas.tokens?.placeables ?? []).filter(enemy => enemy.actor && enemy.id !== document.id
+    && Number(enemy.document.disposition) * Number(document.disposition) < 0
+    && !enemy.actor.items.some(item => key(item) === "common-total-defense" && effectIsActive(item))
+    && departed.some(point => threatens(enemy, at(point)).value === true));
+}
 function opposite(a,b,target) {
   const left=target.x,right=target.x+target.w,top=target.y,bottom=target.y+target.h;
   const dx=b.x-a.x,dy=b.y-a.y,epsilon=1e-6;
@@ -316,9 +329,18 @@ export function sneakDamage(chat,options) {
   // D35E fortification discards this UID when damage is applied; do not roll it a second time here.
   options.extraParts=[...(options.extraParts??[]),[`${result.dice}d6`,"精准伤害","damage-precision","偷袭"]];
 }
-function verdict(result) {
-  const flankText=result.flanking?"夹击：+2无名加值":result.flankingError?"夹击：程序错误，未加入自动加值":result.flankingPending?"夹击：条件待确认，未加入加值":"夹击：未加入加值";
-  return `${flankText}${result.flankingReason?`（${result.flankingReason}）`:""}。${result.eligible?`偷袭：额外${result.dice}d6精准伤害（命中后结算，不乘重击）`:result.error?"偷袭：程序错误，未加入伤害":result.pending?"偷袭：数据或条件待确认，暂不加入伤害":"偷袭：不触发"}。${result.reason}。`;
+function verdict(result,attack) {
+  const notes=[];
+  if(result.flanking)notes.push("夹击：+2无名加值");
+  // Read the saved native damage rolls, including on old cards. Eligibility
+  // alone does not prove damage was rolled (e.g. an attack-only roll).
+  let precision=false;
+  try {
+    precision=JSON.parse(attack.normalDamage||"[]").some(roll=>roll.damageTypeUid==="damage-precision"&&roll.source==="偷袭");
+  }catch(_) { /* No readable saved damage: do not claim a sneak damage roll. */ }
+  if(result.eligible&&!attack.attack?.isFumble&&precision)
+    notes.push(`偷袭：额外${result.dice}d6精准伤害（命中后结算，不乘重击）`);
+  return notes.length?`${notes.join("。")}。`:"";
 }
 // D35E keeps attack in its serialized chat data, but drops custom fields on
 // the ChatAttack instance. Preserve the rolled verdict, never recompute it
@@ -400,8 +422,10 @@ export function installSneakRules() {
     attacks.forEach((attack,i)=> {
       const result=attack.attack?.threeRSneak,row=rows[i];
       if(!result||!row||row.querySelector(".three-r-sneak-result"))return;
+      const text=verdict(result,attack);
+      if(!text)return;
       const note=document.createElement("p");note.className="three-r-sneak-result";
-      note.textContent=verdict(attack.attack.isFumble?{...result,eligible:false,pending:false,reason:"本次攻击天然1，未加入精准伤害"}:result);
+      note.textContent=text;
       row.append(note);
     });
   });

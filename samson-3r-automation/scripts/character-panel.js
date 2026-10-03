@@ -135,6 +135,7 @@ async function witchAction(actor, action, detail) {
       for (const effect of effects) {
         await effect.update({ [`flags.${MODULE_ID}.expiresAt`]: effect.getFlag(MODULE_ID, "expiresAt") + 6,
           "system.timeline.total": Number(effect.system.timeline?.total ?? 0) + 1,
+          ...(effect.system.timeline?.enabled?{"system.timeline.formula":String(Number(effect.system.timeline.total)+1)}:{}),
           "flags.d35e-world-timeline.timer.end":effect.getFlag(MODULE_ID,"expiresAt")+6,
           "flags.d35e-world-timeline.timer.seconds":Number(effect.getFlag("d35e-world-timeline","timer")?.seconds??0)+6 });
         count++;
@@ -142,7 +143,7 @@ async function witchAction(actor, action, detail) {
     }
     await actor.setFlag(MODULE_ID,"cacklePeriod",period);
     await recordAction(actor,"move");
-    await chat(actor, `<p>${safe(actor.name)}尖笑：30 尺内 ${count} 个由她施加的幸庇效果延长 1 轮。</p>`);
+    await chat(actor, `<p>${safe(actor.name)}尖笑：30 尺内 ${count} 个由她施加的巫术效果延长 1 轮。</p>`);
     return;
   }
   if (action === "covenant-reset") {
@@ -185,7 +186,8 @@ async function witchAction(actor, action, detail) {
       const selected=await choose("慰藉：选择要压制的非永久法术",eligible.map(i=>[i.uuid,i.name]));
       if(!selected)return;
       const effect=await fromUuid(selected);
-      const sourceCl=effect.getFlag(MODULE_ID,"cl")??Number(await Dialog.prompt({title:"原法术施法者等级",content:'<input type="number" name="cl" min="1" value="1">',label:"确定",rejectClose:false,callback:h=>(h[0]??h).querySelector("input").value}));
+      const savedCl=Number(effect.getFlag(MODULE_ID,"cl")??effect.system?.level);
+      const sourceCl=Number.isFinite(savedCl)&&savedCl>0?savedCl:Number(await Dialog.prompt({title:"原法术施法者等级",content:'<input type="number" name="cl" min="1" value="1">',label:"确定",rejectClose:false,callback:h=>(h[0]??h).querySelector("input").value}));
       if(!sourceCl)return;
       const roll = await new Roll(`1d20 + ${level}`).evaluate();
       await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor }), flavor:
@@ -199,7 +201,7 @@ async function witchAction(actor, action, detail) {
     } else throw new Error("未知的守望誓约能力。");
     await actor.setFlag(MODULE_ID, "covenant", { ...record, used: Number(record.used ?? 0) + 1 });
     await recordAction(actor,"standard");
-    if (action !== "covenant-solace") await chat(actor, `<p>${safe(actor.name)}对${safe(target.name)}使用${safe(action)}；今日已用 ${Number(record.used ?? 0) + 1}/${limit} 次。</p>`);
+    if (action !== "covenant-solace") await chat(actor, `<p>${safe(actor.name)}对${safe(target.name)}使用守望誓约：${{"covenant-health":"健康","covenant-safeguard":"防护","covenant-sr":"抗法"}[action]}；今日已用 ${Number(record.used ?? 0) + 1}/${limit} 次。</p>`);
   }
 }
 
@@ -252,7 +254,7 @@ async function oracleAction(actor, action, detail) {
       if(kind==="skill")result=await actor.rollSkill(id);
       if(kind==="save")result=await actor.rollSavingThrow(id);
       if(kind==="ability")result=await actor.rollAbilityTest(id);
-      if(result?.wasRolled || result?.total!=null)await actor.setFlag(MODULE_ID,"promise",{day:day(),used:true});
+      if(result?.wasRolled || Number.isFinite(result?.total) || Array.isArray(result)&&result.some(roll=>Number.isFinite(roll?.total)))await actor.setFlag(MODULE_ID,"promise",{day:day(),used:true});
     } finally {if(actor.items.has(effect.id))await effect.delete();}
     return;
   }

@@ -58,6 +58,53 @@ export function itemRepairs(item) {
   const seed = allSeeds().find(entry => entry.flags[MODULE_ID].source === (mark.key==="weapon-finesse"?"pf":mark.source) && entry.flags[MODULE_ID].key === mark.key)
     ?? seeds.get(`${mark.source}:${mark.key}`);
   const update = casterClassRepairs(item);
+  if(seed&&!mark.playerTextRevision) {
+    const old=system.description?.value??"";
+    // Remove only evidence of our generated notes, leaving unrelated prose intact.
+    const generated=/参孙选择|参孙由|参孙文档|参孙角色设定|角色设定特许|青金石选择|青金石可|角色文档未列|待选择|本模组说明|本模组按玩家要求|不能自动代选|魔宠种类、7个|原卡没有|由种族条目计算|名额由种族条目计算/.test(old)
+      ||/参孙(?:：|，|。)|青金石(?:：|，|。)|原卡|角色文档|本模组|等待选择|待确认|待补/.test(old)
+      || (["human-ability","human-skills","witch","witch-familiar"].includes(mark.key)&&!mark.contentRevision);
+    if(generated) {
+      update[`flags.${MODULE_ID}.previousPlayerText`]={name:item.name,description:old};
+      update["system.description.value"]=seed.system.description.value;
+    }
+    if(["石拳术药水（参孙角色设定）","女巫魔宠（待选择）"].includes(item.name))update.name=seed.name;
+    update[`flags.${MODULE_ID}.playerTextRevision`]=1;
+  }
+  if(seed?.flags[MODULE_ID].currentCardSpell&&!mark.cardRulesRevision) {
+    update[`flags.${MODULE_ID}.previousCardRules`]=foundry.utils.deepClone(system);
+    for(const field of ["level","school","subschool","learnedAt","range","spellTarget","target","save","sr","components","activation","ability","spellDurationData","description","shortDescription","actionType"])
+      if(seed.system[field]!==undefined)update[`system.${field}`]=foundry.utils.deepClone(seed.system[field]);
+    if(mark.pastLife&&item.parent?.items.some(entry=>entry.getFlag(MODULE_ID,"key")==="witch"))update["system.learnedAt"]={...seed.system.learnedAt,class:[...(seed.system.learnedAt?.class??[]),["Witch",Number(seed.system.level)]]};
+    update[`flags.${MODULE_ID}.cardRulesRevision`]=1;
+  }
+  if(seed&&/^samsaran-(languages|deathwatch|stabilize)$/.test(mark.key)&&!mark.racialSpellTextRevision) {
+    const old=system.description?.value??"";
+    if(old.includes("轮回者魔法（")||old.includes("魅力至少")||!old) {
+      update[`flags.${MODULE_ID}.previousRacialSpellText`]=old;
+      update["system.description.value"]=seed.system.description.value;
+    }
+    update[`flags.${MODULE_ID}.racialSpellTextRevision`]=1;
+  }
+  if(seed&&mark.key==="celestial-agenda"&&!mark.celestialSkillRevision) {
+    const old=system.changes??[];
+    if(!old.length||old.every(row=>row[0]==="-2"&&row[1]==="skill"&&["skill.blf","skill.int","skill.slt"].includes(row[2]))) {
+      update[`flags.${MODULE_ID}.previousCelestialSkills`]=old;
+      update["system.changes"]=foundry.utils.deepClone(seed.system.changes);
+    }
+    update[`flags.${MODULE_ID}.celestialSkillRevision`]=1;
+  }
+  if(seed?.flags[MODULE_ID].currentCardSpell&&seed.flags[MODULE_ID].currentCardSpell!=="command"&&!mark.cardActionsRevision&&Array.isArray(seed.flags[MODULE_ID].nativeActionCommands)) {
+    // Match installed source commands exactly; preserve custom actions.
+    const commands=new Set(seed.flags[MODULE_ID].nativeActionCommands);
+    const actions=system.specialActions??[];
+    const remaining=actions.filter(action=>!commands.has(action.action));
+    if(remaining.length!==actions.length) {
+      update[`flags.${MODULE_ID}.previousCardActions`]=foundry.utils.deepClone(actions);
+      update["system.specialActions"]=remaining;
+    }
+    update[`flags.${MODULE_ID}.cardActionsRevision`]=1;
+  }
   if(mark.key==="unchained-rogue"&&item.type==="class"&&!mark.sneakClassRevision) {
     // Earlier installs kept the native defaults none/0. Custom groups and
     // formulas are not evidence of this omission and must be retained.
@@ -187,4 +234,3 @@ export async function repairOwnedItems() {
   }
   if (repaired) ui.notifications.info(`3r自动化：已修正 ${repaired} 个旧条目的分类、计数或加值数据。`);
 }
-

@@ -7,6 +7,7 @@ import { loadSpellTexts, localizeSpellHeaders } from "./spell-text.js";
 import { installPresentation } from "./presentation.js";
 import { effectIsActive } from "./effect-state.js";
 import { repairFragile } from "./fragile.js";
+import { installMovementOpportunities } from "./movement-opportunities.js";
 import { loadCharacterContent } from "./content.js";
 import { activateRules, completeActors, applySpellBuff, processRuleTime, timedBuff, casterLevel, typedBonus, recordAction } from "./rules-bridge.js";
 
@@ -167,7 +168,7 @@ async function stoneFist(actor) {
       damage:{parts:[["1d6 + floor((@abilities.str.mod + @stoneFistAttackGain) * @ablMult) - floor(@abilities.str.mod * @ablMult)","Bludgeoning"]]}},
     flags:{[MODULE_ID]:{key:"stone-fist-slam",requiresBuff:"stone-fist"}}}]);
   await ChatMessage.create({ speaker: ChatMessage.getSpeaker({ actor }),
-    content: `<p>${actor.name}使用石拳术药水：攻击、擒抱、击破物品时视为力量 +6；可作一次 1d6 猛击。持续 1 分钟。药水形式按角色文档的特例处理。</p>` });
+    content: `<p>${escapeHtml(actor.name)}使用石拳术药水：攻击、擒抱、击破物品时获得等效的＋6力量增强加值；可作1d6猛击。持续1分钟。</p>` });
   renderPanel(actor);
 }
 
@@ -265,11 +266,10 @@ function renderPanel(actor = samsonActor()) {
       <button data-action="knowledge">知识虔诚检定</button><button data-action="lore">学问检定</button>
       <button data-action="turn">驱散／呵斥不死生物</button><button data-action="spontaneous">自发转换轻伤法术</button>
       <button data-action="favor">施放神恩（1 分钟）</button><button data-action="persistent">持久神恩（24 小时）</button>
-      <button data-action="potion">使用石拳药水</button>
-      <button data-action="slam">石拳猛击</button><button data-action="secondarySlam">石拳次要攻击</button>
-      <button data-action="breakObject">石拳击破物品</button>
+      ${actor.items.some(item=>item.getFlag(MODULE_ID,"key")==="fist-of-stone-potion")?'<button data-action="potion">使用石拳药水</button>':""}
+      ${has(actor,"stone-fist")?'<button data-action="slam">石拳猛击</button><button data-action="secondarySlam">石拳次要攻击</button><button data-action="breakObject">石拳击破物品</button>':""}
     </div>
-    <small>准备的神恩 ${actor.items.find(item => item.getFlag(MODULE_ID, "key") === "spell-Divine Favor")?.system.preparation?.preparedAmount ?? 0} 次；驱散剩余 ${actor.system.attributes?.turnUndeadUses ?? 0} 次；石拳药水 ${actor.items.find(item => item.getFlag(MODULE_ID, "key") === "fist-of-stone-potion")?.system.quantity ?? 0} 瓶。</small>`;
+    <small>准备的神恩 ${actor.items.find(item => item.getFlag(MODULE_ID, "key") === "spell-Divine Favor")?.system.preparation?.preparedAmount ?? 0} 次；驱散剩余 ${actor.system.attributes?.turnUndeadUses ?? 0} 次${actor.items.some(item=>item.getFlag(MODULE_ID,"key")==="fist-of-stone-potion")?`；石拳药水 ${actor.items.find(item=>item.getFlag(MODULE_ID,"key")==="fist-of-stone-potion").system.quantity??0} 瓶`:""}。</small>`;
   if (!panel.isConnected) document.body.append(panel);
   panel.onclick = async event => {
     const action = event.target.closest("button")?.dataset.action;
@@ -297,7 +297,16 @@ function openAutomation(actor = samsonActor()) {
 
 Hooks.once("init", () => {
   registerCantripSetting();
-  game.modules.get(MODULE_ID).api = { open: openAutomation, openCharacter: openCharacterPanel, install: installSamson, repairFragile };
+  game.modules.get(MODULE_ID).api = { open: openAutomation, openCharacter: openCharacterPanel, install: installSamson, repairFragile, processTime: processRuleTime,
+    commonAction: async (actor,action) => {
+      if(action!=="defense" || !actor.testUserPermission(game.user,"OWNER")) throw new Error("动作或操纵权限无效。");
+      const amount=Number(actor.system.skills?.tmb?.rank)>=5?6:4;
+      const old=actor.items.filter(item=>item.getFlag(MODULE_ID,"key")==="common-total-defense");
+      if(old.length)await actor.deleteEmbeddedDocuments("Item",old.map(item=>item.id));
+      await actor.createEmbeddedDocuments("Item",[timedBuff("全防御","common-total-defense",6,[[String(amount),"ac","ac","dodge"]])]);
+      return true;
+    }
+  };
 });
 
 Hooks.once("ready", async () => {
@@ -307,6 +316,7 @@ Hooks.once("ready", async () => {
   localizeSpellHeaders();
   installPresentation();
   activateRules();
+  installMovementOpportunities();
   Hooks.on("preCreateItem", item => {
     const update = itemRepairs(item);
     if (Object.keys(update).length) item.updateSource(update);
@@ -314,6 +324,7 @@ Hooks.once("ready", async () => {
   Hooks.on("D35E.ItemUse.preRollAllAttacks", applyCombatBonuses);
   Hooks.on("D35E.ChatAttack.preAddDamage", applyKnowledgeDamage);
   Hooks.on("D35E.ItemUse.preUseItem",(item,actor,hook)=>{
+    if(hook.customUse)return;
     const actions={"知识虔诚":()=>knowledgeDevotion(actor,targetType()),"修道牧师：学问":()=>lore(actor),
       "驱散不死生物":()=>turnUndead(actor),"神圣超魔：法术持久":()=>divineFavor(actor,true),
       "fist-of-stone-potion":()=>stoneFist(actor),"自发转换治疗法术":()=>renderPanel(actor)};
@@ -357,4 +368,3 @@ Hooks.once("ready", async () => {
     catch (error) { console.error(`${MODULE_ID}: setup failed`, error); ui.notifications.error(`3r自动化安装未完成：${error.message}`); }
   }
 });
-

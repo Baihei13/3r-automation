@@ -1,8 +1,11 @@
 import { MODULE_ID, timer, remaining, durationLabel, nativeBuffSeconds, nativeEffectTimer, clockLabel } from "./time.mjs";
 import { Roll35e } from "../../../systems/D35E/module/roll.js";
+import { Item35E } from "../../../systems/D35E/module/item/entity.js";
 import { installCombatTracker } from "./combat-tracker.js";
 import { initSurface } from "./surface.js";
 import { initCalendarWeather, openCalendarWeather, registerCalendarSettings, loadCalendarDefinition } from "./calendar-weather.js";
+import { installRestSync } from "./rest.js";
+import { installCombatClock } from "./combat-clock.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 let timelineApp;
@@ -76,6 +79,12 @@ async function trackCastSpell(message) {
   const actor = casterFromMessage(message, data);
   const item = actor?.items?.get(data.item?.id);
   if (!actor || item?.type !== "spell") return;
+  // Native targeted buff commands run when the chat button is clicked. Their
+  // activated Item owns the duration; casting alone is not an applied effect.
+  const nativeBuffAction = (item.system.specialActions ?? []).some(action =>
+    typeof action.action === "string" && Item35E.parseAction(action.action).some(command =>
+      command.action === "Activate" && command.parameters?.[0] === "buff"));
+  if (nativeBuffAction) return;
   if (game.modules.get("samson-3r-automation")?.active) {
     const cast=message.getFlag("samson-3r-automation","cast");
     if (!cast?.actual || cast.automated) return;
@@ -176,7 +185,14 @@ async function processExpirations() {
       const t = item.getFlag(MODULE_ID, "timer");
       if (!t || !Number.isFinite(t.end) || t.end > now) continue;
       try {
-        await item.update({ "system.active": false });
+        // Honor the native "delete on expiry" choice. Native combat already
+        // counts rounds; only finish expired world timers here, never tick twice.
+        if(item.system.timeline?.enabled&&typeof item.addElapsedTime==="function") {
+          const left=Math.max(0,Number(item.system.timeline.total)-Number(item.system.timeline.elapsed??0));
+          if(!Number.isFinite(left))continue;
+          await item.addElapsedTime(left);
+        }else if(item.system.timeline?.deleteOnExpiry)await actor.deleteEmbeddedDocuments("Item",[item.id]);
+        else await item.update({ "system.active": false });
         count++;
       } catch (error) { console.error(`${MODULE_ID}: failed to expire buff`, item.uuid, error); }
     }
@@ -198,6 +214,7 @@ async function processExpirations() {
 
 function queueExpiry() {
   expiryQueue = expiryQueue.then(processExpirations).catch(error => console.error(`${MODULE_ID}: expiry failed`, error));
+  return expiryQueue;
 }
 
 class TimelineApp extends HandlebarsApplicationMixin(ApplicationV2) {
@@ -340,7 +357,11 @@ class TimelineApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
     const doc = await this.#document(target);
     if (!doc) return;
-    await doc.setFlag(MODULE_ID, "timer", timer(game.time.worldTime, seconds));
+    const update={ [`flags.${MODULE_ID}.timer`]:timer(game.time.worldTime,seconds) };
+    if(doc.type==="buff"&&doc.system.timeline?.enabled)Object.assign(update,{
+      "system.timeline.total":seconds/6,"system.timeline.formula":String(seconds/6),"system.timeline.elapsed":0
+    });
+    await doc.update(update);
     this.render();
   }
 
@@ -382,6 +403,7 @@ function openTimeline() {
 
 Hooks.once("init", () => {
   registerCalendarSettings();
+  game.settings.register(MODULE_ID, "lastRest", { scope: "world", config: false, type: Object, default: {} });
   game.modules.get(MODULE_ID).api = {
     open: openTimeline, openCalendar: openCalendarWeather, processExpirations: queueExpiry
   };
@@ -390,6 +412,8 @@ Hooks.once("init", () => {
 
 Hooks.once("ready", () => {
   if (game.system.id !== "D35E") return;
+  installCombatClock();
+  installRestSync();
   loadCalendarDefinition();
   initCalendarWeather();
   initSurface({ openTimeline, openCalendar: openCalendarWeather });
@@ -397,7 +421,11 @@ Hooks.once("ready", () => {
   Hooks.on("updateItem", (item, change) => {
     timelineApp?.render();
     if (!isProcessingGM() || item.type !== "buff") return;
-    if (!item.system?.active && item.getFlag(MODULE_ID, "timer")) {
+    const wasDeactivated=change?.system?.active===false||change?.["system.active"]===false;
+    // Module timers retain cast deadlines while paused/inactive, including old
+    // gray entries being repaired. An unrelated item update is not deactivation.
+    if (wasDeactivated && item.getFlag(MODULE_ID, "timer")
+      && !Number.isFinite(item.getFlag("samson-3r-automation","expiresAt"))) {
       item.unsetFlag(MODULE_ID, "timer").catch(console.error);
       return;
     }

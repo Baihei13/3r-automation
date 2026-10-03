@@ -1,6 +1,7 @@
 import { MODULE_ID, SOURCES, ITEMS } from "./catalog.js";
 import { CHARACTER_ITEMS } from "./characters-catalog.js";
 import { PF_EXTRA_SPELLS } from "./pf-spells.js";
+import { CARD_SPELLS, CARD_GEAR, WING_FAMILIAR } from "./current-card-data.js";
 
 let ruleSections = {};
 const html = text => String(text).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]))
@@ -21,6 +22,7 @@ export async function loadCharacterContent() {
   const response = await fetch(`modules/${MODULE_ID}/data/rules-content.zh.json`);
   if (!response.ok) throw new Error("无法读取规则正文");
   ruleSections = (await response.json()).sections;
+  registerSeeds([...CARD_SPELLS,...CARD_GEAR,WING_FAMILIAR]);
   CHARACTER_ITEMS.apg.push(...PF_EXTRA_SPELLS);
   for (const item of allSeeds()) {
     const k = item.flags[MODULE_ID].key;
@@ -31,17 +33,17 @@ export async function loadCharacterContent() {
     }
   }
   for (const [key,name,text] of [
-    ["human-ability","人类：单项属性 +2","1级选择一项属性 +2，加值由种族条目计算。"],
+    ["human-ability","人类：单项属性 +2","1级时选择一项属性，该属性获得＋2种族加值。"],
     ["human-size","人类：中等体型","中型，不因体型得到加值或减值。"],
     ["human-speed","人类：标准速度","基本陆地速度30尺。负重和护甲可能降低实际速度。"],
-    ["human-feat","人类：奖励专长","1级额外获得一个专长；名额由种族条目计算。"],
-    ["human-skills","人类：奖励技能","1级与以后每级额外1点技能。本模组转换使用3R首级四倍与本职/跨职规则；PF合并技能拆分奖励须由DM决定并记录。"],
+    ["human-feat","人类：奖励专长","1级时额外获得一个专长。"],
+    ["human-skills","人类：奖励技能","1级时额外获得4点技能点，以后每级额外获得1点技能点。"],
     ["human-language","人类：起始语言","通用语；智力足够高时可选任意额外语言，秘密语言（如德鲁伊语）除外。"]]) add("pf",key,name,text,"racial");
   add("arg","samsaran-low-light","轮回者：昏暗视觉","昏暗光照下能够看到人类两倍远的距离。","racial");
   add("arg","samsaran-body","轮回者：属性、类型与速度",ruleText("samsaran-body"),"racial");
   add("arg","samsaran-starting-languages","轮回者：起始语言",ruleText("samsaran-starting-languages"),"racial");
   add("pfu","rogue-proficiencies","游荡者：武器与防具擅长",ruleText("rogue-proficiencies"));
-  add("apg","witch-familiar","女巫魔宠（待选择）",ruleText("witch-familiar"));
+  add("apg","witch-familiar","女巫魔宠",ruleText("witch-familiar"));
   add("apg","witch-hexes","女巫：巫术与进阶",ruleText("witch-hexes")+ruleText("witch-major-hexes"));
   add("apg","witch-cantrips","女巫：戏法",ruleText("witch-cantrips"));
   add("apg","oracle-orisons","先知：祷念",ruleText("oracle-orisons"));
@@ -53,6 +55,15 @@ export async function loadCharacterContent() {
   }
   for (const [k,n] of [["languages","通晓语言"],["deathwatch","观命术"],["stabilize","稳定伤势"]])
     add("arg",`samsaran-${k}`,`轮回者魔法：${n}`,ruleText("samsaran-magic"),"racial",{activation:{type:"standard",cost:1},uses:{value:1,max:1,per:"day"},abilityType:"sp"});
+  const racialText={
+    languages:"<p>理解听到的口语和读到的文字，必须接触说话者或文字。只了解字面意思，不获得说写能力，不能解读密码或魔法文字；每分钟阅读一页。持续每施法者等级10分钟。</p>",
+    deathwatch:"<p>观察30尺锥形范围，判断生物处于死亡、脆弱（生命值3或以下）、存活但受伤、健康、不死生物或无生命构造状态。可穿透伪装死亡的法术和能力。持续每施法者等级10分钟。</p>",
+    stabilize:"<p>近距内一名生命值为负、尚未死亡的活物立即稳定伤势。不会恢复生命值。意志成功无效（无害），允许法术抗力（无害）。</p>"
+  };
+  for(const [id,body]of Object.entries(racialText)) {
+    const seed=allSeeds().find(item=>item.flags[MODULE_ID].key===`samsaran-${id}`);
+    seed.system.description.value=`<p>魅力至少11时每日1次。施法者等级等于总生命骰，以魅力施法；类法术能力不需要法术成分。</p>${body}`;
+  }
   const nativeSkills = keys => Object.fromEntries(keys.split(",").map(key=>[key,true]));
   for (const item of allSeeds()) {
     const k = item.flags[MODULE_ID].key;
@@ -77,7 +88,7 @@ export async function loadCharacterContent() {
     if (k === "two-weapon-fighting") item.system.requirements=[["敏捷至少15","@abilities.dex.total >= 15","generic"]];
     if (k === "shadow-blade") item.system.requirements=[["掌握影手派步法","@shadowStanceKnown","generic"]];
     if (k === "celestial-agenda") {
-      item.system.changes=[];
+      item.system.changes=["blf","int","slt"].map(skill=>["-2","skill",`skill.${skill}`,"penalty"]);
       item.system.requirements=[["必须为善良阵营","@celestialGood","generic"]];
     }
     if (k === "protective-luck") item.system.activation={type:"standard",cost:1};
@@ -91,6 +102,19 @@ export async function loadCharacterContent() {
     item.flags[MODULE_ID].contentRevision=4;
     if (item.type === "feat" && !item.system.description.value.includes("data-3r-rulebook"))
       item.system.description.value += `<p data-3r-rulebook><small>来源：${SOURCES[item.flags[MODULE_ID].source].book}</small></p>`;
+  }
+  // Player-facing rules do not contain a character's selections or build notes.
+  const generic = {
+    "修道牧师：知识领域奖励": ITEMS.ua.find(i=>i.name==="修道牧师：知识领域奖励").system.description.value,
+    "修道牧师：扩展法术列表": ITEMS.ua.find(i=>i.name==="修道牧师：扩展法术列表").system.description.value,
+    "extra-hex":"<p>前提：巫术职业能力。获得一项符合前提的额外巫术；可以多次选择本专长，每次获得不同的巫术。</p>",
+    "witch":"<p>女巫擅长简单武器，不擅长盔甲或盾牌。以智力准备并施放奥术，法术豁免DC为10＋法术环级＋智力修正值。智力至少达到10＋法术环级才能学习、准备和施放法术。每天睡眠8小时后，与魔宠交流1小时准备储存在魔宠中的法术。戏法准备后可反复使用；占用更高环法术位的戏法仍会耗用该法术位。</p>",
+    "mystic-past-life":html(ruleText("mystic-past-life")),
+    "samsaran":html(ruleText("samsaran"))
+  };
+  for(const item of allSeeds()) {
+    const k=item.flags[MODULE_ID].key;
+    if(generic[k])item.system.description.value=generic[k];
   }
   const finesse=CHARACTER_ITEMS.pfu.find(item=>item.flags[MODULE_ID].key==="weapon-finesse");
   if(finesse) {

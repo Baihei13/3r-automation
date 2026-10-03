@@ -124,10 +124,11 @@ export function installStackingRules() {
   const update=ActorUpdater.prototype.updateChanges;
   const reduceSpeed=ActorUpdater.prototype.getReducedMovementSpeed;
   ActorUpdater.prototype.getReducedMovementSpeed=function(source,value,...args) {
-    const tangled=source.items.some(item=>item.flags?.[MODULE_ID]?.key==="tanglefoot-entangled"&&effectIsActive(item));
+    const tangled=source.system.attributes.conditions?.entangled||source.items.some(item=>item.flags?.[MODULE_ID]?.key==="tanglefoot-entangled"&&effectIsActive(item));
+    const exhausted=source.system.attributes.conditions?.exhausted;
     // Speed multipliers are factors, not additive typed bonuses. Native slow
     // has already reduced value here; one or more tanglefoot effects halve it once.
-    return reduceSpeed.call(this,source,tangled?Math.floor(value/2):value,...args);
+    return reduceSpeed.call(this,source,Math.floor(value*(tangled?0.5:1)*(exhausted?0.5:1)),...args);
   };
   ActorUpdater.prototype.updateChanges=async function(...args) {
     const actor=this.actor;

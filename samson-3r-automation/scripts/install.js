@@ -2,6 +2,7 @@ import { MODULE_ID, SOURCES, ITEMS, DOMAIN_SPELLS } from "./catalog.js";
 import { installAdditionalCharacters } from "./characters-install.js";
 import { itemRepairs, repairOwnedItems } from "./item-data.js";
 import { registerSeeds, ruleSection } from "./content.js";
+import { CARD_SPELLS, CARD_GEAR, WING_FAMILIAR } from "./current-card-data.js";
 
 
 const clone = value => foundry.utils.deepClone(value);
@@ -46,7 +47,7 @@ async function ensureItems(pack, entries) {
   registerSeeds(entries);
   const existing = await pack.getDocuments();
   const seen = new Set(existing.map(marked).filter(Boolean));
-  const missing = entries.filter(entry => !seen.has(marked(entry)));
+  const missing = entries.filter(entry => !seen.has(marked(entry))&&!entry.flags?.[MODULE_ID]?.legacyOnly);
   const managed = existing.filter(item => marked(item));
   const expected = item => entries.find(seed => marked(seed)===marked(item)) ?? item;
   const names = new Set([...managed, ...missing].map(item=>category(expected(item))));
@@ -160,7 +161,7 @@ const SPELL_NAMES = {
   "Magic Weapon": "魔化武器", "Spiritual Weapon": "灵能武器", "Magic Vestment": "魔化防具",
   "Divine Power": "神能", "Flame Strike": "焰击术", "Blade Barrier": "剑刃障壁",
   "Power Word Blind": "律令目盲", "Power Word Stun": "律令震慑", "Power Word Kill": "律令死亡",
-  Message: "传讯术", Erase: "抹消术", Identify: "鉴定术",
+  "Read Magic":"阅读魔法", Message: "传讯术", Erase: "抹消术", Identify: "鉴定术",
   "Unseen Servant": "隐形仆役", "Fox's Cunning": "狐之狡黠",
   "Illusory Script": "幻影文字", "Secret Page": "秘密书页", Tongues: "巧言术",
   "Analyze Dweomer": "解析魔法", Sequester: "隐匿术", Vision: "异象术"
@@ -175,7 +176,7 @@ function translatedSpellName(item) {
 }
 
 async function coreSpells() {
-  const names = [...new Set(["Divine Favor","Cure Light Wounds","Inflict Light Wounds", ...Object.values(DOMAIN_SPELLS).flat()])];
+  const names = [...new Set(["Read Magic","Divine Favor","Cure Light Wounds","Inflict Light Wounds", ...Object.values(DOMAIN_SPELLS).flat()])];
   const entries = [];
   const missing = [];
   for (const name of names) {
@@ -222,6 +223,17 @@ export async function installSamson() {
   await ensureItems(packs.phb, await coreEquipment());
   const { entries, missing } = await coreSpells();
   await ensureItems(packs.phb, entries);
+  for(const [id,name] of [["guidance","Guidance"],["detect-poison","Detect Poison"],["mage-armor","Mage Armor"],["enlarge-person","Enlarge Person"],["command","Command"],["charm-person","Charm Person"],["comprehend-languages","Comprehend Languages"]]) {
+    const seed=CARD_SPELLS.find(item=>item.flags[MODULE_ID].currentCardSpell===id);
+    try {
+      const native=await coreItem("spells",[name]);
+      seed.flags[MODULE_ID].nativeActionCommands=(native.system.specialActions??[]).map(action=>action.action).filter(Boolean);
+    }catch(error){console.warn(`${MODULE_ID}: original spell commands unavailable`,name,error);}
+  }
+  for(const source of Object.keys(SOURCES)) {
+    const selected=[...CARD_SPELLS,...CARD_GEAR,WING_FAMILIAR].filter(item=>item.flags[MODULE_ID].source===source);
+    if(selected.length)await ensureItems(packs[source],selected);
+  }
   await ensureItems(packs.ua, [await cloisteredClass(packs.phb)]);
   await linkDomains(packs);
   if (missing.length) console.warn(`${MODULE_ID}: system spells not found`, missing);
