@@ -93,8 +93,8 @@
             {{else}}
             <article class="trh-card {{#if low}}is-low{{/if}} {{#if favorite}}is-favorite{{/if}}" draggable="true" data-item-id="{{id}}">
               <div class="trh-row-content">
-              <button type="button" class="trh-card-use" data-trh-action="use" data-item-id="{{id}}" title="{{name}} · {{action}} · {{resource}}{{#if note}} · {{note}}{{/if}}&#10;右键查看完整条目，拖动可排序">
-                <span class="trh-icon"><img src="{{img}}" alt="" loading="lazy">{{#if resource}}<span class="trh-uses">{{resource}}</span>{{/if}}</span><strong class="trh-item-name">{{name}}</strong><small class="trh-item-meta">{{action}}{{#if note}} · {{note}}{{/if}}</small>
+              <button type="button" class="trh-card-use" data-trh-action="use" data-item-id="{{id}}" title="{{name}}{{#if spellInfo}} · {{spellInfo}}{{/if}} · {{action}} · {{resource}}{{#if note}} · {{note}}{{/if}}&#10;右键查看完整条目，拖动可排序">
+                <span class="trh-icon"><img src="{{img}}" alt="" loading="lazy">{{#if resource}}<span class="trh-uses">{{resource}}</span>{{/if}}</span><strong class="trh-item-name">{{name}}</strong><small class="trh-item-meta {{#if spellInfo}}is-spell{{/if}}">{{#if spellInfo}}{{spellInfo}} · {{/if}}{{action}}{{#if note}} · {{note}}{{/if}}</small>
               </button>
               <button type="button" class="trh-favorite" data-trh-action="favorite" data-item-id="{{id}}" title="收藏／取消收藏：{{name}}" aria-label="收藏／取消收藏：{{name}}"><i class="fa-{{#if favorite}}solid{{else}}regular{{/if}} fa-star" aria-hidden="true"></i></button>
               </div>

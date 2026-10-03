@@ -55,7 +55,17 @@ export function displayName(item) {
   return String(item.displayName || item.name || "未命名").replace(/\s*\(Thrown\)$/i, "（投掷）");
 }
 
-function card(item, favorites) {
+function spellbookName(actor, key) {
+  const defaults = { primary: "主法术书", secondary: "副法术书", tertiary: "第三法术书", spelllike: "类法术" };
+  const book = actor.system.attributes?.spells?.spellbooks?.[key] ?? {};
+  const label = /^(Primary|Secondary|Tertiary|Spell.?Like)$/i.test(book.name ?? "") ? defaults[key] || "法术书" : book.name || defaults[key] || "法术书";
+  const classItem = book.class ? actor.items.find(item => item.type === "class" && (item.system.customTag === book.class || item.id === book.class)) : null;
+  // D35E computes default class tags from names; use its prepared class record.
+  const className = classItem ? displayName(classItem) : actor.system.classes?.[book.class]?.name;
+  return `${className || (book.class === "_hd" ? "种族／生命骰" : "未关联职业")} · ${label}`;
+}
+
+function card(item, favorites, actor) {
   const isPassive = !item.hasAction && !item.system.activation?.type && !["spell", "consumable", "weapon", "buff"].includes(item.type);
   return {
     id: item.id, name: displayName(item), img: item.img || "icons/svg/book.svg",
@@ -64,6 +74,7 @@ function card(item, favorites) {
     passive: isPassive, item,
     level: item.type === "spell" ? finite(item.system.level) : null,
     book: item.type === "spell" ? item.system.spellbook || "primary" : "",
+    spellInfo: item.type === "spell" ? `${finite(item.system.level)}环 · ${spellbookName(actor, item.system.spellbook || "primary")}` : "",
     low: Boolean((item.type === "spell" || item.isCharged) && Number(item.charges) <= 0),
     note: item.type === "weapon" && !item.system.equipped ? "未装备" : ""
   };
@@ -85,7 +96,7 @@ export function itemCards(actor, store, tab, filters = {}) {
     else if (["consumable", "equipment", "loot"].includes(item.type)) group = "items";
     else continue;
     if (tab !== "all" && tab !== group && !(tab === "favorites" && layout.favorites.includes(item.id))) continue;
-    const entry = card(item, layout.favorites);
+    const entry = card(item, layout.favorites, actor);
     entry.group=group;
     if(filters.action&&!actionKinds(item).includes(filters.action))continue;
     if (tab === "spells" && filters.book && entry.book !== filters.book) continue;
@@ -128,12 +139,10 @@ export function actorResources(actor) {
 
 export function spellResources(actor) {
   const result = [];
-  const defaults = { primary: "主法术书", secondary: "副法术书", tertiary: "第三法术书", spelllike: "类法术" };
   const spells = Array.from(actor.items).filter(item => item.type === "spell");
   for (const [key, book] of Object.entries(actor.system.attributes?.spells?.spellbooks ?? {})) {
     const members = spells.filter(item => (item.system.spellbook || "primary") === key);
     if (!members.length && !book.class) continue;
-    const label = /^(Primary|Secondary|Tertiary|Spell.?Like)$/i.test(book.name ?? "") ? defaults[key] || "法术书" : book.name || defaults[key] || "法术书";
     const levels = [];
     for (let level = 0; level <= 9; level++) {
       const listed = members.filter(item => finite(item.system.level) === level);
@@ -146,8 +155,7 @@ export function spellResources(actor) {
       levels.push({ level, value: infinite ? "∞" : fmt(value), max: max === null ? "" : ` / ${fmt(max)}`,
         title: book.spontaneous ? "原生剩余法术位" : "本环已准备的剩余次数；无限法术单独标记" });
     }
-    const classItem = actor.items.find(item => item.type === "class" && (item.system.customTag === book.class || item.id === book.class));
-    result.push({ id: key, name: classItem ? `${displayName(classItem)} · ${label}` : label, cl: fmt(book.cl?.total), levels,
+    result.push({ id: key, name: spellbookName(actor, key), cl: fmt(book.cl?.total), levels,
       power: book.usePowerPoints ? `${fmt(book.powerPoints)} / ${fmt(book.dailyPowerPointsTotal ?? book.powerPointsTotal)}` : "" });
   }
   return result;

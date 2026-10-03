@@ -6,13 +6,13 @@ Foundry VTT v14 / D35E 3.1.0 的3R与PF1规则自动化及配套世界时间界�
 | --- | --- | --- |
 | samson-3r-automation | 3r自动化 | 0.4.10 |
 | d35e-world-timeline | 3R 世界时间轴 | 0.7.2 |
-| three-r-combat-hud | 3r战斗HUD | 0.5.0 |
+| three-r-combat-hud | 3r战斗HUD | 0.5.1 |
 
 这是仅含规则的公开源码版。没有角色原卡、人物背景、完整角色预设、原卡图片、规则书CHM、世界数据库或系统安装文件。能力正文独立保存在 rules-content.zh.json；法术译文保存在 spell-descriptions.zh.json。内部模块ID保留，旧世界引用不改名。
 
 ## 安装
 
-新增独立[3r战斗HUD](three-r-combat-hud/README.md)源码0.5.0，可手动复制其完整目录到Foundry模块目录；本次没有为HUD新增Release、ZIP或安装器清单。HUD包含八套自写CSS主题（P5风格黑红、2077风格黄黑、玻璃/奇幻/羊皮纸等），没有第三方主题文件/纹理或角色原卡/人物素材。Git上传不代表游戏验证。
+新增独立[3r战斗HUD](three-r-combat-hud/README.md)0.5.1，独立发布标签为hud-v0.5.1。HUD包含八套自写CSS主题（P5风格黑红、2077风格黄黑、玻璃/奇幻/羊皮纸等），没有第三方主题文件/纹理或角色原卡/人物素材。安装包发布不代表游戏验证。
 
 在Foundry设置页打开“附加模块 → 安装模块”，分别把下面地址填入“清单URL”：
 
@@ -20,6 +20,7 @@ Foundry VTT v14 / D35E 3.1.0 的3R与PF1规则自动化及配套世界时间界�
 | --- | --- |
 | 3r自动化 | https://github.com/Baihei13/3r-automation/releases/latest/download/samson-3r-automation.module.json |
 | 3R 世界时间轴 | https://github.com/Baihei13/3r-automation/releases/latest/download/d35e-world-timeline.module.json |
+| 3r战斗HUD 0.5.1 | https://github.com/Baihei13/3r-automation/releases/download/hud-v0.5.1/three-r-combat-hud.module.json |
 
 安装后在D35E世界启用相应模块；更新后GM与玩家刷新各自客户端。公开版建立“3r自动化 → 来源书 → 类别”合集，不自动创建角色。由使用者创建自己的角色，拖入需要的条目并配置法术书和其他角色选项。
 
@@ -48,4 +49,4 @@ Foundry VTT v14 / D35E 3.1.0 的3R与PF1规则自动化及配套世界时间界�
 
 ## 后续发布
 
-每次发布同时附上两个模块的命名清单与各自ZIP；manifest始终指向latest，download指向该次固定发布标签。安装包从仅规则仓库的指定提交生成，禁止从私有本地模块目录直接打包。上传、清单/文件目录核对与用户实际Foundry安装验收分别记录。
+自动化/时间轴联合发布同时附上两个模块的命名清单与各自ZIP，其manifest指向latest、download指向固定发布标签。HUD使用独立hud-v版本标签，不设为仓库Latest，避免影响上述安装地址；HUD后续更新清单为main分支的three-r-combat-hud/module.json，download指向固定HUD标签。安装包从公开仓库的指定提交生成，禁止从私有本地模块目录直接打包。上传、清单/文件目录核对与用户实际Foundry安装验收分别记录。

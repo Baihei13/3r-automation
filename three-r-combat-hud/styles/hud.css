@@ -307,6 +307,10 @@
 #three-r-combat-hud.trh-root .trh-portrait-frame { display: none; }
 #three-r-combat-hud.trh-root .trh-row-content { position: relative; width: 100%; height: 100%; }
 #three-r-combat-hud.trh-root .trh-item-meta { display: none; }
+#three-r-combat-hud.trh-root .trh-item-name { text-align: left; }
+#three-r-combat-hud.trh-root .trh-common-action { align-items: flex-start; text-align: left; }
+#three-r-combat-hud.trh-root .trh-item-meta.is-spell { display: block; font-size: .8em; color: var(--trh-muted); text-align: left; overflow-wrap: anywhere; }
+#three-r-combat-hud.trh-root[data-layout="compact"] .trh-card-grid { grid-auto-rows: minmax(var(--trh-cell), auto); }
 #three-r-combat-hud.trh-root .trh-bar { container: trh-space / inline-size; }
 #three-r-combat-hud.trh-root .trh-dock { border-radius: var(--trh-radius); }
 #three-r-combat-hud.trh-root[data-layout="compact"] .trh-list-panel { display: contents; }
@@ -412,10 +416,10 @@
 #three-r-combat-hud.trh-root[data-layout="command"] .trh-card-use { flex: 1 1 auto; display: grid; grid-template-columns: 29px minmax(0, 1fr); align-items: center; column-gap: 8px; min-width: 0; width: auto; height: auto; padding: 2px 0; border: 0; text-align: left; }
 #three-r-combat-hud.trh-root[data-layout="command"] .trh-card-use:hover { background: transparent; }
 #three-r-combat-hud.trh-root[data-layout="command"] .trh-icon { grid-column: 1; grid-row: 1 / 3; width: 29px; height: 29px; }
-#three-r-combat-hud.trh-root[data-layout="command"] .trh-item-name { grid-column: 2; grid-row: 1; width: 100%; font-size: 1em; line-height: 1.35; }
-#three-r-combat-hud.trh-root[data-layout="command"] .trh-item-meta { display: block; grid-column: 2; grid-row: 2; font-size: .8em; color: var(--trh-muted); }
-#three-r-combat-hud.trh-root[data-layout="command"] .trh-common-action { flex: 1 1 auto; display: flex; align-items: center; justify-content: space-between; width: auto; min-width: 0; padding: 5px 0; gap: 8px; }
-#three-r-combat-hud.trh-root[data-layout="command"] .trh-common-action strong { text-align: left; font-size: 1em; }
+#three-r-combat-hud.trh-root[data-layout="command"] .trh-item-name { grid-column: 2; grid-row: 1; width: 100%; font-size: 1em; line-height: 1.35; text-align: left; justify-self: start; }
+#three-r-combat-hud.trh-root[data-layout="command"] .trh-item-meta { display: block; grid-column: 2; grid-row: 2; font-size: .8em; color: var(--trh-muted); text-align: left; }
+#three-r-combat-hud.trh-root[data-layout="command"] .trh-common-action { flex: 1 1 auto; display: grid; grid-template-columns: minmax(0, 1fr); align-items: start; justify-items: start; align-content: center; width: auto; min-width: 0; padding: 5px 0; gap: 4px; text-align: left; }
+#three-r-combat-hud.trh-root[data-layout="command"] .trh-common-action strong { text-align: left; font-size: 1em; width: 100%; }
 #three-r-combat-hud.trh-root[data-layout="command"] .trh-common-action small { white-space: nowrap; color: var(--trh-muted); }
 #three-r-combat-hud.trh-root[data-layout="command"] .trh-favorite { position: static; flex: 0 0 24px; width: 24px; height: 28px; margin: 0; padding: 3px; color: var(--trh-gold); }
 #three-r-combat-hud.trh-root[data-layout="command"] .trh-empty-grid { min-height: 60px; padding: 12px 2px; }
