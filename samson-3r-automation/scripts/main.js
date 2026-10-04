@@ -10,7 +10,7 @@ import { repairFragile } from "./fragile.js";
 import { installMovementOpportunities } from "./movement-opportunities.js";
 import { registerContentSearch, installContentSearchButton, openContentSearch } from "./content-search.js";
 import { loadCharacterContent } from "./content.js";
-import { activateRules, completeActors, applySpellBuff, processRuleTime, timedBuff, casterLevel, typedBonus, recordAction } from "./rules-bridge.js";
+import { activateRules, completeActors, applySpellBuff, processRuleTime, timedBuff, casterLevel, typedBonus, recordAction, hudItemAction } from "./rules-bridge.js";
 import { installConditionRuntime, assertConditionAction, commitConditionAction } from "./condition-runtime.js";
 import { applyCondition, clearCondition, editConditionContext, registerConditionTools } from "./condition-tools.js";
 import { conditionState } from "./condition-state.js";
@@ -306,7 +306,7 @@ Hooks.once("init", () => {
   registerContentSearch();
   registerConditionTools();
   game.modules.get(MODULE_ID).api = { search: openContentSearch, open: openAutomation, openCharacter: openCharacterPanel, install: installSamson, repairFragile, processTime: processRuleTime,
-    applyCondition, clearCondition, openConditions:editConditionContext, conditionState, conditionOperation, checkConditionAction:assertConditionAction, commitConditionAction, completeConditionRest,
+    applyCondition, clearCondition, openConditions:editConditionContext, conditionState, conditionOperation, checkConditionAction:assertConditionAction, commitConditionAction, completeConditionRest, hudItemAction,
     commonAction: async (actor,action) => {
       if(action!=="defense" || !actor.testUserPermission(game.user,"OWNER")) throw new Error("动作或操纵权限无效。");
       assertConditionAction(actor,null,{kind:"standard",common:action});
@@ -341,7 +341,7 @@ Hooks.once("ready", async () => {
       "驱散不死生物":()=>turnUndead(actor),"神圣超魔：法术持久":()=>divineFavor(actor,true),
       "fist-of-stone-potion":()=>stoneFist(actor),"自发转换治疗法术":()=>renderPanel(actor)};
     const action=actions[item.getFlag(MODULE_ID,"key")];
-    if(action){hook.customUse=true;Promise.resolve().then(action).catch(error=>ui.notifications.error(error.message));}
+    if(action){hook.customUse=true;hook.threeRCompletion=Promise.resolve().then(action);hook.threeRCompletion.catch(error=>ui.notifications.error(error.message));}
   });
   activateCantripRule().catch(error => console.error(`${MODULE_ID}: cantrip rule`, error));
   Hooks.on("updateWorldTime", () => expireBuffs().catch(console.error));

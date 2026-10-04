@@ -31,6 +31,6 @@ export const COMMON_ACTIONS = [
   { id: "drop", name: "丢弃物品", kind: "free", text: "通常自由动作；数量及物品位置由玩家确认。" },
   { id: "prone", name: "卧倒", kind: "free", text: "使角色进入俯卧状态。" },
   { id: "speak", name: "说话", kind: "free", text: "简短交谈通常自由动作。" },
-  { id: "aao", name: "借机攻击", kind: "aao", text: "使用原生近战攻击；由DM确认触发时机。" },
+  { id: "aao", name: "借机攻击", kind: "immediate", text: "使用原生近战攻击，HUD记录到反应动作；由DM确认触发时机。" },
   { id: "movement-correction", name: "更正移动", kind: null, text: "清空移动记录；战斗中由DM更正，战斗外可自行清空。" }
 ];

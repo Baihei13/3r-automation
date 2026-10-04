@@ -1,5 +1,5 @@
 import { MODULE_ID, HudStore } from "./state.js";
-import { TABS, ACTION_ORDER, owned, actorChoices, actorResources, itemCards, spellResources, targetCards, checkCards, defenseCards, reminderView, finite } from "./model.js";
+import { TABS, ACTION_ORDER, owned, actorChoices, actorResources, itemCards, spellResources, targetCards, checkCards, defenseCards, reminderView, finite, commonAvailability, availabilitySections, AVAILABILITY_TABS } from "./model.js";
 import { useNative, postHudAction, reportError } from "./actions.js";
 import { COMMON_ACTIONS } from "./common-actions.js";
 import { movementState, startStep, resetMovement } from "./movement.js";
@@ -27,6 +27,7 @@ export class ThreeRCombatHud extends App {
     this.book = "";
     this.level = "";
     this.actionFilter = "";
+    this.availabilityTab = "available";
     this.status = "";
     this.busy = false;
     this.enabled = Boolean(game.settings.get(MODULE_ID, "enabled"));
@@ -126,21 +127,24 @@ export class ThreeRCombatHud extends App {
     const commonCards=COMMON_ACTIONS.filter(entry=>!this.actionFilter||entry.kind===this.actionFilter)
       .filter(entry=>!this.query||entry.name.toLocaleLowerCase().includes(this.query.toLocaleLowerCase()))
       .sort((a,b)=>(ACTION_ORDER.indexOf(a.kind)<0?99:ACTION_ORDER.indexOf(a.kind))-(ACTION_ORDER.indexOf(b.kind)<0?99:ACTION_ORDER.indexOf(b.kind)))
-      .map(entry=>({...entry,isCommon:true,favorite:this.store.layout(actor).favorites.includes(`common:${entry.id}`),cost:{standard:"标准",move:"移动",full:"全回合",free:"自由",aao:"借机"}[entry.kind]??"无动作"}));
+      .map(entry=>({...entry,isCommon:true,...commonAvailability(actor,entry,choice.token),favorite:this.store.layout(actor).favorites.includes(`common:${entry.id}`),cost:{standard:"标准",move:"移动",full:"全回合",free:"自由",immediate:"反应"}[entry.kind]??"无动作"}));
     const sections=[];
     if(this.tab==="all")for(const [id,name] of TABS) {
       const entries=id==="actions"?commonCards:cards.filter(card=>card.group===id).map(({item,...entry})=>entry);
-      if(entries.length)sections.push({name,showTitle:true,cards:entries});
+      sections.push(...availabilitySections(entries,name).map(section=>({...section,name,showTitle:true})));
     }else {
       const entries=this.tab==="actions"?commonCards:this.tab==="favorites"
         ? [...cards.map(({item,...entry})=>entry),...commonCards.filter(entry=>entry.favorite)]
         : cards.map(({item,...entry})=>entry);
-      if(entries.length)sections.push({showTitle:false,cards:entries});
+      sections.push(...availabilitySections(entries));
     }
+    const availabilityTabs = AVAILABILITY_TABS.map(([id,name])=>({id,name,active:id===this.availabilityTab,
+      count:sections.filter(section=>section.availability===id).reduce((count,section)=>count+section.cards.length,0)}));
+    const visibleSections = sections.filter(section=>section.availability===this.availabilityTab);
     const checks = ["checks", "skills"].includes(this.tab) ? checkCards(actor) : null;
-    const quickItems = itemCards(actor, this.store, "favorites", {}).map(({item,...entry})=>entry);
+    const quickItems = itemCards(actor, this.store, "favorites", {}).filter(entry=>entry.availability==="available").map(({item,...entry})=>entry);
     const quickCommon = COMMON_ACTIONS.filter(entry=>this.store.layout(actor).favorites.includes(`common:${entry.id}`))
-      .map(entry=>({...entry,isCommon:true}));
+      .map(entry=>({...entry,isCommon:true,...commonAvailability(actor,entry,choice.token)})).filter(entry=>!entry.unavailable);
     if (checks && this.query) checks.skills = checks.skills.filter(skill => skill.name.toLocaleLowerCase().includes(this.query.toLocaleLowerCase()));
     return {
       ...context, actorName: choice.token?.name ?? actor.name, actorImage: actor.img || "icons/svg/mystery-man.svg",
@@ -148,7 +152,8 @@ export class ThreeRCombatHud extends App {
       hp: `${value} / ${max}`, hpPercent: max > 0 ? Math.max(0, Math.min(100, 100 * value / max)) : 0,
       tempHp: finite(hp.temp), ac: attributes.ac?.normal?.total ?? "—", touchAc: attributes.ac?.touch?.total ?? "—",
       flatAc: attributes.ac?.flatFooted?.total ?? "—", speed: attributes.speed?.land?.total ?? attributes.speed?.land?.base ?? "—",
-      initiative: attributes.init?.total ?? "—", resources,identityResources:actorResources(actor),sections,hasSections:sections.length>0,
+      initiative: attributes.init?.total ?? "—", resources,identityResources:actorResources(actor),sections:visibleSections,hasSections:visibleSections.length>0,
+      availabilityTabs,availabilityName:AVAILABILITY_TABS.find(([id])=>id===this.availabilityTab)?.[1],
       defenses: defenseCards(actor), saves: checkCards(actor).saves, movement: Object.fromEntries(Object.entries(movementState(choice.token)).map(([key,value])=>[key,typeof value === "number" ? Math.round(value * 100) / 100 : value])),
       stripActions: ACTION_ORDER.map(id=>({...reminder.actions.find(action=>action.id===id),active:this.actionFilter===id})),
       actionFilterName:reminder.actions.find(action=>action.id===this.actionFilter)?.name??"",
@@ -288,6 +293,10 @@ export class ThreeRCombatHud extends App {
       this.refresh(); return;
     }
     if (action === "reset-frame") { this.frame.reset(); this.refresh(); return; }
+    if (action === "availability-tab") {
+      if (!AVAILABILITY_TABS.some(([id])=>id===data.availability)) return;
+      this.availabilityTab=data.availability; this.scroll=0; this.refresh(); return;
+    }
     if (action === "clear-filters") { this.query = ""; this.book = ""; this.level = ""; this.actionFilter=""; this.scroll = 0; this.refresh(); return; }
     if (action === "filter-action") {
       if(!ACTION_ORDER.includes(data.kind))return;
@@ -299,6 +308,7 @@ export class ThreeRCombatHud extends App {
       const next = data.tab === "utility" ? this.utilityTab : data.tab;
       if (!TABS.some(([id])=>id===next)) return;
       this.tab = next;
+      this.availabilityTab = "available";
       if (!["weapons","spells","abilities","skills","items"].includes(next)) this.utilityTab=next;
       if(["checks","skills","effects"].includes(this.tab))this.actionFilter="";
       this.scroll = 0; this.query = ""; this.refresh(); return;
@@ -321,6 +331,8 @@ export class ThreeRCombatHud extends App {
     if (action === "common") {
       const entry = COMMON_ACTIONS.find(entry => entry.id === data.common);
       if (!entry) return;
+      const availability = commonAvailability(actor,entry,token);
+      if (availability.unavailable) { ui.notifications.warn(availability.reason); this.status=availability.reason; this.refresh(); return; }
       if (entry.id === "movement-correction") return this.handle("reset-movement",data,event);
       if (entry.id === "step") return this.handle("step", data, event);
       game.modules.get("samson-3r-automation")?.api?.checkConditionAction?.(actor,null,{kind:entry.kind,common:entry.id});
@@ -390,6 +402,12 @@ export class ThreeRCombatHud extends App {
       if (data.kind === "skill") return actor.rollSkill(data.key, { event });
     }
     if (action !== "use") return;
+    if (this.actionFilter === "immediate" && !data.common) {
+      const selectedItem = actor.items.get(data.itemId);
+      if (selectedItem?.type === "weapon" && ["light","1h","2h"].includes(selectedItem.system.weaponSubtype)
+        || selectedItem?.type === "attack" && selectedItem.system.actionType === "mwak")
+        data = {...data,common:"aao"};
+    }
     if (this.busy) { ui.notifications.info("当前操作尚未结束，请先完成或关闭原生窗口。"); return; }
     this.busy = true;
     this.status = "正在进行本次操作…";
@@ -404,7 +422,10 @@ export class ThreeRCombatHud extends App {
         this.store.record(context, result.kind, result.label, true);
         this.status = "已记录本次动作；提醒不限制后续操作。";
       } else if (result.state === "cancelled") this.status = "已取消，动作记录未增加。";
+      else if (result.state === "performed") this.status = "已完成本次操作，不增加动作提醒。";
+      else if (result.state === "handled") this.status = "能力选项已处理，动作记录未增加。";
       else if (result.state === "details") this.status = "已打开条目详情。";
+      else if (result.state === "blocked") this.status = result.reason;
       else if (result.state === "toggled") this.status = "已切换效果状态。";
       else this.status = "未收到明确的动作完成结果；如已使用，请手动补记。";
     } catch (error) { this.status = "本次操作出现错误，动作记录未增加。"; throw error; }

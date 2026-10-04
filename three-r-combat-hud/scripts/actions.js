@@ -1,5 +1,5 @@
 import { MODULE_ID, ACTIONS } from "./state.js";
-import { owned, displayName } from "./model.js";
+import { owned, displayName, itemAvailability, itemActionRoute } from "./model.js";
 
 const escape = value => String(value).replace(/[&<>"']/g, character =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
@@ -43,6 +43,14 @@ export async function useNative(actor, token, itemId, event, reminderContext, co
   if (!owned(actor)) throw new Error("你没有操纵这个角色的权限。");
   let item = actor.items.get(itemId);
   if (!item) throw new Error("这个条目已经移除，请重新选择。");
+  const availability = itemAvailability(item, actor);
+  if (availability.reference) { await item.sheet.render(true); return { state: "details" }; }
+  if (availability.unavailable) { ui.notifications.warn(availability.reason); return { state: "blocked", reason: availability.reason }; }
+  const route = itemActionRoute(item);
+  if (common === "aao") {
+    const module = game.modules.get("samson-3r-automation");
+    if (module?.active) module.api?.checkConditionAction?.(actor,item,{kind:"immediate",common:"aao"});
+  }
   if (item.type === "weapon") item = await attackForWeapon(actor, item);
   if (!item) return { state: "cancelled" };
   if (["buff", "aura"].includes(item.type)) {
@@ -50,11 +58,6 @@ export async function useNative(actor, token, itemId, event, reminderContext, co
     await item.update({ "system.active": active });
     return { state: "toggled",label:displayName(item),active };
   }
-  if (!item.hasAction && !["spell", "consumable", "full-attack"].includes(item.type)) {
-    await item.sheet.render(true);
-    return { state: "details" };
-  }
-
   const allowedIds = new Set([item.id]);
   if (item.type === "full-attack") {
     for (const value of Object.values(item.system.attacks ?? {})) if (value?.id) allowedIds.add(value.id);
@@ -64,6 +67,14 @@ export async function useNative(actor, token, itemId, event, reminderContext, co
   let multipleAttacks = false;
   let fullSelection = null;
   let charging = false;
+  let customCompletion = null;
+  let customChat = false;
+  // D35E custom hooks return early. Await the owning module's work rather than
+  // mistaking that early return for cancellation or recording before completion.
+  const completionHookId = Hooks.on("D35E.ItemUse.preUseItem", (usedItem, usedActor, hook) => {
+    if (usedItem.id === item.id && usedActor?.uuid === actor.uuid && hook.threeRCompletion)
+      customCompletion = hook.threeRCompletion;
+  });
   const dialogListeners = new AbortController();
   const dialogHookId = Hooks.on("renderDialog", (app, html) => {
     const root = html?.nodeType === 1 ? html : html?.[0];
@@ -89,6 +100,10 @@ export async function useNative(actor, token, itemId, event, reminderContext, co
     const data = message.flags?.D35E?.chatTemplateData;
     const template = message.flags?.D35E?.template ?? "";
     if ((message.author?.id ?? message.user?.id ?? message.user) !== game.user.id) return;
+    if (customCompletion && message.speaker?.actor === actor.id
+      && (!token || !message.speaker.token || message.speaker.token === token.id)) {
+      customChat = true; hasChat = true;
+    }
     if (data?.actor?.id !== actor.id || !allowedIds.has(data?.item?.id)) return;
     const tokenId = data.tokenId?.split(".").at(-1) ?? message.speaker?.token;
     if (token && tokenId && tokenId !== token.id) return;
@@ -103,23 +118,27 @@ export async function useNative(actor, token, itemId, event, reminderContext, co
   try {
     result = await item.use({ ev: event, skipDialog: false });
     if (result?.roll) rolled = await result.roll;
+    if (customCompletion) await customCompletion;
   } finally {
     Hooks.off("createChatMessage", hookId);
     Hooks.off("renderDialog", dialogHookId);
+    Hooks.off("D35E.ItemUse.preUseItem", completionHookId);
     dialogListeners.abort();
   }
   const after = Number(actor.items.get(item.id)?.charges);
   const resourceUsed = Number.isFinite(before) && Number.isFinite(after) && after < before;
-  const performed = actualCard || rolled?.rolled === true || result === true || result?.documentName === "ChatMessage" || resourceUsed;
+  const performed = actualCard || rolled?.rolled === true || result === true || result?.documentName === "ChatMessage" || resourceUsed || customChat;
+  if (!performed && customCompletion && route && !route.kind) return { state: "handled" };
   if (!performed) return { state: result?.wasRolled === false || result?.roll === false ? "cancelled" : "unknown" };
 
-  let kind = item.type === "full-attack" || fullSelection === true ? "full" : item.system.activation?.type;
+  let kind = item.type === "full-attack" || fullSelection === true ? "full" : route?.kind ?? item.system.activation?.type;
   if (charging) kind = "full";
-  if (common === "aao") kind = "aao";
-  if (multipleAttacks && fullSelection === null && item.type !== "spell" && item.type !== "full-attack") kind = null;
-  if (kind === "attack") kind = reminderContext.offTurn ? "aao" : "standard";
+  if (common === "aao") kind = "immediate";
+  if (multipleAttacks && fullSelection === null && item.type !== "spell" && item.type !== "full-attack" && common !== "aao") kind = null;
+  if (kind === "attack") kind = reminderContext.offTurn ? "immediate" : "standard";
   if (kind === "round") kind = "full";
-  if (!["standard", "move", "swift", "immediate", "full", "free", "aao"].includes(kind)) kind = null;
+  if (kind === "aao") kind = "immediate";
+  if (!["standard", "move", "swift", "immediate", "full", "free"].includes(kind)) kind = null;
   return { state: "performed", kind, label: displayName(item),hasChat };
 }
 

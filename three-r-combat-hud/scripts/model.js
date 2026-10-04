@@ -6,22 +6,22 @@ export const TABS = [
   ["abilities", "能力"], ["skills", "技能"], ["items", "物品"], ["checks", "检定"], ["effects", "状态"], ["actions", "通用"]
 ];
 // Order by action cost, with reactions at the end; never sort by remaining count.
-export const ACTION_ORDER = ["full", "standard", "move", "swift", "immediate", "free", "aao"];
+export const ACTION_ORDER = ["full", "standard", "move", "swift", "immediate", "free"];
 export const finite = (value, fallback = 0) => Number.isFinite(Number(value)) ? Number(value) : fallback;
 export const owned = actor => Boolean(actor?.testUserPermission(game.user, "OWNER"));
 const fmt = value => value === Infinity ? "∞" : Number.isFinite(Number(value)) ? String(Number(value)) : "—";
 const actionNames = { ...Object.fromEntries(ACTIONS.map(action => [action.id, `${action.name}动作`])),
-  full: "全回合动作", step: "5尺快步", aao: "借机攻击", attack: "攻击动作", passive: "被动", round: "1轮", special: "特殊" };
+  full: "全回合动作", step: "5尺快步", aao: "反应动作", attack: "攻击动作", passive: "被动", round: "1轮", special: "特殊" };
 export const actionLabel = item => actionNames[item.system?.activation?.type] ?? "查看详情";
 
 export function actionKinds(item) {
   if(item.type==="full-attack")return ["full"];
   if(item.type==="weapon"||item.type==="attack") {
     const melee=item.type==="attack"?item.system.actionType==="mwak":["light","1h","2h"].includes(item.system.weaponSubtype);
-    return melee?["standard","full","aao"]:["standard","full"];
+    return melee?["standard","full","immediate"]:["standard","full"];
   }
-  const raw=item.system?.activation?.type;
-  const kind=raw==="attack"?"standard":raw==="round"?"full":raw;
+  const raw=itemActionRoute(item)?.kind ?? item.system?.activation?.type;
+  const kind=raw==="attack"?"standard":raw==="round"?"full":raw==="aao"?"immediate":raw;
   return ACTION_ORDER.includes(kind)?[kind]:[];
 }
 
@@ -66,18 +66,74 @@ function spellbookName(actor, key) {
   return `${className || (book.class === "_hd" ? "种族／生命骰" : "未关联职业")} · ${label}`;
 }
 
+// Match the actual useNative routes. An activation label alone does not make
+// a description-only feat executable, and effect toggles need no action roll.
+export function itemActionRoute(item) {
+  const module = game.modules.get("samson-3r-automation");
+  return module?.active ? module.api?.hudItemAction?.(item) ?? null : null;
+}
+
+export function itemAvailability(item, actor = item.actor) {
+  const executable = ["weapon", "buff", "aura", "spell", "consumable", "full-attack"].includes(item.type)
+    || item.hasAction || itemActionRoute(item) || actionKinds(item).length > 0;
+  if (!executable) return { availability: "reference", reference: true, unavailable: false, reason: "规则说明 · 点击查看" };
+  if (["buff", "aura"].includes(item.type)) return { availability: "available", reference: false, unavailable: false, reason: "" };
+  let reason = "";
+  if (item.system.quantity != null && Number(item.system.quantity) <= 0) reason = "数量为0";
+  else if (item.system.requiresPsionicFocus && !actor?.system.attributes?.psionicFocus) reason = "需要灵能集中";
+  else if ((itemActionRoute(item)?.kind ?? item.system.activation?.type) === "immediate" && actor?.system.attributes?.conditions?.flatFooted) reason = "措手不及时不能使用反应动作";
+  else if ((item.type === "spell" || item.isCharged || item.system.linkedChargeItem?.id)
+    && Number(item.charges) < Number(item.chargeCost)) {
+    const book = actor?.system.attributes?.spells?.spellbooks?.[item.system.spellbook];
+    reason = book?.usePowerPoints ? "灵能点不足" : item.type === "spell" ? "无剩余施法次数" : "剩余次数不足";
+  }
+  if (!reason) reason = conditionRestriction(actor, item, { kind: actionKinds(item)[0] ?? item.system.activation?.type });
+  return { availability: reason ? "unavailable" : "available", reference: false, unavailable: Boolean(reason), reason };
+}
+
+function conditionRestriction(actor, item, options) {
+  const module = game.modules.get("samson-3r-automation");
+  if (!module?.active || !module.api?.checkConditionAction) return "";
+  // This optional API is a read-only rule check: no rolls, writes or resource use.
+  try { module.api.checkConditionAction(actor, item, options); return ""; }
+  catch (error) { return error.message || "当前状态不能执行"; }
+}
+
+export function commonAvailability(actor, entry, token) {
+  let reason = "";
+  if (entry.id === "movement-correction") {
+    if (game.combat?.started && !game.user.isGM) reason = "战斗移动记录由DM更正";
+  } else {
+    reason = conditionRestriction(actor, null, { kind: entry.id === "step" ? "move" : entry.kind, common: entry.id });
+    if (!reason && ["charge", "defensive", "aao"].includes(entry.id)
+      && !actor.items.some(item => item.type === "attack" && item.system.actionType === "mwak")) reason = "尚无原生近战攻击方式";
+    if (!reason && entry.id === "step" && (!game.combat?.started || !game.combat.combatants.some(combatant => combatant.tokenId === token?.id))) reason = "仅限已加入战斗的棋子";
+  }
+  return { availability: reason ? "unavailable" : "available", unavailable: Boolean(reason), reason };
+}
+
+export const AVAILABILITY_TABS = [["available", "可用操作"], ["unavailable", "暂不可用"], ["reference", "规则说明"]];
+export function availabilitySections(entries, category = "") {
+  return AVAILABILITY_TABS
+    .map(([availability, label]) => ({ availability, name: category ? `${category} · ${label}` : label,
+      cards: entries.filter(entry => entry.availability === availability) }))
+    .filter(section => section.cards.length);
+}
+
 function card(item, favorites, actor) {
-  const isPassive = !item.hasAction && !item.system.activation?.type && !["spell", "consumable", "weapon", "buff"].includes(item.type);
+  const availability = itemAvailability(item, actor);
   return {
     id: item.id, name: displayName(item), img: item.img || "icons/svg/book.svg",
     favorite: favorites.includes(item.id), resource: resourceLabel(item),
-    action: item.type === "buff" ? (item.system.active ? "已启用" : "未启用") : isPassive ? "查看详情" : actionLabel(item),
-    passive: isPassive, item,
+    action: ["buff", "aura"].includes(item.type) ? (item.system.active ? "已启用" : "未启用") : availability.reference ? "查看详情"
+      : itemActionRoute(item)?.label || (itemActionRoute(item)?.kind ? actionNames[itemActionRoute(item).kind] : actionLabel(item)),
+    passive: availability.reference, ...availability, item,
     level: item.type === "spell" ? finite(item.system.level) : null,
     book: item.type === "spell" ? item.system.spellbook || "primary" : "",
     spellInfo: item.type === "spell" ? `${finite(item.system.level)}环 · ${spellbookName(actor, item.system.spellbook || "primary")}` : "",
     low: Boolean((item.type === "spell" || item.isCharged) && Number(item.charges) <= 0),
-    note: item.type === "weapon" && !item.system.equipped ? "未装备" : ""
+    note: item.type === "weapon" && !item.system.equipped ? "未装备"
+      : item.type === "feat" && !availability.reference && !item.hasAction && !itemActionRoute(item) ? "手动结算" : ""
   };
 }
 
@@ -234,10 +290,9 @@ export function reminderView(actor, token, store, context) {
   if (counts.full) messages.push("已记录全回合动作；通常占用本回合的标准与移动动作。");
   if (counts.standard + counts.full > 1) messages.push("本轮已记录多次标准／全回合动作，请核对。");
   if (counts.move + counts.full > 1) messages.push("已记录多次移动消耗；用标准动作换移动时可继续操作。");
-  if (counts.swift + counts.immediate > 1) messages.push("迅捷与即时动作已多次使用，请核对回合时机。");
-  if (counts.immediate) messages.push("即时动作可能占用本回合或下回合的迅捷动作。");
+  if (counts.swift + counts.immediate > 1) messages.push("迅捷与反应动作已多次使用，请核对回合时机。");
+  if (counts.immediate) messages.push("反应动作在自己行动轮使用占本轮迅捷动作；在他人行动轮使用后，下次行动结束前不能再做迅捷或反应动作。");
   if (counts.step && counts.move) messages.push("已同时记录5尺快步与移动，请核对是否符合具体动作规则。");
-  if (counts.aao > finite(actor.system.attributes?.maxAoO, 1)) messages.push("已记录的借机攻击超过角色当前次数参考。");
   const combatant = game.combat?.combatants?.find(entry => token ? entry.tokenId === token.id : entry.actor?.uuid === actor.uuid);
   if (combatant?.getFlag("samson-3r-automation", "nextSwiftSpent")) messages.push("3r自动化记录了下回合迅捷动作已占用。");
   const nextSwift = Boolean(combatant?.getFlag("samson-3r-automation", "nextSwiftSpent"));
@@ -247,7 +302,7 @@ export function reminderView(actor, token, store, context) {
     move: Math.max(0, 1 - counts.move - counts.full),
     swift: Math.max(0, 1 - shared - (nextSwift ? 1 : 0)), immediate: Math.max(0, 1 - shared),
     full: counts.full || counts.standard || counts.move ? 0 : 1,
-    free: "∞", aao: Math.max(0, finite(actor.system.attributes?.maxAoO, 1) - counts.aao),
+    free: "∞",
     step: counts.step || counts.move ? 0 : 1
   };
   return {

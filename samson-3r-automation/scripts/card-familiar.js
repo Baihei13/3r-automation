@@ -84,7 +84,7 @@ export function installCardFamiliar() {
   Hooks.on("D35E.ItemUse.preUseItem",(item,actor,hook)=>{
     if(hook.customUse||item.getFlag(MODULE_ID,"key")!=="rhamphorhynchus-familiar")return;
     hook.customUse=true;
-    (async()=>{
+    hook.threeRCompletion=(async()=>{
       const action=await choose("魔宠联结",[["sheet","打开魔宠"],["near","魔宠在1英里内"],["far","魔宠在1英里外"]]);
       if(!action)return;
       if(!game.actors.some(row=>row.system.master?.id===actor.id))await syncCardFamiliar(actor);
@@ -101,7 +101,8 @@ export function installCardFamiliar() {
       }
       await actor.setFlag(MODULE_ID,"familiarNearby",action==="near");await actor.refresh();
       await ChatMessage.create({speaker:ChatMessage.getSpeaker({actor}),content:`<p>魔宠在1英里${action==="near"?"内，主人获得＋4先攻加值":"外，主人不再获得魔宠的先攻加值"}。</p>`});
-    })().catch(error=>{console.error(MODULE_ID,error);ui.notifications.error(error.message);});
+    })();
+    hook.threeRCompletion.catch(error=>{console.error(MODULE_ID,error);ui.notifications.error(error.message);});
   });
   Hooks.on("updateToken",(token,change)=>{
     if(game.users.activeGM!==game.user||!Object.keys(change).some(key=>["x","y","elevation"].includes(key)))return;

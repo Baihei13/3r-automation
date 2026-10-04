@@ -54,7 +54,7 @@ Hooks.once("ready", async () => {
   hud = new ThreeRCombatHud();
   installMovement(() => hud.refresh());
   hud.refresh();
-  console.info(`${MODULE_ID}: 0.5.4，基础技能逐项配图，状态结算可选联动，八套主题共用稳定布局。`);
+  console.info(`${MODULE_ID}: 0.5.7，可用操作、暂不可用、规则说明横排分类切换；借机攻击合入反应提醒。`);
 });
 
 Hooks.on("getSceneControlButtons", controls => {

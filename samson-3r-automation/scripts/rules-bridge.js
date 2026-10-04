@@ -32,6 +32,24 @@ import { familiarBonusApplies, installCardFamiliar } from "./card-familiar.js";
 import { installCardSelections } from "./card-selections.js";
 
 export const key = item => item?.flags?.[MODULE_ID]?.key;
+const CHARACTER_ITEM_ACTIONS={"protective-luck":"luck",ward:"ward",cackle:"cackle","covenant-ally":"covenant-reset",legalistic:"curse-menu",reclusive:"curse-settings",misfortune:"misfortune",fortune:"fortune",lifebound:"lifebound","samsaran-magic":"samsaran-menu",trapfinding:"trap-menu","sneak-attack":"native-attack"};
+const characterItemAction=item=>CHARACTER_ITEM_ACTIONS[key(item)]??(/^(covenant|samsaran)-(health|safeguard|solace|sr|languages|deathwatch|stabilize)$/.test(key(item)??"")?key(item):null);
+// Read-only UI capability discovery. Keep rule identities in their owning module.
+export function hudItemAction(item) {
+  const action=characterItemAction(item);
+  if(!action)return {
+    "知识虔诚":{kind:null,label:"进行知识检定"},
+    "修道牧师：学问":{kind:null,label:"进行学问检定"},
+    "驱散不死生物":{kind:"standard"},
+    "神圣超魔：法术持久":{kind:"standard"},
+    "自发转换治疗法术":{kind:null,label:"选择转换法术"},
+    "fist-of-stone-potion":{kind:"standard"},
+    "rhamphorhynchus-familiar":{kind:null,label:"打开魔宠选项"}
+  }[key(item)]??null;
+  const kind={luck:"standard",ward:"standard",cackle:"move",misfortune:"immediate",fortune:"immediate","native-attack":"standard"}[action]
+    ?? (/^(covenant|samsaran)-(health|safeguard|solace|sr|languages|deathwatch|stabilize)$/.test(action)?"standard":null);
+  return {kind,label:kind?null:"打开能力选项"};
+}
 export const has = (actor,k) => actor.items.some(i=>key(i)===k && effectIsActive(i));
 export const worldActors = () => {
   const actors = new Map(game.actors.map(actor=>[actor.uuid,actor]));
@@ -500,9 +518,8 @@ export function activateRules() {
     if(item.getFlag(MODULE_ID,"unselected")){hook.customUse=true;ui.notifications.warn("尚未选择这项启示；请按升级名额正式选择。");return;}
     if(key(item)==="fortune" && Number(actor.items.find(i=>["oracle","dual-cursed-oracle"].includes(key(i)))?.system.levels)<5){hook.customUse=true;ui.notifications.warn("幸运启示须先知5级。");return;}
     if(key(item)==="finesse-training"){hook.customUse=true;chooseFinesseWeapons(actor).catch(report);return;}
-    const actions={"protective-luck":"luck",ward:"ward",cackle:"cackle","covenant-ally":"covenant-reset","legalistic":"curse-menu",reclusive:"curse-settings","misfortune":"misfortune",fortune:"fortune",lifebound:"lifebound","samsaran-magic":"samsaran-menu","trapfinding":"trap-menu","sneak-attack":"native-attack"};
-    const action=actions[key(item)]??(/^(covenant|samsaran)-(health|safeguard|solace|sr|languages|deathwatch|stabilize)$/.test(key(item)??"")?key(item):null);
-    if(action){hook.customUse=true;dispatchCharacterAction(actor,action).catch(report);}
+    const action=characterItemAction(item);
+    if(action){hook.customUse=true;hook.threeRCompletion=dispatchCharacterAction(actor,action);hook.threeRCompletion.catch(report);}
   });
   const rollSkill=CONFIG.Actor.documentClass.prototype.rollSkill;
   CONFIG.Actor.documentClass.prototype.rollSkill=async function(skill,options={}) {

@@ -2,7 +2,7 @@
   "id": "three-r-combat-hud",
   "title": "3r战斗HUD",
   "description": "BG3风格的D35E战斗操作栏，中文名称、角色与资源、快捷操作和仅作提醒的动作记录。",
-  "version": "0.5.4",
+  "version": "0.5.7",
   "url": "https://github.com/Baihei13/3r-automation",
   "manifest": "https://raw.githubusercontent.com/Baihei13/3r-automation/main/three-r-combat-hud/module.json",
   "authors": [

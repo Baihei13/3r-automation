@@ -3,10 +3,9 @@ export const ACTIONS = [
   { id: "standard", name: "标准", icon: "fa-sword" },
   { id: "move", name: "移动", icon: "fa-person-walking" },
   { id: "swift", name: "迅捷", icon: "fa-bolt" },
-  { id: "immediate", name: "即时", icon: "fa-clock" },
+  { id: "immediate", name: "反应", icon: "fa-clock", rule: "反应统一记录直觉／即时动作与借机攻击。直觉动作：可在任何行动轮使用；自己行动轮使用占本轮迅捷动作，在他人行动轮使用后，下次行动结束前不能再做迅捷或反应动作。措手不及的使用限制按具体能力处理。" },
   { id: "full", name: "全回合", icon: "fa-hourglass-half" },
   { id: "free", name: "自由", icon: "fa-feather" },
-  { id: "aao", name: "借机", icon: "fa-crosshairs" },
   { id: "step", name: "5尺快步", icon: "fa-shoe-prints" }
 ];
 
@@ -82,6 +81,8 @@ export class HudStore {
   ledger(context) {
     let entries = this.data.ledgers[context.key];
     if (!Array.isArray(entries)) entries = this.data.ledgers[context.key] = [];
+    // Preserve old reminder history while merging its former AoO category.
+    for (const entry of entries) if (entry?.kind === "aao") { entry.kind = "immediate"; entry.reactionType = "aao"; }
     if (entries.some(entry => !entry || !ACTIONS.some(action => action.id === entry.kind))) {
       entries = this.data.ledgers[context.key] = entries.filter(entry => entry && ACTIONS.some(action => action.id === entry.kind));
     }
@@ -89,6 +90,7 @@ export class HudStore {
   }
 
   record(context, kind, label, automatic = false, delta = 1) {
+    if (kind === "aao") kind = "immediate";
     if (!ACTIONS.some(action => action.id === kind)) return;
     const entries = this.ledger(context);
     if (delta < 0 && this.counts(context)[kind] === 0) return;
