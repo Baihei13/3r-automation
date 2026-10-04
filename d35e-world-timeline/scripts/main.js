@@ -6,6 +6,7 @@ import { initSurface } from "./surface.js";
 import { initCalendarWeather, openCalendarWeather, registerCalendarSettings, loadCalendarDefinition } from "./calendar-weather.js";
 import { installRestSync } from "./rest.js";
 import { installCombatClock } from "./combat-clock.js";
+import { conditionPresentation } from "./condition-presentation.js";
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 let timelineApp;
@@ -158,9 +159,9 @@ function entries() {
       key: index,
       uuid: entry.doc.uuid,
       actorName: entry.actor.name,
-      name: entry.doc.name,
-      img: entry.doc.img,
-      kind: entry.kind === "buff" ? "3R 增益" : "Active Effect",
+      name: conditionPresentation(entry.doc)?.name??entry.doc.name,
+      img: conditionPresentation(entry.doc)?.img??entry.doc.img,
+      kind: conditionPresentation(entry.doc)?"状态":entry.kind === "buff" ? "3R 增益" : "Active Effect",
       note: entry.note,
       hasTimer: !!t,
       ownTimer: !!entry.doc.getFlag(MODULE_ID, "timer"),

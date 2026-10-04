@@ -19,6 +19,13 @@ async function nativeRest(actor, rest, args) {
   const view = new Proxy(Object.create(null), {
     get(_target, property) {
       if (property === "update") return (...values) => {
+        // World-time recovery already heals nonlethal damage hourly for the
+        // whole party. Native rest's HP-healing subtraction would count twice.
+        if(game.modules.get("samson-3r-automation")?.api?.conditionState){
+          values[0]=foundry.utils.deepClone(values[0]);
+          delete values[0]["system.attributes.hp.nonlethal"];
+          if(values[0].system?.attributes?.hp)delete values[0].system.attributes.hp.nonlethal;
+        }
         const promise = actor.update(...values); updates.push(promise); return promise;
       };
       const value = Reflect.get(actor, property, actor);
@@ -33,6 +40,8 @@ async function nativeRest(actor, rest, args) {
 
 async function restWithClock(actor, health, daily, care, invoke, requester = null) {
   if (!game.user.isGM) throw new Error("世界时间由DM控制。");
+  const condition=game.modules.get("samson-3r-automation")?.api?.conditionState?.(actor);
+  if(condition?.dead||condition?.petrified)throw new Error("当前状态不能通过休息恢复生命或能力。");
   const previous = game.settings.get(MODULE_ID, "lastRest");
   const join = previous?.id && previous.mode !== "recover" && Array.isArray(previous.actors) && Math.abs(game.time.worldTime - previous.end) < 1 && !previous.actors.includes(actor.uuid);
   const choice = await foundry.applications.api.DialogV2.wait({
@@ -51,9 +60,11 @@ async function restWithClock(actor, health, daily, care, invoke, requester = nul
   await game.modules.get("samson-3r-automation")?.api?.processTime?.();
   executing.add(actor.uuid);
   try {
-    await invoke();
+    const recovered=await invoke();
+    if(recovered?.completed===false)return recovered;
     // The adapter awaits native final updates before reporting recovery.
     await actor.refresh({ stopUpdates: false });
+    await game.modules.get("samson-3r-automation")?.api?.completeConditionRest?.(actor,8*3600);
     const session = choice === "join" ? { ...previous, actors: [...previous.actors, actor.uuid] }
       : { id: foundry.utils.randomID(), start, end: game.time.worldTime, actors: [actor.uuid], mode: choice };
     await game.settings.set(MODULE_ID, "lastRest", session);

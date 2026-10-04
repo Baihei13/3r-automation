@@ -1,6 +1,7 @@
 import { MODULE_ID } from "./catalog.js";
 import { effectIsActive } from "./effect-state.js";
 import { choose } from "./rules-bridge.js";
+import { findNativeFamiliarClass } from "./native-familiar.js";
 const esc=value=>String(value??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
 export function familiarBonusApplies(master) {
@@ -30,20 +31,19 @@ export async function syncCardFamiliar(master) {
     return;
   }
   if(master.getFlag(MODULE_ID,"currentFamiliarCreated"))return;
-  const pack=game.packs.get("D35E.classes"),index=await pack?.getIndex();
-  const entry=index?.find(row=>["Familiar","魔宠"].includes(row.name));
-  if(!entry)throw new Error("D35E职业合集中缺少魔宠职业，未创建魔宠。请恢复该原生合集后重新加载。");
-  const native=await pack.getDocument(entry._id),familiarClass=native.toObject();
+  const native=await findNativeFamiliarClass(),familiarClass=native.toObject();
   for(const field of ["_id","folder","ownership","_stats"])delete familiarClass[field];
   if(familiarClass.system.classType!=="minion"||!familiarClass.system.minionGroup||familiarClass.system.minionGroup==="none")throw new Error("原生魔宠职业缺少随从类别，未建立错误的主人联结。");
   const witch=master.items.find(item=>item.getFlag(MODULE_ID,"key")==="witch");
   if(!witch)return;
   if(![null,undefined,"","none",familiarClass.system.minionGroup].includes(witch.system.minionGroup))throw new Error("女巫已关联其他随从类别，请先确认已有魔宠联结。");
-  if([null,undefined,"","none"].includes(witch.system.minionGroup))await witch.update({"system.minionGroup":familiarClass.system.minionGroup,"system.minionLevelFormula":"@level"});
   familiarClass.system.levels=Number(witch.system.levels);
   familiarClass.name="魔宠";
   const description="<p>喙嘴翼龙，超小型动物魔宠。陆地速度10尺，飞行速度40尺（一般）；昏暗视觉、灵敏嗅觉。主人在1英里内时获得＋4先攻。飞行冲锋可进入敌人空间而不因进入空间引发借机攻击，该次啮咬伤害＋2。拥有警觉、精通反射躲闪、共享法术、情感联结；其他魔宠能力随主人等级增长。</p>";
-  const swoop=CONFIG.Item.documentClass.defaultConditional,swoopBonus=CONFIG.Item.documentClass.defaultConditionalModifier;
+  // D35E registers a base document in CONFIG.Item.documentClass; attack templates belong to Item35E.
+  const conditional=game.D35E?.Item35E?.defaultConditional,modifier=game.D35E?.Item35E?.defaultConditionalModifier;
+  if(!conditional||!modifier)throw new Error("D35E攻击条件模板不可用，未创建魔宠；请确认系统已完整加载。");
+  const swoop=foundry.utils.deepClone(conditional),swoopBonus=foundry.utils.deepClone(modifier);
   swoop.name="迅猛俯冲（飞行冲锋）";swoop.default=false;
   swoopBonus.formula="2";swoopBonus.target="damage";swoopBonus.subTarget="allDamage";swoopBonus.type="";
   swoop.modifiers=[swoopBonus];
@@ -51,7 +51,7 @@ export async function syncCardFamiliar(master) {
     name:"动物",type:"class",system:{classType:"racial",levels:1,hd:8,hp:4,bab:"med",savingThrows:{fort:{value:"high"},ref:{value:"high"},will:{value:"low"}},skillsPerLevel:2,customClassSkills:{},classSkills:{spt:true,lis:true,hid:true}},
     flags:{[MODULE_ID]:{key:"rhamphorhynchus-animal",source:"uw"}}
   }];
-  const familiar=await Actor.create({name:"喙嘴翼龙",type:"npc",img:"icons/svg/wing.svg",ownership:foundry.utils.deepClone(master.ownership),
+  const familiarData={name:"喙嘴翼龙",type:"npc",img:"icons/svg/wing.svg",ownership:foundry.utils.deepClone(master.ownership),
     flags:{[MODULE_ID]:{familiarSpecies:"rhamphorhynchus",familiarMaster:master.uuid}},
     system:{abilities:Object.fromEntries(Object.entries({str:6,dex:17,con:11,int:2,wis:14,cha:11}).map(([key,value])=>[key,{value}])),
       master:{id:master.id,name:master.name,img:master.img,data:master.getRollData(),distance:0},
@@ -62,7 +62,9 @@ export async function syncCardFamiliar(master) {
       {name:"灵敏嗅觉",type:"feat",system:{featType:"misc",description:{value:"<p>可凭气味侦测附近生物，通常30尺，逆风15尺、顺风60尺；以移动动作辨认方向，在5尺内定位。可追踪气味。</p>"}}},
       {name:"闪电反射",type:"feat",system:{featType:"feat",changes:[["2","savingThrows","ref","untyped"]],description:{value:"<p>反射豁免获得＋2。</p>"}}},
       {name:"啮咬",type:"attack",system:{attackType:"natural",actionType:"mwak",activation:{type:"standard",cost:1},ability:{attack:"str",damage:"str",damageMult:1,critRange:20,critMult:2},proficient:true,damage:{parts:[["sizeRoll(1,3,@sizeDifference,@critMult)","Piercing",""]]},conditionals:[swoop],description:{value:"<p>啮咬造成1d3穿刺伤害，加力量修正。迅猛俯冲时勾选飞行冲锋条件，额外造成2点傷害；冲锋仍照常影响攻击与AC。</p>"}},flags:{[MODULE_ID]:{key:"rhamphorhynchus-bite",source:"uw"}}}]
-  });
+  };
+  if([null,undefined,"","none"].includes(witch.system.minionGroup))await witch.update({"system.minionGroup":familiarClass.system.minionGroup,"system.minionLevelFormula":"@level"});
+  const familiar=await Actor.create(familiarData);
   await master.setFlag(MODULE_ID,"currentFamiliarCreated",familiar.uuid);
   await familiar.refresh();
   await master.refresh();

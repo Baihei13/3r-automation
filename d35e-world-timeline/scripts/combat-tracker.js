@@ -1,5 +1,6 @@
 import { D35ECombatTracker } from "../../../systems/D35E/module/combat/combat-tracker.js";
 import { MODULE_ID, nativeBuffSeconds, nativeEffectTimer, remaining, durationLabel } from "./time.mjs";
+import { conditionPresentation } from "./condition-presentation.js";
 
 function effectBadges(actor) {
   if (!actor) return [];
@@ -9,12 +10,14 @@ function effectBadges(actor) {
   const result = activeBuffs.map(item => {
     const t = item.getFlag(MODULE_ID, "timer");
     const seconds = t ? remaining(t, now) : nativeBuffSeconds(item);
-    return { name: item.name, img: item.img, remaining: seconds == null ? "" : durationLabel(seconds) };
+    const condition=conditionPresentation(item);
+    return { name: condition?.name??item.name, img: condition?.img??item.img, remaining: seconds == null ? "" : durationLabel(seconds) };
   });
   for (const effect of actor.effects) {
     if (effect.disabled || effect.isSuppressed || buffUuids.has(effect.origin)) continue;
     const t = effect.getFlag(MODULE_ID, "timer") ?? nativeEffectTimer(effect);
-    result.push({ name: effect.name, img: effect.img,
+    const condition=conditionPresentation(effect);
+    result.push({ name: condition?.name??effect.name, img: condition?.img??effect.img,
       remaining: t ? durationLabel(remaining(t, now)) : "" });
   }
   return result.slice(0, 6);

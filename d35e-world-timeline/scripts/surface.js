@@ -1,5 +1,6 @@
 import { MODULE_ID, clockLabel, durationLabel, nativeBuffSeconds, nativeEffectTimer, remaining } from "./time.mjs";
 import { weatherSummary } from "./calendar-weather.js";
+import { conditionPresentation, nativeConditionPresentation } from "./condition-presentation.js";
 
 let timeStrip;
 let effectPanel;
@@ -34,31 +35,39 @@ function visibleEffects(actor) {
   const now = game.time.worldTime;
   const result = [];
   const buffUuids = new Set();
+  const representedStatuses = new Set();
   effectEntries = new Map();
   for (const item of actor.items) {
     if (item.type !== "buff" || !item.system?.active) continue;
     buffUuids.add(item.uuid);
     const t = item.getFlag(MODULE_ID, "timer");
     const seconds = t ? remaining(t, now) : nativeBuffSeconds(item);
-    const row = { key: item.uuid, name: item.name, img: item.img, kind: "增益",
+    const condition=conditionPresentation(item);
+    if(condition&&(seconds==null||seconds>0))for(const id of condition.ids)representedStatuses.add(id);
+    const row = { key: item.uuid, name: condition?.name??item.name, img: condition?.img??item.img, kind: condition?"状态":"增益",
       time: seconds == null ? "未记录结束时间" : durationLabel(seconds), badge: seconds == null ? "—" : shortTime(seconds) };
     result.push(row);
-    effectEntries.set(row.key, { row, document: item, actor });
+    effectEntries.set(row.key, { row, document: item, actor, condition });
   }
-  const representedStatuses = new Set();
   for (const effect of actor.effects) {
     if (effect.disabled || effect.isSuppressed || buffUuids.has(effect.origin)) continue;
+    const statuses=[...(effect.statuses??[])];
+    if(!statuses.length&&effect.getFlag("core","statusId"))statuses.push(effect.getFlag("core","statusId"));
+    // Hide only duplicate native icon markers, not foreign effects carrying changes.
+    if(effect.getFlag("D35E","show")!==undefined&&!effect.changes?.length&&statuses.length
+      &&statuses.every(id=>representedStatuses.has(id)))continue;
     // Old automatic cast markers remain available in the timeline, but are not
     // buffs. Only hide this module's empty markers, never native/other effects.
     if (effect.getFlag(MODULE_ID, "autoSpell") && !effect.changes?.length
       && !effect.statuses?.size && !effect.origin) continue;
-    for (const status of effect.statuses ?? []) representedStatuses.add(status);
+    for (const status of statuses) representedStatuses.add(status);
     const t = effect.getFlag(MODULE_ID, "timer") ?? nativeEffectTimer(effect);
     const seconds = t ? remaining(t, now) : null;
-    const row = { key: effect.uuid, name: effect.name, img: effect.img, kind: "效果",
+    const condition=conditionPresentation(effect);
+    const row = { key: effect.uuid, name: condition?.name??effect.name, img: condition?.img??effect.img, kind: condition?"状态":"效果",
       time: seconds == null ? "未记录结束时间" : durationLabel(seconds), badge: seconds == null ? "—" : shortTime(seconds) };
     result.push(row);
-    effectEntries.set(row.key, { row, document: effect, actor });
+    effectEntries.set(row.key, { row, document: effect, actor, condition });
   }
   for (const [statusId, active] of Object.entries(actor.system?.attributes?.conditions ?? {})) {
     if (!active || representedStatuses.has(statusId)) continue;
@@ -67,7 +76,7 @@ function visibleEffects(actor) {
     const row = { key: `status:${statusId}`, name: game.i18n.localize(status.name ?? status.label ?? statusId),
       img: status.img ?? status.icon ?? "icons/svg/aura.svg", kind: "状态", time: "未记录结束时间", badge: "—" };
     result.push(row);
-    effectEntries.set(row.key, { row, status, actor });
+    effectEntries.set(row.key, { row, status, actor, condition:nativeConditionPresentation(statusId) });
   }
   return result;
 }
@@ -105,6 +114,10 @@ function ensureEffectCard() {
     if (action === "close") closeEffectCard();
     if (action === "time" && game.user.isGM) openTimelineWindow?.();
     if (action === "edit") effectEntries.get(activeEffectKey)?.document?.sheet?.render(true);
+    if(action==="condition") {
+      const entry=effectEntries.get(activeEffectKey);
+      game.modules.get("samson-3r-automation")?.api?.openConditions?.(entry?.actor,entry?.condition?.ids?.[0]).catch(console.error);
+    }
   });
   document.body.append(effectCard);
   return effectCard;
@@ -123,9 +136,11 @@ function positionEffectCard(button) {
 async function effectCardData(entry) {
   const { row, actor, status } = entry;
   const doc = entry.document;
+  const condition=entry.condition;
   let source = null;
-  if (doc?.getFlag(MODULE_ID, "sourceItemUuid")) {
-    source = await fromUuid(doc.getFlag(MODULE_ID, "sourceItemUuid")).catch(() => null);
+  const sourceUuid=doc?.getFlag(MODULE_ID, "sourceItemUuid")??(condition?doc?.getFlag("samson-3r-automation","sourceItemUuid"):null);
+  if (sourceUuid) {
+    source = await fromUuid(sourceUuid).catch(() => null);
   }
   source ??= doc?.documentName === "Item" ? doc : null;
   if (!source && doc?.origin) source = await fromUuid(doc.origin).catch(() => null);
@@ -133,7 +148,8 @@ async function effectCardData(entry) {
     !source.testUserPermission(game.user, "OBSERVER")) source = null;
 
   let raw = "";
-  if (source?.type === "spell" && source.getChatDescription) {
+  if(condition)raw=condition.description;
+  else if (source?.type === "spell" && source.getChatDescription) {
     try { raw = await source.getChatDescription(); }
     catch (error) {
       console.warn(`${MODULE_ID}: spell detail unavailable`, source.uuid, error);
@@ -144,12 +160,14 @@ async function effectCardData(entry) {
   else raw = source?.system?.description?.value ?? doc?.description ?? status?.description ?? "";
   raw=String(raw).replace(/<section\b[^>]*\bdata-3r-bonuses\b[^>]*>[\s\S]*?<\/section>/gi,"");
   const description = raw ? await foundry.applications.ux.TextEditor.enrichHTML(String(raw), {
-    relativeTo: source ?? doc, secrets: game.user.isGM || actor.testUserPermission(game.user, "OWNER"),
+    relativeTo: condition?doc??actor:source??doc, secrets: game.user.isGM || actor.testUserPermission(game.user, "OWNER"),
     rollData: source?.getActorItemRollData?.() ?? actor.getRollData?.()
   }) : "";
   return { name: row.name, actorName: actor.name,
-    sourceName: source?.name !== row.name ? source?.name ?? "" : "", kind: row.kind,
+    sourceName: condition?(source?.type==="spell"?source.name:condition.sourceName??""):
+      source?.name !== row.name ? source?.name ?? "" : "", kind: row.kind,
     time: row.time, description, hasDescription: !!description,
+    canCondition:!!condition&&actor.isOwner&&typeof game.modules.get("samson-3r-automation")?.api?.openConditions==="function",
     canEdit: !!doc && (game.user.isGM || doc.testUserPermission(game.user, "OWNER")),
     canRemove: game.user.isGM && !!doc, canAdjustTime: game.user.isGM && !!doc };
 }
@@ -192,7 +210,9 @@ async function removeEffect(key) {
     content: `<p>确定移除「${foundry.utils.escapeHTML(entry.row.name)}」吗？</p>`
   });
   if (!confirmed) return;
-  if (doc.documentName === "Item" && doc.type === "buff") await doc.update({ "system.active": false });
+  const marker=doc.getFlag("samson-3r-automation","conditionMarker");
+  if(marker&&game.modules.get("samson-3r-automation")?.api?.clearCondition)await game.modules.get("samson-3r-automation").api.clearCondition(entry.actor,marker);
+  else if (doc.documentName === "Item" && doc.type === "buff") await doc.update({ "system.active": false });
   else if (doc.documentName === "ActiveEffect") await doc.delete();
   closeEffectCard();
 }

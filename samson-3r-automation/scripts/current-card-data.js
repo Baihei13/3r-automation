@@ -1,6 +1,6 @@
 import { MODULE_ID, SOURCES } from "./catalog.js";
 
-// Reusable spell, equipment and familiar rule definitions.
+// Reusable rule entries. Character selections live in current-card-sync.js.
 const spell=(id,name,source,level,school,body,extra={})=>({
   name,type:"spell",img:"icons/svg/book.svg",
   system:{source:SOURCES[source].book,level,school,spellbook:"primary",actionType:"other",

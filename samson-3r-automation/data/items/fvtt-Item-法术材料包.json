@@ -1,0 +1,35 @@
+{
+  "name": "法术材料包",
+  "type": "loot",
+  "img": "modules/samson-3r-automation/assets/icons/spell-component-pouch.png",
+  "system": {
+    "source": "Player's Handbook v.3.5",
+    "uniqueId": "spell-component-pouch",
+    "subType": "misc",
+    "quantity": 1,
+    "price": 5,
+    "weight": 2,
+    "carried": true,
+    "identified": true,
+    "description": {
+      "value": "<p><strong>法术材料包（Spell Component Pouch）</strong></p><p>价格：5金币；重量：2磅。</p><p>一个小型皮制防水腰包，里面备有许多施法需要的材料。施法者可以找到施法所需的器材与材料，但不包括法术说明中订有特别价格的器材与材料、施展神术所需的法器，以及放不进此袋子的器材，例如德鲁伊施展探知时需要的天然水池。</p><p data-3r-rulebook><small>来源：3.5玩家手册（Player's Handbook v.3.5），装备／商品。</small></p>"
+    }
+  },
+  "flags": {
+    "samson-3r-automation": {
+      "key": "spell-component-pouch",
+      "source": "phb",
+      "category": "item",
+      "rulebook": "Player's Handbook v.3.5",
+      "commonGear": true,
+      "contentRevision": 1,
+      "originalRule": "Spell Component Pouch",
+      "ruleLocator": {
+        "bookId": "dmg-3r-0.76",
+        "internalPath": "6装备（Equipment）/商品（Goods）.htm",
+        "section": "法术材料包（Spell Component Pouch）"
+      }
+    }
+  },
+  "effects": []
+}

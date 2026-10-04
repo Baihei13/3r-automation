@@ -1,6 +1,8 @@
 import { MODULE_ID, SOURCES, ITEMS } from "./catalog.js";
 import { CHARACTER_ITEMS } from "./characters-catalog.js";
 import { PF_EXTRA_SPELLS } from "./pf-spells.js";
+import { COMMON_GEAR } from "./common-gear.js";
+import { applySeedIcon } from "./content-icons.js";
 import { CARD_SPELLS, CARD_GEAR, WING_FAMILIAR } from "./current-card-data.js";
 
 let ruleSections = {};
@@ -8,9 +10,9 @@ const html = text => String(text).replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;
   .split(/\n+/).map(line => `<p>${line}</p>`).join("");
 const ruleText = key => ruleSections[key] ?? "";
 const generatedSeeds=new Map();
-export const registerSeeds=entries=>entries.forEach(item=>generatedSeeds.set(`${item.flags[MODULE_ID].source}:${item.flags[MODULE_ID].key}`,item));
-export const allSeeds = () => [...new Map([...Object.values(ITEMS).flat(), ...Object.values(CHARACTER_ITEMS).flat(),...generatedSeeds.values()]
-  .map(item=>[`${item.flags[MODULE_ID].source}:${item.flags[MODULE_ID].key}`,item])).values()];
+export const registerSeeds=entries=>entries.forEach(item=>generatedSeeds.set(`${item.flags[MODULE_ID].source}:${item.flags[MODULE_ID].key}`,applySeedIcon(item)));
+export const allSeeds = () => [...new Map([...Object.values(ITEMS).flat(), ...Object.values(CHARACTER_ITEMS).flat(),...COMMON_GEAR,...generatedSeeds.values()]
+  .map(item=>[`${item.flags[MODULE_ID].source}:${item.flags[MODULE_ID].key}`,item])).values()].map(applySeedIcon);
 export const ruleSection=key=>html(ruleText(key));
 const add = (source, key, name, description, featType = "classFeat", extra = {}) => {
   const item = { name, type: "feat", img: "icons/svg/book.svg", system: {source:"", featType,

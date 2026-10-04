@@ -1,0 +1,626 @@
+[
+  {
+    "file": "aim.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Archerskill_07_Targeting.png",
+    "sha256": "c295f6b908356a8fea2de2d82e160eeb55f31361ccb3f986e8ad9fd7668c5c8e"
+  },
+  {
+    "file": "track.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Archerskill_08_track.png",
+    "sha256": "869800d41b72894d59932dc4f7bde3c8c890cee0deaa423b3cb78614ce074841"
+  },
+  {
+    "file": "listen.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Archerskill_14_listen.png",
+    "sha256": "61e808f6638845e39d3403abc36cdac3b0461131e3602b4f186899acffee3f97"
+  },
+  {
+    "file": "jump.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Archerskill_20_jump.png",
+    "sha256": "c2b2aca0964e3ee943dacf997bb9ee6509413c469ff945fbcd53bb1b686f8977"
+  },
+  {
+    "file": "vision.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Archerskill_29_nightvision.png",
+    "sha256": "4e713e11d9c8aae43d5baeb974bf2baacdd6c2dcc783602a609f0db295dfc191"
+  },
+  {
+    "file": "rope.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Archerskill_41_rope.png",
+    "sha256": "84493d28e74148a27e0d241af01a3cbf66078fe124ba4789fb2398eaa8f0a8e7"
+  },
+  {
+    "file": "climb.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Archerskill_42_climb.png",
+    "sha256": "8a60f7c6bfa5e6b0a17504863156873a857f6d8776bee4f7b3732f6165eec6bc"
+  },
+  {
+    "file": "animal.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Archerskill_46_pet.png",
+    "sha256": "86a4d9c1be13f99cbc3feb68bbb2811c4d0623c518a3f4740e97249544611ec0"
+  },
+  {
+    "file": "sneak.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Assassinskill_02_shadows.png",
+    "sha256": "da3dbcec9a8f9f480c0f1018ce044c7d4bf6583c64cae322027997b1472e92b6"
+  },
+  {
+    "file": "fist.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Assassinskill_05_fistweapon.png",
+    "sha256": "b8798fb06d92b36168be1461175b1c7d5690949edf2846602bbb13fb32e06771"
+  },
+  {
+    "file": "trade.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Assassinskill_16_trade.png",
+    "sha256": "a2ddbf0fe9f0a09d91257a1f67abe5dee99730d66672009e6eb49ee937599bb5"
+  },
+  {
+    "file": "steal.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Assassinskill_26_rob.png",
+    "sha256": "40434825ce53dc7930280d344f6bfef72b4b4968cc21e83c1805d8a34d83b61f"
+  },
+  {
+    "file": "blade.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Assassinskill_45_swords.png",
+    "sha256": "df942077628cedd894a4ae0ebd4b37387caa614562f835f046122e6d61258c1f"
+  },
+  {
+    "file": "move.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Assassinskill_50_move.png",
+    "sha256": "ef94699d01a7b0f4fe1b4c44982df00887b44f4644034a2dfc0da6334c60773a"
+  },
+  {
+    "file": "nature.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Druideskill_05_nature.png",
+    "sha256": "3deaa02c2fee0e6d1648285c3d79b29fb53d6dc2a9acc6477166b00fe1419254"
+  },
+  {
+    "file": "heal.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Druideskill_09_heal.png",
+    "sha256": "e1d96273e281c73ebb1f20344e9feb2bb93de5a4745992032e95efbce0252157"
+  },
+  {
+    "file": "transform.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Druideskill_22_bearform.png",
+    "sha256": "03af71a8981abab4ed28aaa340940d6a7db23d38d89363567809de3d1c98e8ca"
+  },
+  {
+    "file": "speed.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Druideskill_37_speed.png",
+    "sha256": "ac4d6d12c3ef6d0705e85c4975b1941b42571a73d02fdb926487ca7a571814cc"
+  },
+  {
+    "file": "craft.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Engineerskill_05_craft.png",
+    "sha256": "40d7c01ab7e10890ba02571af8ab6c09884d6096e377860e6b256ed3f9961a97"
+  },
+  {
+    "file": "mind.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Engineerskill_16_inteligent.png",
+    "sha256": "b2353d2d0b2b7383904035e4acc4834db947bdc2cf080a6c650045430eeadb92"
+  },
+  {
+    "file": "shield.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Engineerskill_43_shield.png",
+    "sha256": "fab2dfa47bb80d9247c6d198491372b7d7fb1301d713a672258133d69045dc78"
+  },
+  {
+    "file": "magic.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Mageskill_36_frostbook.png",
+    "sha256": "935c140038eff441508381fa935d25426c9548c220a9be160782afd57f059359"
+  },
+  {
+    "file": "ward.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Paladinskill_23_holyarmor.png",
+    "sha256": "9d62816748991b33e282fa45e88cca4034192b8b7fb714d46a404809f043ec4d"
+  },
+  {
+    "file": "rune.png",
+    "sourcePack": "SkillsIcons1",
+    "sourceFile": "Warlock_25_runestone.png",
+    "sha256": "8913fe503fd7b8006b8344f913fa2bd5806d0c9b6e1df6bfd035d62fb85a9a3d"
+  },
+  {
+    "file": "rule-skill-swapposition.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_SwapPosition.png",
+    "sha256": "b68e4c813acccec612cc11ea906d34ec8e75e86fed320d3b5e6c7783196c5737"
+  },
+  {
+    "file": "rule-skill-resize.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Resize.png",
+    "sha256": "84bfbf9f609909dfcd67c7c280e81de57e7d7f63a1f6ef33a13dc012dd9eb61b"
+  },
+  {
+    "file": "rule-skill-toxic.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Toxic.png",
+    "sha256": "3c6e8898ba6108a6c2c92c8b9163115233b14c716ee3d429c0da78a94d77612f"
+  },
+  {
+    "file": "rule-skill-magicshield.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_MagicShield.png",
+    "sha256": "e3cffd6314fce4ce927682bd2b6a1a21fdcbab5ee2c689b433844630c606e189"
+  },
+  {
+    "file": "rule-skill-mindcontrol.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_MindControl.png",
+    "sha256": "cd4730fd95beb19d75b5b04c082b4f9aebc82c31d89d4164cde9e1ac736520e1"
+  },
+  {
+    "file": "rule-skill-commander.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Commander.png",
+    "sha256": "c0c36ea3e8fc20a0378d043f8b5d42de217603688b1eef2c14a0709ba1afe2f7"
+  },
+  {
+    "file": "rule-skill-lastword.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_LastWord.png",
+    "sha256": "c76dfd2ac988a1cf0dd22ce43deda260f23c3264738d590de1d89a7e0c940936"
+  },
+  {
+    "file": "rule-archerskill-14-listen.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Archerskill_14_listen.png",
+    "sha256": "61e808f6638845e39d3403abc36cdac3b0461131e3602b4f186899acffee3f97"
+  },
+  {
+    "file": "rule-skill-naturehealing.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_NatureHealing.png",
+    "sha256": "3725a8fc1f810923411d90001375585853d109dcedc1d8d019a57d318292a6bb"
+  },
+  {
+    "file": "rule-skill-blessing.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Blessing.png",
+    "sha256": "95983b56d6243d65966b20afde74d384751973bbadf159af38e9fda90c182030"
+  },
+  {
+    "file": "rule-skill-antidote.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Antidote.png",
+    "sha256": "3b88d12cf7d529cc6b7c286f59105dc686569714b9c98437b353d0439ac2b990"
+  },
+  {
+    "file": "rule-rune-holyscroll.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Rune_HolyScroll.png",
+    "sha256": "15de047af94e0f2b201f50ffcb82129b03a6352199ff8b6596b44ccc321c313f"
+  },
+  {
+    "file": "rule-skill-twoweapons.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_TwoWeapons.png",
+    "sha256": "369813b19573007b047c3fd1898b3b5c55b83b5e56e8a47b87f9286cd27d305c"
+  },
+  {
+    "file": "rule-skill-daggermaster.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_DaggerMaster.png",
+    "sha256": "395cd12701e9cf8f39016d0bd27f8c5a28de77e0d975c7fe34bd84dc89225df2"
+  },
+  {
+    "file": "rule-skill-blademaster.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_BladeMaster.png",
+    "sha256": "9fc8878fb3f55bc824d839a9646f06dfdeec0f797e225099330e9a7e73184360"
+  },
+  {
+    "file": "rule-skill-backstab.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Backstab.png",
+    "sha256": "2958748838a1326e973c22a61a6c277ba5f7f96dc3304b676115f47f1cef52e4"
+  },
+  {
+    "file": "rule-skill-track.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Track.png",
+    "sha256": "d154a1adb3522cb2b3d44b8895257e2ad09773a28ad106b0444b802da4befdc8"
+  },
+  {
+    "file": "rule-skill-shadowdagger.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_ShadowDagger.png",
+    "sha256": "41f85db82f717a40dce296c3e57b31efd22ce9622b0d9726c7be65c7e08af235"
+  },
+  {
+    "file": "rule-skill-secretmagic.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_SecretMagic.png",
+    "sha256": "d402f0a344cdb70494ed93cc15a9c99e1fa0a8679cb76311f407b9ad62217e1d"
+  },
+  {
+    "file": "rule-skill-healingshield.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_HealingShield.png",
+    "sha256": "1358dc31fd635aee08bf98ff4ec608b8c8e9b9d887133e228afc0f13a82cece4"
+  },
+  {
+    "file": "rule-skill-angrywitch.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_AngryWitch.png",
+    "sha256": "2d28c91027e82cf18d6c4c077dd7d744840bee914e018423cdaef91e3f647990"
+  },
+  {
+    "file": "rule-skill-fate1.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Fate1.png",
+    "sha256": "c91cb4e109353bea427677e2b9ac004ad59ed568d91c5bb4c81afb4d5363d2a9"
+  },
+  {
+    "file": "rule-skill-help.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Help.png",
+    "sha256": "48a013a847a8dfa722bcb191b9c6b71eda5004d44c1e4b4c08526ef33256caac"
+  },
+  {
+    "file": "rule-aura-insight.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Aura_Insight.png",
+    "sha256": "85522a4b8c191a2c4626c276796552028d3df389133f8484b177bd00f6988b4a"
+  },
+  {
+    "file": "rule-archerskill-46-pet.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Archerskill_46_pet.png",
+    "sha256": "86a4d9c1be13f99cbc3feb68bbb2811c4d0623c518a3f4740e97249544611ec0"
+  },
+  {
+    "file": "rule-skill-voodoodoll.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_VoodooDoll.png",
+    "sha256": "57f27881d1197d20deb513b2c3585722078d891cfdda64d72f87fc51d12c9de4"
+  },
+  {
+    "file": "rule-skill-magiclight.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_MagicLight.png",
+    "sha256": "9640c71be94d1de89634c860fc166a9d4cf6723d2c5fd1ef56ad69e8304a0d77"
+  },
+  {
+    "file": "rule-skill-reincarnation.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Reincarnation.png",
+    "sha256": "a69f0a0b4417702148b1db9698131e52bcb8e8380fe263cee47cd1697c6e58d4"
+  },
+  {
+    "file": "rule-skill-ghostform.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_GhostForm.png",
+    "sha256": "89415e284f918c891cdf9d82bf2fb3d73b6843b217e5996c8205edaca6024977"
+  },
+  {
+    "file": "rule-skill-magicstone.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_MagicStone.png",
+    "sha256": "8c40f1c22acf805389ad1b648322b087f0fd680e58daa55ac1b2d0958bb90500"
+  },
+  {
+    "file": "rule-skill-shadowcurse.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_ShadowCurse.png",
+    "sha256": "7fe24ab548e521e8c8b5636a72a54f75a1e1a2b424c9dfa69454119664646d92"
+  },
+  {
+    "file": "rule-skill-dice.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Dice.png",
+    "sha256": "31ac08ffaaef3e24eab55ba3473b1c654bcb2331cd017ea2b20eecfa0e427060"
+  },
+  {
+    "file": "rule-skill-shackle.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Shackle.png",
+    "sha256": "da4b8728efae189c627d5629ea14594c31b802f6786d3bc2127b0f818dd4ea46"
+  },
+  {
+    "file": "rule-skill-hideinforest.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_HideInForest.png",
+    "sha256": "310bc32a404297023bc5c176245fa75203a3fabb4e3616232d1b737a1b406ad3"
+  },
+  {
+    "file": "rule-skill-thechosenone.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_TheChosenOne.png",
+    "sha256": "e8b55c13259aaf34aebe5c0c96111e8090ca4969cea8daae9278713cf61b9935"
+  },
+  {
+    "file": "rule-skill-fastmove.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_FastMove.png",
+    "sha256": "12ae09cdf6523b9f7cda82dfcae1e60d123f1b61952f13b59e487fd543d33b50"
+  },
+  {
+    "file": "rule-skill-fightingskills.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_FightingSkills.png",
+    "sha256": "43764d171407afaf39ac08a456171ec6e07a0d045e04f8d01cbc06ff4653c316"
+  },
+  {
+    "file": "rule-skill-swordmaster.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_SwordMaster.png",
+    "sha256": "5795a485eab452c2c5dd56dcadd052b8b58b73b9a4ed7a2c034e8de04edc9983"
+  },
+  {
+    "file": "rule-skill-flags.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Flags.png",
+    "sha256": "6d8a8ae74c69507c56e59c0fb0d830c557cae9954be303c6a52f8363c9067150"
+  },
+  {
+    "file": "rule-skill-genes.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Genes.png",
+    "sha256": "44a1dc3f3eb0cf6f883f2f0ce958e9e560e4071efbb13bf2ac8d27819d550100"
+  },
+  {
+    "file": "rule-skill-holymagic.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_HolyMagic.png",
+    "sha256": "d6c28cbf7239d2e10a5abc9e3b3ca1f8cd22f56719fbef11eb60609a9f1776f1"
+  },
+  {
+    "file": "rule-skill-pray.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Pray.png",
+    "sha256": "4c8e7cd726a92e0bb69ef2bb28b4088286b3bb905d721741de8a8b8c997beecd"
+  },
+  {
+    "file": "rule-aura-ancientmagic.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Aura_AncientMagic.png",
+    "sha256": "b6f4d67a08a7b971d14850afb15017cc856b930c903282d841942f90ccc11e11"
+  },
+  {
+    "file": "rule-skill-accept.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Accept.png",
+    "sha256": "01b834440a1eb998bc230912c97443454f4eb9cdc96a9d949c18b69ff2896a45"
+  },
+  {
+    "file": "rule-rune-shadowscroll.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Rune_ShadowScroll.png",
+    "sha256": "dc10330ced0c82f480a95d84627092456e8d502846652b9e540d84773350651d"
+  },
+  {
+    "file": "rule-skill-deathmark.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_DeathMark.png",
+    "sha256": "ad7bb0ef8d18cf7d1e0a2fb2ad86298c6cb4c9a4f9531e1abbfe11f407d70111"
+  },
+  {
+    "file": "rule-skill-heartbeat.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Heartbeat.png",
+    "sha256": "75bfda3396cd479eb12c57a3946ca73b3af3436db591fc0861a6965ab6171adc"
+  },
+  {
+    "file": "rule-skill-muscles.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Muscles.png",
+    "sha256": "a59aade5bc35cec9a2d1170146c6ee70f3367eb65cfce863155c374e590a108c"
+  },
+  {
+    "file": "rule-aura-flex.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Aura_Flex.png",
+    "sha256": "60759a36ac3a4dfafafc644eeec2a9de8d00d1137572d8ed1058856b13bd7a06"
+  },
+  {
+    "file": "rule-aura-run.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Aura_Run.png",
+    "sha256": "1df15d031ddcc161d1c98d07ee95706e594925d3730e0956416e52dab95b14cf"
+  },
+  {
+    "file": "rule-skill-bonus.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Bonus.png",
+    "sha256": "7035b79bfc7c34db32e584d7eeec3ed46d680efb2772135ed9f25d55b9c257ee"
+  },
+  {
+    "file": "rule-engineerskill-05-craft.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Engineerskill_05_craft.png",
+    "sha256": "40d7c01ab7e10890ba02571af8ab6c09884d6096e377860e6b256ed3f9961a97"
+  },
+  {
+    "file": "rule-skill-arcaneknowledge.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_ArcaneKnowledge.png",
+    "sha256": "b8d02225fb9373442ffdac0e413bf44dd49f555e032c2f3bc2b7f5508610cb82"
+  },
+  {
+    "file": "rule-archerskill-29-nightvision.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Archerskill_29_nightvision.png",
+    "sha256": "4e713e11d9c8aae43d5baeb974bf2baacdd6c2dcc783602a609f0db295dfc191"
+  },
+  {
+    "file": "rule-aura-ancient.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Aura_Ancient.png",
+    "sha256": "a57918242374c6e56cd21c392a15319bc4c3d4e3e427abe219e58ff4cfd1b8af"
+  },
+  {
+    "file": "rule-rune-earthscroll.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Rune_EarthScroll.png",
+    "sha256": "152d6122e674984ac13c09846f27f6709e453add7084ee4f3c2997cc76a11eb2"
+  },
+  {
+    "file": "rule-assassinskill-45-swords.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Assassinskill_45_swords.png",
+    "sha256": "df942077628cedd894a4ae0ebd4b37387caa614562f835f046122e6d61258c1f"
+  },
+  {
+    "file": "rule-skill-restorationaura.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_RestorationAura.png",
+    "sha256": "b592877e6e396845fac7411f7018e30ac251dffdc94fc2e1fa1a52b0185a257f"
+  },
+  {
+    "file": "rule-skill-dodge.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Dodge.png",
+    "sha256": "6bfd1234c4a9e3d3277dc1aa5607e6e97f7e049e591ba2dd109436ef2dad88c3"
+  },
+  {
+    "file": "rule-skill-bigheart.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_BigHeart.png",
+    "sha256": "03d44fda046976c33880f0b3b759024e384f1f85f1ebdbfceda8b75a2f97c528"
+  },
+  {
+    "file": "rule-skill-magiceye.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_MagicEye.png",
+    "sha256": "46da7b40b389549ea7698afce97fe37dd2fdd5ef4031f9221a2f64519a75b14f"
+  },
+  {
+    "file": "rule-skill-nightmares.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Nightmares.png",
+    "sha256": "e1cdfba655b495ff6ac6bf4b914959566a6d90b423a76a44b8db9ef69a9424f8"
+  },
+  {
+    "file": "rule-aura-plague.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Aura_Plague.png",
+    "sha256": "1d223185ce0a373d990a92ebb2c97fb022be89d7b6f4566b84bea67a43e9c2f2"
+  },
+  {
+    "file": "rule-skill-taunt.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Taunt.png",
+    "sha256": "b2c52897c21ffc043ea5059036efc77a44fe2e406157d5928002e35598a6bab4"
+  },
+  {
+    "file": "rule-skill-shock.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Shock.png",
+    "sha256": "fd35b11aedf4c2bbe732c53da585a1c5fde8990f379ba750282c3eeb0abad248"
+  },
+  {
+    "file": "rule-skill-timeslow.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_TimeSlow.png",
+    "sha256": "b52401dfb6fcc7e9b33421e4303a91f273eb2ae4cc9bc8fc818057e959092bfc"
+  },
+  {
+    "file": "rule-skill-eternallight.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_EternalLight.png",
+    "sha256": "e8e157d3e179cf06f79debab2f136bbba5c4197f55081767388f922ac7a95a9c"
+  },
+  {
+    "file": "rule-skill-lightpower.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_LightPower.png",
+    "sha256": "e8bf1cbcf5b5f0c7c7edec77a76c7e6c0e7bff29d48bc424c1dc92e85f7a6cdc"
+  },
+  {
+    "file": "rule-skill-strongattack.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_StrongAttack.png",
+    "sha256": "cf3c6403f9bb342450dfe1440f1e3e16a7cb466bb21e7a924615115c9cfbd37d"
+  },
+  {
+    "file": "rule-aura-ancientknowledge.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Aura_AncientKnowledge.png",
+    "sha256": "61906ad8366c0240deab5fa29f3e0a16ccc020efee57a19aabf2ab5a55accebe"
+  },
+  {
+    "file": "rule-mageskill-36-frostbook.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Mageskill_36_frostbook.png",
+    "sha256": "935c140038eff441508381fa935d25426c9548c220a9be160782afd57f059359"
+  },
+  {
+    "file": "rule-aura-wizards.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Aura_Wizards.png",
+    "sha256": "25530a804ca28016f82c8448c054c73d6d1f2eade3f469cb969837eeb2c679fa"
+  },
+  {
+    "file": "rule-aura-wizard.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Aura_Wizard.png",
+    "sha256": "4e91a8b44ad7d0100917e0c20da5715a8b8e66bdb47b2fbaf250240c0be5137b"
+  },
+  {
+    "file": "rule-skill-incineratetheundead.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_IncinerateTheUndead.png",
+    "sha256": "6d632ae28f18d7b0ef889c2abdc320244924189adc6d43fa6d50f512a092f203"
+  },
+  {
+    "file": "rule-skill-convert.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Convert.png",
+    "sha256": "914cfac7e461725b47949156265ce7f99e38051f6fa69dcd4074bd0649dd6807"
+  },
+  {
+    "file": "rule-skill-pendulum.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_Pendulum.png",
+    "sha256": "1e48ff5a52e9f125db8d421050ae6fa7d492e42c9113f70cac0d8f917c383ef2"
+  },
+  {
+    "file": "rule-skill-battlecry.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_BattleCry.png",
+    "sha256": "aab451e4a0a635db2756be1fbbc2f79fc6b04fcea22bda3273c17f79b305de86"
+  },
+  {
+    "file": "rule-skill-holyregeneration.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_HolyRegeneration.png",
+    "sha256": "90cc649ad1030bc4bf814997d67b617145d4de33ff558aeee1c80cb8b0152cbf"
+  },
+  {
+    "file": "rule-skill-runicweapon.png",
+    "sourcePack": "SkillsIcons",
+    "sourceFile": "Skill_RunicWeapon.png",
+    "sha256": "a5431d7aceb59e51a41fa06f684775a001ebefd59acb914006a3674edcfc6e2a"
+  },
+  {
+    "file": "spell-component-pouch.png",
+    "sourcePack": "ResourcesMedieval",
+    "sourceFile": "BagBrown.png",
+    "sha256": "33f0b622c43496b297e9d416c722909a58a00313db6a4ca267f3270040247895"
+  }
+]

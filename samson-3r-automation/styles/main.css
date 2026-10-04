@@ -20,3 +20,8 @@
 .three-r-fragile p { margin: 4px 0; }
 .three-r-fragile button { width: auto; }
 .three-r-sneak-result { margin: 8px 0; padding-top: 6px; border-top: 1px solid #8b6843; }
+.three-r-spell-resolution { margin: 8px 0; padding: 9px; border: 1px solid #8b6843; border-radius: 5px; background: #8b68430c; }
+.three-r-spell-resolution p { margin: 5px 0; font-size: 12px; }
+.three-r-spell-resolution label { display: flex; align-items: center; gap: 6px; margin: 5px 0; }
+.three-r-spell-options { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.three-r-spell-options button { flex: 1 1 90px; width: auto; min-height: 30px; }

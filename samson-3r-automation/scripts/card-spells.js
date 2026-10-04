@@ -2,11 +2,14 @@ import { MODULE_ID } from "./catalog.js";
 import { timedBuff, replaceTimedBuff, choose, recordAction, spellResistanceValue } from "./rules-bridge.js";
 import { effectIsActive, effectDeadline } from "./effect-state.js";
 import { syncNativeConditions } from "./native-conditions.js";
+import { setSickenedPresentation, setNativeConditionPresentation } from "./condition-effects.js";
 import { Roll35e } from "../../../systems/D35E/module/roll.js";
+import { consumeSpellComponents, charmThreatContext } from "./spell-components.js";
+import { conditionSpell, sameDeity, conditionSpellEligibility, applyConditionSpell } from "./condition-spells.js";
 
 export const cardSpell=item=>{
   const id=item?.getFlag(MODULE_ID,"currentCardSpell");
-  return id==="command"?undefined:id;
+  return id==="command"?undefined:id??conditionSpell(item);
 };
 const esc=text=>String(text??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const dice=result=>Array.isArray(result)?result.find(entry=>Number.isFinite(entry?.total)):result;
@@ -14,8 +17,6 @@ const passed=(roll,dc)=>{
   const result=dice(roll),die=result?.dice?.find(term=>term.faces===20)?.results?.find(row=>row.active!==false)?.result;
   return result&&(die===20||(die!==1&&result.total>=dc));
 };
-const immediate=new Set(["detect-poison","amanuensis"]);
-const friendly=new Set(["mage-armor","guidance","enlarge-person","ears-of-the-city","pesh-vigor"]);
 function copyProgress(item) {
   const copy=item.getFlag(MODULE_ID,"copy");
   const completed=Number(copy.completed??0),total=Number(copy.totalCopied??0);
@@ -26,15 +27,22 @@ function copyProgress(item) {
 export async function prepareCardCast(item,actor,targets) {
   const id=cardSpell(item);
   if(!id)return {};
-  if(targets.length>1)throw new Error("这个法术需要逐个目标施放。");
+  if(targets.length>1&&id!=="rebuke")throw new Error("这个法术需要逐个目标施放。");
+  if(["castigate","rebuke"].includes(id)&&!targets.length)throw new Error("请指定法术目标；叱责可同时选中爆发范围内的多个敌人。");
+  if(id==="rebuke") {
+    const caster=actor.getActiveTokens()[0],scale=/^(m|meter|meters|米|公尺)$/i.test(canvas.scene.grid.units)?0.3048:1;
+    if(!caster)throw new Error("请先把施法者放入当前场景。");
+    for(const target of targets) {
+      const token=[...game.user.targets].find(token=>token.actor?.uuid===target.uuid);
+      if(!token||canvas.grid.measurePath([caster.center,token.center]).distance>20*scale+1e-6)throw new Error("叱责目标必须在自身周围20尺爆发范围内。");
+      if(target.uuid===actor.uuid||token.document.disposition===caster.document.disposition&&token.document.disposition!==0)throw new Error("叱责只伤害敌人；当前目标与施法者同阵营。");
+    }
+  }
   if(["charm-person","ray-of-sickening"].includes(id)&&targets.length!==1)throw new Error("请指定一个法术目标。");
   const target=targets[0]??actor;
   if(["enlarge-person","charm-person"].includes(id)&&target.system.attributes.creatureType!=="humanoid")throw new Error("目标必须是类人生物。");
   if(id==="pesh-vigor"&&["undead","construct"].includes(target.system.attributes.creatureType))throw new Error("目标必须是活物。");
-  const accept=friendly.has(id)&&await Dialog.confirm({title:item.name,content:`<p>${esc(target.name)}自愿接受这次法术吗？</p>`});
-  let threatened=false;
-  if(id==="charm-person")threatened=await Dialog.confirm({title:item.name,content:"<p>你或你的盟友现在正在威胁或攻击目标吗？</p>"});
-  if(id==="pesh-vigor"&&!await Dialog.confirm({title:item.name,content:"<p>施放会耗用价值15金币的一剂仙人掌萃，是否已备齐该材料？</p>"}))return false;
+  const threat=id==="charm-person"?charmThreatContext(actor,target):null;
   let objectUuid=null,area=null,copy=null;
   if(id==="detect-poison") {
     const kind=await choose("侦测毒性：目标",[["creature","指定的生物"],["item","一个物品"],["area","5尺立方区域"]]);
@@ -55,30 +63,38 @@ export async function prepareCardCast(item,actor,targets) {
     if(!copy)return false;
     if(!copy.source||!copy.destination||!Number.isSafeInteger(copy.words)||copy.words<1)throw new Error("请填写原件、抄录位置和有效字词数。");
   }
-  return {cardChoice:{accept,threatened,target:target.uuid,objectUuid,area,copy},cardSpell:id};
+  return {cardChoice:{threat,threatened:Boolean(threat?.threatened),target:target.uuid,objectUuid,area,copy},cardSpell:id};
 }
 
 const busy=new Set();
-async function resolveCast(message) {
+const targetBusy=new Set();
+async function resolveCast(message,options={}) {
   if(game.users.activeGM!==game.user)throw new Error("请由当前主GM结算这次法术。");
   if(busy.has(message.id))return;
   busy.add(message.id);
+  let lockedTarget=null;
   try {
     const cast=message.getFlag(MODULE_ID,"cast"),pending=message.getFlag(MODULE_ID,"cardResolution");
     if(!cast?.actual||!pending||pending.done)return;
     const actor=await fromUuid(pending.actor),target=await fromUuid(pending.target),item=actor?.items.get(pending.item);
     if(!item||!target?.isOwner||!actor?.isOwner)throw new Error("请由能够操纵施法者和目标的GM结算这次法术。");
+    if(targetBusy.has(target.uuid))throw new Error("这个目标还有一项法术正在结算，请先完成该项结算。");
+    targetBusy.add(target.uuid);lockedTarget=target.uuid;
     const id=cast.cardSpell,cl=Number(cast.cl),choice={...cast.cardChoice},chat=message.flags.D35E.chatTemplateData;
     if(!Number.isFinite(cl)||cl<1)throw new Error("这次施法没有有效的施法者等级。");
-    if(choice.target!==target.uuid)choice.accept=false;
-    if(id==="amanuensis") {
-      if(typeof pending.copyResists!=="boolean") {
-        pending.copyResists=await Dialog.confirm({title:"抄写术：原件",content:"<p>原件或持有人是否抵抗这次抄录？普通无主纸页没有豁免；抵抗时以指定原件或持有人的豁免与法术抗力结算。</p>"});
-        await message.setFlag(MODULE_ID,"cardResolution",pending);
-      }
-      choice.accept=!pending.copyResists;
+    const mode=pending.mode??options.mode??(item.system.save.type?"save":"apply");
+    if(!["apply","save","accept"].includes(mode))throw new Error("无效的法术结算选项。");
+    if(pending.mode&&options.mode&&pending.mode!==options.mode)throw new Error("这次法术已经开始结算，请继续原来的选项，不能改选重掷。");
+    if(mode==="accept"&&actor.uuid!==target.uuid&&game.combat?.started&&target.items.some(entry=>entry.getFlag(MODULE_ID,"key")==="reclusive"))throw new Error("隐居诅咒：战斗中不能自愿接受其他施法者的法术，请进行豁免。");
+    if(!pending.mode) {
+      pending.mode=mode;pending.threatened=options.threatened??choice.threatened??false;
+      await message.setFlag(MODULE_ID,"cardResolution",pending);
     }
+    choice.accept=mode==="accept"||id==="amanuensis"&&mode==="apply";
+    choice.threatened=pending.threatened;
     let outcome="生效",allowed=true;
+    const stateSpell=conditionSpell(item),stateImmune=stateSpell?conditionSpellEligibility(item,actor,target):null;
+    if(stateImmune){allowed=false;outcome=stateImmune;}
     if(id==="charm-person") {
       const immunity=target.system.traits.ci?.value??[];
       if(immunity.includes("mindAffecting")||(id==="charm-person"&&immunity.includes("charm"))){allowed=false;outcome="目标免疫";}
@@ -86,11 +102,11 @@ async function resolveCast(message) {
     if(id==="ray-of-sickening") {
       const attack=chat.attacks?.find(entry=>entry.hasAttack)?.attack;
       if(!attack)throw new Error("这张聊天卡没有射线攻击结果。");
-      allowed=!attack.isFumble&&(attack.isNatural20||attack.total>=Number(target.system.attributes.ac.touch.total));
+      allowed=!attack.conditionMiss&&!attack.isFumble&&(attack.isNatural20||attack.total>=Number(target.system.attributes.ac.touch.total));
       if(!allowed)outcome="射线未命中";
     }
     const sr=spellResistanceValue(target,actor.uuid);
-    if(allowed&&item.system.sr&&sr>0&&!(id==="amanuensis"&&choice.accept)&&!(choice.accept&&friendly.has(id)&&!target.items.some(i=>i.getFlag(MODULE_ID,"key")==="covenant-sr"&&effectIsActive(i)))) {
+    if(allowed&&item.system.sr&&sr>0&&!(id==="amanuensis"&&choice.accept)&&!(choice.accept&&!target.items.some(i=>i.getFlag(MODULE_ID,"key")==="covenant-sr"&&effectIsActive(i)))) {
       // The covenant cannot be lowered; its own caster is excluded by spellResistanceValue.
       const penetration=Number(chat.spellPenetration?.total??chat.attacks?.find(a=>a.spellPenetration)?.spellPenetration?.total);
       let total=pending.resistanceTotal??penetration;
@@ -104,14 +120,14 @@ async function resolveCast(message) {
     }
     if(allowed&&typeof pending.saveFailed==="boolean") {
       allowed=pending.saveFailed;if(!allowed)outcome="豁免成功";
-    }else if(allowed&&item.system.save.type&&!choice.accept&&id!=="comprehend-languages") {
+    }else if(allowed&&mode==="save"&&item.system.save.type&&id!=="comprehend-languages") {
       const book=actor.system.attributes.spells.spellbooks[item.system.spellbook??"primary"];
       const rollData={...actor.getRollData(),cl,sl:Number(item.system.level),ablMod:Number(actor.system.abilities[book.ability]?.mod)||0};
       const nativeDC=Number(chat.dc?.dc??chat.dc);
       const dc=Number.isFinite(nativeDC)&&nativeDC>0?nativeDC:10+rollData.sl+rollData.ablMod;
-      const bonus=choice.threatened&&id==="charm-person"?5:0;
+      const bonus=choice.threatened&&id==="charm-person"?5:id==="castigate"&&sameDeity(actor,target)?-2:0;
       let temporary=null;
-      if(bonus)temporary=await replaceTimedBuff(target,timedBuff("魅惑人类：正在受到威胁","charm-threat-save",null,[["5","savingThrows","will","untyped"]]));
+      if(bonus)temporary=await replaceTimedBuff(target,timedBuff(bonus>0?"魅惑人类：正在受到威胁":"严加斥责：信奉同一神祇",bonus>0?"charm-threat-save":"castigate-same-god",null,[[String(bonus),"savingThrows","will",bonus>0?"untyped":"penalty"]]));
       let result;
       const save=/^fortitude/.test(item.system.save.type)?"fort":/^reflex/.test(item.system.save.type)?"ref":"will";
       try{result=await target.rollSavingThrow(save,null,dc);}finally{if(temporary&&target.items.has(temporary.id))await temporary.delete();}
@@ -120,10 +136,15 @@ async function resolveCast(message) {
       pending.saveFailed=allowed;
       await message.setFlag(MODULE_ID,"cardResolution",pending);
     }
-    if(allowed&&await applyCardEffect(item,actor,target,{cl,choice,start:pending.start,dc:chat.dc?.dc??chat.dc})===false)outcome="持续时间已结束";
+    const partial=stateSpell&&!stateImmune&&outcome==="豁免成功";
+    if(stateSpell&&(allowed||partial)) {
+      const raw=Number(chat.dc?.dc??chat.dc),book=actor.system.attributes.spells.spellbooks[item.system.spellbook??"primary"],dc=raw>0?raw:10+Number(item.system.level)+(Number(actor.system.abilities[book?.ability]?.mod)||0);
+      if(await applyConditionSpell(item,actor,target,{cl,dc,saveFailed:allowed,start:pending.start,message,pending})===false)outcome="持续时间已结束";
+      else if(partial)outcome=id==="castigate"?"豁免成功，仍战栗一轮":"豁免成功，伤害减半，无附加状态";
+    }else if(allowed&&await applyCardEffect(item,actor,target,{cl,choice,start:pending.start,dc:chat.dc?.dc??chat.dc})===false)outcome="持续时间已结束";
     await message.setFlag(MODULE_ID,"cardResolution",{...pending,done:true,outcome,resolvedAt:game.time.worldTime});
-    await ChatMessage.create({speaker:ChatMessage.getSpeaker({actor}),content:`<p>${esc(item.name)} → ${esc(target.name)}：${esc(outcome)}。</p>`,flags:{[MODULE_ID]:{resolvedCast:message.id}}});
-  }finally{busy.delete(message.id);}
+    await ChatMessage.create({speaker:ChatMessage.getSpeaker({actor}),content:`<p>${esc(item.name)} → ${esc(target.name)}：${{apply:"直接应用",save:"进行豁免",accept:"自愿接受"}[mode]}${id==="charm-person"&&choice.threatened&&mode==="save"?"（威胁＋5）":""}，${esc(outcome)}。</p>`,flags:{[MODULE_ID]:{resolvedCast:message.id}}});
+  }finally{busy.delete(message.id);if(lockedTarget)targetBusy.delete(lockedTarget);}
 }
 
 async function applyCardEffect(item,actor,target,{cl,choice,start,dc}) {
@@ -143,7 +164,7 @@ async function applyCardEffect(item,actor,target,{cl,choice,start,dc}) {
     if(target.items.some(i=>effectIsActive(i)&&i.system.sizeOverride&&sizes.indexOf(i.system.sizeOverride)>index))throw new Error("目标已经受到增大体型的效果影响。");
     data.system.sizeOverride=sizes[index+1];
   }
-  if(id==="ray-of-sickening")data.flags[MODULE_ID].nativeConditions=["sickened"];
+  if(id==="ray-of-sickening")setSickenedPresentation(data,item.name);
   if(id==="detect-poison") {
     const object=choice.objectUuid?await fromUuid(choice.objectUuid):null,label=choice.area??object?.name??target.name;
     const result=await choose(`侦测毒性：${label}`,[["poison","有毒"],["clear","无毒"],["blocked","被障碍阻挡"]]);
@@ -256,7 +277,9 @@ async function useEffect(item) {
     if(item.getFlag(MODULE_ID,"gatherPeriod")===period)throw new Error("本轮已经收集过城市信息。");
     const skill=await choose("聆听城市：收集信息",[["gif","收集信息"],["spt","侦察"],["lis","聆听"]]);
     if(!skill)return;
-    const effect=await replaceTimedBuff(actor,timedBuff("聆听城市：专注","city-concentration",null,[],{nativeConditions:["blind","deaf"],sourceActor:actor.uuid}));
+    const effect=await replaceTimedBuff(actor,setNativeConditionPresentation(
+      timedBuff("目盲／耳聋","city-concentration",null,[],{sourceActor:actor.uuid,sourceItemUuid:item.getFlag(MODULE_ID,"sourceItemUuid")}),
+      ["blind","deaf"],"聆听城市"));
     await syncNativeConditions(actor);
     try {const roll=await actor.rollSkill(skill);if(dice(roll))await item.setFlag(MODULE_ID,"gatherPeriod",period);}
     finally{await effect.delete();await syncNativeConditions(actor);}
@@ -279,7 +302,9 @@ async function ended(item) {
   await item.actor.setFlag(MODULE_ID,"lastPeshEnded",item.uuid);
   const boosts=item.actor.items.filter(i=>i.getFlag(MODULE_ID,"peshParent")===item.uuid&&effectDeadline(i)<=game.time.worldTime);
   if(boosts.length)await item.actor.deleteEmbeddedDocuments("Item",boosts.map(i=>i.id));
-  await replaceTimedBuff(item.actor,timedBuff("疲乏","pesh-vigor-fatigue",null,[],{nativeConditions:["fatigued"],sourceActor:item.getFlag(MODULE_ID,"sourceActor")}));
+  await replaceTimedBuff(item.actor,setNativeConditionPresentation(
+    timedBuff("疲乏","pesh-vigor-fatigue",null,[],{sourceActor:item.getFlag(MODULE_ID,"sourceActor"),sourceItemUuid:item.getFlag(MODULE_ID,"sourceItemUuid")}),
+    ["fatigued"],"仙人掌萃的活力"));
   await syncNativeConditions(item.actor);
 }
 
@@ -298,23 +323,49 @@ export function installCardSpells() {
   Hooks.on("createChatMessage",async message=>{
     if(game.users.activeGM!==game.user)return;
     const cast=message.getFlag(MODULE_ID,"cast"),data=message.flags?.D35E?.chatTemplateData;
-    if(!cast?.actual||!cast.cardSpell||!data?.isSpell||(data.spellFailureSuccess===false&&game.settings.get("D35E","fizzleSpellOnArcaneFailure")))return;
+    if(cast?.derivedTarget)return;
+    if(!cast?.actual||!data?.isSpell)return;
     const item=await fromUuid(data.item?.uuid??"").catch(()=>null);
     const actor=item?.actor??(message.speaker.scene&&message.speaker.token?game.scenes.get(message.speaker.scene)?.tokens.get(message.speaker.token)?.actor:game.actors.get(message.speaker.actor));
     const source=actor?.items.get(data.item?.id);
     if(!source||(source.hasAction&&message.flags.D35E.template!=="systems/D35E/templates/chat/attack-roll.html"))return;
+    try{await consumeSpellComponents(actor,cast.materials);}catch(error){
+      await message.setFlag(MODULE_ID,"cardResolution",{done:true,outcome:error.message,materialsConsumed:false});report(error);return;
+    }
+    if(!cast.cardSpell||(data.spellFailureSuccess===false&&game.settings.get("D35E","fizzleSpellOnArcaneFailure")))return;
     const target=cast.targetUuids?.[0]??actor.uuid;
-    await message.setFlag(MODULE_ID,"cardResolution",{actor:actor.uuid,target,item:source.id,start:game.time.worldTime,done:false});
-    if(cast.cardChoice?.accept||cast.cardSpell==="comprehend-languages"||immediate.has(cast.cardSpell))resolveCast(message).catch(report);
+    const pending={actor:actor.uuid,target,item:source.id,start:game.time.worldTime,done:false,spellName:source.name,saveType:source.system.save.type,threat:cast.cardChoice?.threat,materialsConsumed:true};
+    await message.setFlag(MODULE_ID,"cardResolution",pending);
+    if(cast.cardSpell==="rebuke")for(const uuid of (cast.targetUuids??[]).slice(1)) {
+      const enemy=await fromUuid(uuid);if(!enemy)continue;
+      await ChatMessage.create({speaker:message.speaker,content:`<p>${esc(source.name)} → ${esc(enemy.name)}</p>`,
+        flags:{D35E:{chatTemplateData:foundry.utils.deepClone(data)},[MODULE_ID]:{cast:{...cast,targetUuids:[uuid],derivedTarget:true},cardResolution:{...pending,target:uuid}}}});
+    }
   });
   Hooks.on("renderChatMessageHTML",(message,root)=>{
     const pending=message.getFlag(MODULE_ID,"cardResolution");
     if(!pending)return;
     for(const button of root.querySelectorAll('[data-action="rollSave"],[data-action="rollSR"]'))button.remove();
-    if(pending.done||root.querySelector("[data-three-r-resolve]"))return;
-    if(game.users.activeGM!==game.user)return;
-    const button=document.createElement("button");button.dataset.threeRResolve=message.id;button.textContent="结算法术";
-    button.onclick=()=>resolveCast(message).catch(report);root.append(button);
+    if(root.querySelector("[data-three-r-resolve]"))return;
+    const section=document.createElement("section");section.className="three-r-spell-resolution";section.dataset.threeRResolve=message.id;
+    const cast=message.getFlag(MODULE_ID,"cast"),plan=cast?.materials;
+    section.innerHTML=`<strong>法术结算</strong>${plan?.requirements?.length?`<p>材料：${esc(plan.requirements.map(entry=>entry.label+(entry.consume?(pending.materialsConsumed?"（已耗用1份）":"（需耗用1份）"):"")).join("、"))}</p>`:""}`;
+    if(pending.done){const result=document.createElement("p");result.textContent=pending.outcome;section.append(result);root.append(section);return;}
+    if(pending.threat) {
+      const threat=pending.threat;
+      section.insertAdjacentHTML("beforeend",`<p>交战：${threat.combat?"是":"否"} · 敌对：${threat.known?(threat.hostile?"是":"否"):"未确认"} · 敌对方持械：${threat.armed?"是":"否"}</p><label><input type="checkbox" name="three-r-threat" ${(pending.threatened??threat.threatened)?"checked":""} ${pending.mode?"disabled":""}> 威胁目标：豁免＋5</label>`);
+    }
+    const controls=document.createElement("div");controls.className="three-r-spell-options";
+    const saveType=pending.saveType??message.flags?.D35E?.chatTemplateData?.dc?.type;
+    for(const [mode,label] of [["apply","直接应用"],...(saveType?[["save","进行豁免"],["accept","自愿接受"]]:[])]) {
+      const button=document.createElement("button");button.type="button";button.textContent=label;
+      button.title=mode==="apply"?"跳过豁免，仍检查命中、免疫和法术抗力":mode==="accept"?"自愿放弃豁免，并降低可主动降低的法术抗力":"按原生豁免检定结算";
+      button.disabled=game.users.activeGM!==game.user||Boolean(pending.mode&&pending.mode!==mode);
+      if(game.users.activeGM!==game.user)button.title="由当前主GM结算";
+      button.onclick=()=>resolveCast(message,{mode,threatened:section.querySelector('[name="three-r-threat"]')?.checked}).catch(report);
+      controls.append(button);
+    }
+    section.append(controls);root.append(section);
   });
   Hooks.on("D35E.ItemUse.preUseItem",(item,actor,hook)=>{
     if(hook.customUse)return;

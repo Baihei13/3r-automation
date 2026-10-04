@@ -23,6 +23,10 @@ import { applyWeaponFinesse } from "./weapon-finesse.js";
 import { installCheckOptions, withOptionalCheck, withOptionalAttack } from "./check-options.js";
 import { installNativeConditions, syncNativeConditions, actionRestriction } from "./native-conditions.js";
 import { cardSpell, prepareCardCast, installCardSpells } from "./card-spells.js";
+import { prepareSpellComponents, consumeSpellComponents } from "./spell-components.js";
+import { spellConditionCheck, commitConditionAction } from "./condition-runtime.js";
+import { ItemCharges } from "../../../systems/D35E/module/item/extensions/charges.js";
+import { processConditionTime } from "./condition-vitals.js";
 import { itemRepairs } from "./item-data.js";
 import { familiarBonusApplies, installCardFamiliar } from "./card-familiar.js";
 import { installCardSelections } from "./card-selections.js";
@@ -315,11 +319,23 @@ export function activateRules() {
         if(!context.weaponId)return;
       }
       context.cl=casterLevel(item,actor);
+      context.materials=prepareSpellComponents(item,actor);
       context.utility=await prepareUtility(item,actor,context.cl);
       if(context.utility===false)return;
       const card=await prepareCardCast(item,actor,context.targets);
       if(card===false)return;
       context.utility={...context.utility,...card};
+      const charged=item.system.preparation?.mode!=="atwill";
+      if(charged&&new ItemCharges(this.item).getCharges()<=0)return await useSpell.call(this,ev,options,actor);
+      const check=await spellConditionCheck(item,actor);
+      if(check.blocked)return ui.notifications.warn(check.blocked);
+      if(check.cancelled)return;
+      if(check.failed) {
+        await consumeSpellComponents(actor,context.materials);
+        if(charged)await new ItemCharges(this.item).addCharges(-1);
+        await commitConditionAction(actor,item.system.activation?.type);
+        return ChatMessage.create({speaker:ChatMessage.getSpeaker({actor}),content:`<p>${foundry.utils.escapeHTML(item.name)}：${foundry.utils.escapeHTML(check.failed)}</p>`,flags:{[MODULE_ID]:{conditionFailed:true}}});
+      }
       return await useSpell.call(this,ev,options,actor);
     } finally{castContexts=castContexts.filter(c=>c!==context);}
   };
@@ -329,7 +345,7 @@ export function activateRules() {
     const actor=actorForMessage(message);
     const context=castContexts.find(c=>c.item.id===data.item?.id&&c.actor.uuid===actor?.uuid);
     const targets=context&&personalSpell(context.item)?[actor]:data.targets?.length?data.targets.map(t=>canvas.scene?.tokens.get(t.id)?.actor).filter(Boolean):context?.targets??[];
-    if(context)message.updateSource({[`flags.${MODULE_ID}.cast`]:{actual:true,automated:handlesSpell(context.item)||Boolean(cardSpell(context.item)),targetUuids:targets.map(t=>t.uuid),extendSelf:has(actor,"reclusive")&&curseLevel(actor,"reclusive")>=5&&targets.length===1&&targets[0].uuid===actor.uuid,weaponId:context.weaponId,cl:Number(data.cl)>0?Number(data.cl):context.cl,...context.utility}});
+    if(context)message.updateSource({[`flags.${MODULE_ID}.cast`]:{actual:true,automated:handlesSpell(context.item)||Boolean(cardSpell(context.item)),targetUuids:targets.map(t=>t.uuid),extendSelf:has(actor,"reclusive")&&curseLevel(actor,"reclusive")>=5&&targets.length===1&&targets[0].uuid===actor.uuid,weaponId:context.weaponId,cl:Number(data.cl)>0?Number(data.cl):context.cl,materials:context.materials,...context.utility}});
   });
   Hooks.on("createChatMessage",message=> {
     if(!activeGM())return;
@@ -350,7 +366,7 @@ export function activateRules() {
       const target=canvas.scene?.tokens.get(data.targets[0].id)?.actor;
       if(target&&has(target,"witch-ward")) {
         const ac=Number(target.system.attributes.ac[data.item?.vsTouchAc?"touch":target.system.attributes.conditions?.flatFooted?"flatFooted":"normal"].total);
-        if(data.attacks.some(a=>a.hasAttack&&!a.attack.isFumble&&(a.attack.isNatural20||a.attack.total>=ac)))endWard(target).catch(report);
+        if(data.attacks.some(a=>a.hasAttack&&!a.attack.conditionMiss&&!a.attack.isFumble&&(a.attack.isNatural20||a.attack.total>=ac)))endWard(target).catch(report);
       }
     }
   });
@@ -433,8 +449,8 @@ export function activateRules() {
     finishSneakAttack(this,options);
     await finishFragileAttack(this,options);
     for(const data of [this.attack,this.critConfirm])if(data?.tooltip)data.tooltip=localizeChatHtml(data.tooltip);
-    if(!options.critical)captureTanglefootAttack(this);
-    if(!options.critical&&ac!=null && !this.attack.isFumble && (this.attack.isNatural20 || this.attack.total>=ac)
+    if(!options.critical&&!this._threeRConditionMiss)captureTanglefootAttack(this);
+    if(!options.critical&&!this._threeRConditionMiss&&ac!=null && !this.attack.isFumble && (this.attack.isNatural20 || this.attack.total>=ac)
       && targets[0].actor.isOwner)await endWard(targets[0].actor);
     return result;
   };
@@ -622,6 +638,7 @@ export function processRuleTime() {
 }
 async function processTime() {
   if(!activeGM())return;
+  await processConditionTime();
   for(const actor of worldActors()) {
     await utilityTime(actor);
     for(const item of actor.items.filter(i=>i.type==="buff")) {

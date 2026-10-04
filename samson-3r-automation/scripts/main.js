@@ -8,8 +8,14 @@ import { installPresentation } from "./presentation.js";
 import { effectIsActive } from "./effect-state.js";
 import { repairFragile } from "./fragile.js";
 import { installMovementOpportunities } from "./movement-opportunities.js";
+import { registerContentSearch, installContentSearchButton, openContentSearch } from "./content-search.js";
 import { loadCharacterContent } from "./content.js";
 import { activateRules, completeActors, applySpellBuff, processRuleTime, timedBuff, casterLevel, typedBonus, recordAction } from "./rules-bridge.js";
+import { installConditionRuntime, assertConditionAction, commitConditionAction } from "./condition-runtime.js";
+import { applyCondition, clearCondition, editConditionContext, registerConditionTools } from "./condition-tools.js";
+import { conditionState } from "./condition-state.js";
+import { conditionOperation } from "./condition-actions.js";
+import { completeConditionRest } from "./condition-vitals.js";
 
 let panel;
 const escapeHtml = value => String(value).replace(/[&<>"']/g, character =>
@@ -162,7 +168,7 @@ async function stoneFist(actor) {
   ], 60, "stone-fist"));
   const previous=actor.items.filter(i=>i.getFlag(MODULE_ID,"key")==="stone-fist-slam");
   if(previous.length)await actor.deleteEmbeddedDocuments("Item",previous.map(i=>i.id));
-  await actor.createEmbeddedDocuments("Item",[{name:"石拳术：猛击",type:"attack",img:"icons/svg/fist.svg",
+  await actor.createEmbeddedDocuments("Item",[{name:"石拳术：猛击",type:"attack",img:"systems/D35E/icons/attack/monster/slam.png",
     system:{actionType:"mwak",attackType:"natural",proficient:true,activation:{type:"attack",cost:1},
       ability:{attack:"str",damage:"str",damageMult:1.5,critRange:"20",critMult:2},
       damage:{parts:[["1d6 + floor((@abilities.str.mod + @stoneFistAttackGain) * @ablMult) - floor(@abilities.str.mod * @ablMult)","Bludgeoning"]]}},
@@ -297,9 +303,13 @@ function openAutomation(actor = samsonActor()) {
 
 Hooks.once("init", () => {
   registerCantripSetting();
-  game.modules.get(MODULE_ID).api = { open: openAutomation, openCharacter: openCharacterPanel, install: installSamson, repairFragile, processTime: processRuleTime,
+  registerContentSearch();
+  registerConditionTools();
+  game.modules.get(MODULE_ID).api = { search: openContentSearch, open: openAutomation, openCharacter: openCharacterPanel, install: installSamson, repairFragile, processTime: processRuleTime,
+    applyCondition, clearCondition, openConditions:editConditionContext, conditionState, conditionOperation, checkConditionAction:assertConditionAction, commitConditionAction, completeConditionRest,
     commonAction: async (actor,action) => {
       if(action!=="defense" || !actor.testUserPermission(game.user,"OWNER")) throw new Error("动作或操纵权限无效。");
+      assertConditionAction(actor,null,{kind:"standard",common:action});
       const amount=Number(actor.system.skills?.tmb?.rank)>=5?6:4;
       const old=actor.items.filter(item=>item.getFlag(MODULE_ID,"key")==="common-total-defense");
       if(old.length)await actor.deleteEmbeddedDocuments("Item",old.map(item=>item.id));
@@ -311,11 +321,13 @@ Hooks.once("init", () => {
 
 Hooks.once("ready", async () => {
   if (game.system.id !== "D35E") return;
+  installContentSearchButton();
   await loadSpellTexts();
   await loadCharacterContent();
   localizeSpellHeaders();
   installPresentation();
   activateRules();
+  installConditionRuntime();
   installMovementOpportunities();
   Hooks.on("preCreateItem", item => {
     const update = itemRepairs(item);

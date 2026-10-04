@@ -5,6 +5,7 @@ import { spellTextRepairs } from "./spell-text.js";
 import { pfSpellVariant } from "./spell-utilities.js";
 import { automatedSpellActionRepairs } from "./spell-actions.js";
 import { casterClassRepairs, casterBookRepairs } from "./caster-setup.js";
+import { contentIconRepairs } from "./content-icons.js";
 
 const seeds = new Map([...Object.values(ITEMS).flat(), ...Object.values(CHARACTER_ITEMS).flat()]
   .map(item => [`${item.flags[MODULE_ID].source}:${item.flags[MODULE_ID].key}`, item]));
@@ -13,6 +14,7 @@ const skillTargets = new Set(["dev", "opl", "blf", "int", "slt", "kno"]);
 const humans = new Set(["human-pf", "human-dex", "human-cha"]);
 
 function finishTextRepairs(item,update) {
+  Object.assign(update, contentIconRepairs(item));
   // Repair text after content migrations, so a seed cannot restore English.
   if(update["system.description"]&&update["system.description.value"]!==undefined) {
     update["system.description"].value=update["system.description.value"];
@@ -42,6 +44,10 @@ export function itemRepairs(item) {
   const source = SOURCES[mark?.key==="weapon-finesse"?"pf":mark?.source];
   if (!mark?.key || !source) {
     const update={};
+    if(mark?.key==="stone-fist-slam"&&item.type==="attack"&&item.img==="icons/svg/fist.svg") {
+      update[`flags.${MODULE_ID}.previousIcon`]=item.img;
+      update.img="systems/D35E/icons/attack/monster/slam.png";
+    }
     if(mark?.key==="stone-fist"&&item.type==="buff"&&!mark.bonusRevision) {
       update[`flags.${MODULE_ID}.previousChanges`]=item.system.changes;
       update["system.changes"]=[["@stoneFistAttackGain","misc","cmb","untyped"]];

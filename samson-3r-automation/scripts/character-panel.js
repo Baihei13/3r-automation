@@ -1,6 +1,8 @@
 import { MODULE_ID } from "./catalog.js";
 import { worldActors, choose, timedBuff, replaceTimedBuff, applySpellBuff, curseLevel, grantHealth, promiseAttack, recordAction } from "./rules-bridge.js";
 import { legalisticConversation, trackMentalEffect } from "./progression.js";
+import { setSickenedPresentation } from "./condition-effects.js";
+import { syncNativeConditions } from "./native-conditions.js";
 
 let panel;
 const key = item => item?.getFlag(MODULE_ID, "key");
@@ -260,14 +262,14 @@ async function oracleAction(actor, action, detail) {
   }
   if(action==="broken-promise") {
     if(!has(actor,"legalistic"))throw new Error("角色没有守律诅咒。");
-    await replaceBuff(actor,buff("守律：违约（恶心）","legalistic-sickened",86400,[
-      ["-2","attack","attack","penalty"],["-2","damage","wdamage","penalty"],["-2","savingThrows","allSavingThrows","penalty"],
-      ["-2","skills","skills","penalty"],["-2","abilityChecks","allChecks","penalty"]],{sourceActor:actor.uuid}));
+    await replaceBuff(actor,setSickenedPresentation(buff("恶心","legalistic-sickened",86400,[],{sourceActor:actor.uuid}),"守律：违约"));
+    await syncNativeConditions(actor);
     return;
   }
   if(action==="fulfilled-promise") {
     const effects=actor.items.filter(i=>["legalistic-sickened","legalistic-nauseated"].includes(key(i)));
     if(effects.length)await actor.deleteEmbeddedDocuments("Item",effects.map(i=>i.id));
+    await syncNativeConditions(actor);
     return;
   }
 }

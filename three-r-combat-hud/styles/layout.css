@@ -1,4 +1,7 @@
 /* Shared geometry: themes decorate surfaces without changing content layout. */
+#three-r-combat-hud.trh-root .trh-skills-list { grid-template-columns: repeat(auto-fill, minmax(min(100%, calc(180px * var(--trh-scale))), 1fr)); }
+#three-r-combat-hud.trh-root .trh-skills-list button { flex-wrap: nowrap; }
+#three-r-combat-hud.trh-root .trh-skills-list .trh-skill-icon { display: block; flex: 0 0 auto; width: calc(32px * var(--trh-scale)); height: calc(32px * var(--trh-scale)); min-width: 0; max-width: calc(32px * var(--trh-scale)); object-fit: contain; border: 1px solid var(--trh-line-soft); border-radius: 4px; }
 #three-r-combat-hud.trh-root { --trh-panel-alpha: .94; --trh-radius: 8px; --trh-health-color: #ef4e58; --trh-edge: var(--trh-gold); --trh-paper: #f5f1e8; }
 #three-r-combat-hud.trh-root *, #three-r-combat-hud.trh-root *::before, #three-r-combat-hud.trh-root *::after { box-sizing: border-box; }
 #three-r-combat-hud.trh-root .trh-identity-stats { display: flex; flex-direction: column; gap: 6px; min-width: 0; width: 100%; }

@@ -5,6 +5,7 @@ import { ItemEnhancementHelper } from "../../../systems/D35E/module/item/helpers
 import { normalizeBonusType } from "./bonus-types.js";
 import { createTransientView } from "./transient-view.js";
 import { effectIsActive } from "./effect-state.js";
+import { conditionItems, conditionSpeedFactor, NUMERIC_CONDITIONS } from "./condition-state.js";
 const groups=new Map();
 const nativeTypes=new Map();
 export function displayBonusType(type) {
@@ -101,8 +102,8 @@ function projectedItem(item,actor) {
   if(mark?.key==="tanglefoot-entangled")system.changes=system.changes.filter(row=>row[2]!=="speedMult");
   return createTransientView(item,{system});
 }
-function projectedCollection(collection,actor) {
-  const entries=collection.contents.map(item=>projectedItem(item,actor));
+function projectedCollection(collection,actor,additional=[]) {
+  const entries=[...collection.contents,...additional].map(item=>projectedItem(item,actor));
   return createTransientView(collection,{
     contents:entries,
     [Symbol.iterator]:entries[Symbol.iterator].bind(entries),
@@ -124,11 +125,9 @@ export function installStackingRules() {
   const update=ActorUpdater.prototype.updateChanges;
   const reduceSpeed=ActorUpdater.prototype.getReducedMovementSpeed;
   ActorUpdater.prototype.getReducedMovementSpeed=function(source,value,...args) {
-    const tangled=source.system.attributes.conditions?.entangled||source.items.some(item=>item.flags?.[MODULE_ID]?.key==="tanglefoot-entangled"&&effectIsActive(item));
-    const exhausted=source.system.attributes.conditions?.exhausted;
-    // Speed multipliers are factors, not additive typed bonuses. Native slow
-    // has already reduced value here; one or more tanglefoot effects halve it once.
-    return reduceSpeed.call(this,source,Math.floor(value*(tangled?0.5:1)*(exhausted?0.5:1)),...args);
+    const c={...(this._threeRConditions??source.system.attributes.conditions)};
+    if(source.items.some(item=>item.flags?.[MODULE_ID]?.key==="tanglefoot-entangled"&&effectIsActive(item)))c.entangled=true;
+    return reduceSpeed.call(this,source,Math.floor(value*conditionSpeedFactor(c)),...args);
   };
   ActorUpdater.prototype.updateChanges=async function(...args) {
     const actor=this.actor;
@@ -138,18 +137,45 @@ export function installStackingRules() {
       if(["weapon","equipment"].includes(item.type))return item.system.equipped&&!item.system.melded&&!item.broken;
       return true;
     });
-    const conditions=effective.attributes.conditions??{};
+    const plan=conditionItems(actor,effective),conditions=plan.c;
     const uncanny=active.some(item=>item.system.changeFlags?.uncannyDodge);
-    const loseDexToAC=active.some(item=>item.system.changeFlags?.loseDexToAC)||["blind","pinned","stunned","helpless","paralyzed"].some(state=>conditions[state])||(conditions.flatFooted&&!uncanny);
-    const items=projectedCollection(actor.items,{system:effective,loseDexToAC});
-    this.actor=createTransientView(actor,{items});
+    const loseDexToAC=active.some(item=>item.system.changeFlags?.loseDexToAC)||["blind","pinned","stunned","helpless","paralyzed","cowering","petrified"].some(state=>conditions[state])||(conditions.flatFooted&&!uncanny);
+    const items=projectedCollection(actor.items,{system:effective,loseDexToAC},plan.entries);
+    // Calculate one 3.5 package per condition, with penalties grouped by cause.
+    // Native state booleans remain real; only this calculation's input is masked
+    // to avoid the second, incomplete (and partly PF) default package.
+    const calc=foundry.utils.deepClone(effective);
+    // D35E's schema/HUD uses polymorphed, but its calculation checks polymorph.
+    // Supply the alias only inside this calculation, never persist a new field.
+    calc.attributes.conditions.polymorph=Boolean(conditions.polymorphed);
+    for(const id of NUMERIC_CONDITIONS)calc.attributes.conditions[id]=false;
+    const snapshot=actor.toObject(false);snapshot.system=calc;
+    this.actor=createTransientView(actor,{items,system:calc,toObject:()=>foundry.utils.deepClone(snapshot)});
+    const previousConditions=this._threeRConditions;this._threeRConditions=conditions;
+    const nextArgs=[...args];
+    const originalUpdate=args[0]?.updated??null;
+    if(originalUpdate) {
+      const updated=foundry.utils.expandObject(foundry.utils.deepClone(originalUpdate));
+      updated.system??={};updated.system.attributes??={};
+      updated.system.attributes.conditions={...calc.attributes.conditions};
+      nextArgs[0]={...args[0],updated};
+    }
     try {
-      const result=await update.apply(this,args);
+      const result=await update.apply(this,nextArgs);
       // The updater returns its calculation source as diff. Never let callers
       // receive projected items as a candidate for a persisted Actor update.
       if(result?.diff?.items===items)result.diff.items=actor.items;
       if(result?.data?.items===items)result.data.items=actor.items;
+      if(result?.diff?.system?.attributes)result.diff.system.attributes.conditions=foundry.utils.deepClone(effective.attributes.conditions);
+      if(result?.data)for(const key of Object.keys(result.data))if(key.startsWith("system.attributes.conditions."))
+        result.data[key]=effective.attributes.conditions[key.slice("system.attributes.conditions.".length)]??false;
+      // The core's zero-ability flags clear drain as a side effect. A condition
+      // must not erase real ability drain while presenting an effective score 0.
+      for(const [id,ability] of Object.entries(effective.abilities??{})) {
+        if(result?.diff?.system?.abilities?.[id])result.diff.system.abilities[id].drain=ability.drain;
+        if(result?.data&&Object.hasOwn(result.data,`system.abilities.${id}.drain`))result.data[`system.abilities.${id}.drain`]=ability.drain;
+      }
       return result;
-    }finally{this.actor=actor;}
+    }finally{this.actor=actor;this._threeRConditions=previousConditions;}
   };
 }

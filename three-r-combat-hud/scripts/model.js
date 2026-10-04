@@ -1,4 +1,5 @@
 import { ACTIONS } from "./state.js";
+import { skillIcon } from "./skill-icons.js";
 
 export const TABS = [
   ["all", "全部"], ["favorites", "收藏"], ["weapons", "攻击"], ["spells", "法术"],
@@ -176,8 +177,9 @@ export function checkCards(actor) {
       name: {fort:"强韧",ref:"反射",will:"意志"}[id] ?? id, value: fmt(data.total) })),
     skills: Object.entries(actor.system.skills ?? {}).flatMap(([id, data]) => {
       const name = data.name || skillNames[id] || local(CONFIG.D35E.skills?.[id] ?? id, id);
-      const entries = [{ id, name, value: fmt(data.mod ?? data.total) }];
-      for (const [subId, sub] of Object.entries(data.subSkills ?? {})) entries.push({ id: `${id}.subSkills.${subId}`, name: sub.name || name, value: fmt(sub.mod ?? sub.total) });
+      const img = data.img || skillIcon(id);
+      const entries = [{ id, name, img, value: fmt(data.mod ?? data.total) }];
+      for (const [subId, sub] of Object.entries(data.subSkills ?? {})) entries.push({ id: `${id}.subSkills.${subId}`, name: sub.name || name, img: sub.img || img, value: fmt(sub.mod ?? sub.total) });
       return entries;
     }).sort((a, b) => a.name.localeCompare(b.name, "zh-CN"))
   };

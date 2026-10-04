@@ -79,7 +79,7 @@
             <h3>属性检定</h3><div class="trh-checks-row">{{#each checks.abilities}}<button type="button" data-trh-action="check" data-kind="ability" data-key="{{id}}"><span>{{name}}</span><strong>{{value}}</strong><small>修正 {{mod}}</small></button>{{/each}}</div>
             <h3>豁免</h3><div class="trh-checks-row">{{#each checks.saves}}<button type="button" data-trh-action="check" data-kind="save" data-key="{{id}}"><span>{{name}}</span><strong>{{value}}</strong></button>{{/each}}</div>
             {{/if}}
-            {{#if isSkills}}<div class="trh-checks-row trh-skills-list">{{#each checks.skills}}<button type="button" data-trh-action="check" data-kind="skill" data-key="{{id}}"><span>{{name}}</span><strong>{{value}}</strong></button>{{else}}<span class="trh-muted">没有符合查找条件的技能</span>{{/each}}</div>{{/if}}
+            {{#if isSkills}}<div class="trh-checks-row trh-skills-list">{{#each checks.skills}}<button type="button" data-trh-action="check" data-kind="skill" data-key="{{id}}" title="{{name}} {{value}}"><img class="trh-skill-icon" src="{{img}}" alt="" aria-hidden="true" width="32" height="32"><span>{{name}}</span><strong>{{value}}</strong></button>{{else}}<span class="trh-muted">没有符合查找条件的技能</span>{{/each}}</div>{{/if}}
             {{else}}
             {{#each sections}}
             <section class="trh-card-section">{{#if showTitle}}<h3>{{name}}</h3>{{/if}}<div class="trh-card-grid">

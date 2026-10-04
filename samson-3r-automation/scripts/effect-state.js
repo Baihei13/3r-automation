@@ -1,4 +1,5 @@
 import { MODULE_ID } from "./catalog.js";
+import { conditionPresentationRepairs } from "./condition-effects.js";
 
 // The timeline may change the deadline. It takes precedence over the original cast.
 export function effectDeadline(item) {
@@ -19,8 +20,11 @@ export async function repairTimedBuffs(actor) {
   for(const item of actor.items) {
     const mark=item.getFlag(MODULE_ID,"key"),native=item.system?.timeline;
     const end=effectDeadline(item),cl=Number(item.getFlag(MODULE_ID,"cl"));
-    if(item.type!=="buff"||!mark||mark==="mending-casting"||!Number.isFinite(end))continue;
-    const update={_id:item.id};
+    const update={_id:item.id,...conditionPresentationRepairs(item)};
+    if(item.type!=="buff"||!mark||mark==="mending-casting"||!Number.isFinite(end)) {
+      if(Object.keys(update).length>1)updates.push(update);
+      continue;
+    }
     const legacy=!item.getFlag(MODULE_ID,"nativeTimerVersion")&&native?.enabled===false
       &&native.deleteOnExpiry===false&&!String(native.formula??"").trim()&&Number(native.total)>0;
     if(legacy) {

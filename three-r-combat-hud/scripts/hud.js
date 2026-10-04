@@ -309,6 +309,7 @@ export class ThreeRCombatHud extends App {
     if (action === "rest") return actor.promptRest();
     if (action === "reset-movement") { if(!await resetMovement(token)){ui.notifications.info("战斗外不记录移动距离，无需更正。");return;} await postHudAction(actor,token,{label:"更正移动记录",detail:"已清空本轮移动记录。",context}); this.refresh(); return; }
     if (action === "step") {
+      game.modules.get("samson-3r-automation")?.api?.checkConditionAction?.(actor,null,{kind:"move",common:"step"});
       if(movementState(token).stepping){ui.notifications.info("本回合已经启用五尺快步。");return;}
       await startStep(token);
       this.store.record(context, "free", "五尺快步", true);
@@ -322,6 +323,7 @@ export class ThreeRCombatHud extends App {
       if (!entry) return;
       if (entry.id === "movement-correction") return this.handle("reset-movement",data,event);
       if (entry.id === "step") return this.handle("step", data, event);
+      game.modules.get("samson-3r-automation")?.api?.checkConditionAction?.(actor,null,{kind:entry.kind,common:entry.id});
       if (["charge", "defensive", "aao"].includes(entry.id)) {
         const attacks = actor.items.filter(item => item.type === "attack" && item.system.actionType === "mwak");
         if (!attacks.length) { ui.notifications.warn("请先从武器页生成一个近战攻击方式。"); return; }
@@ -334,6 +336,13 @@ export class ThreeRCombatHud extends App {
       }
       const module = game.modules.get("samson-3r-automation");
       const api = module?.active ? module.api : null;
+      const conditionOperations={"first-aid":"aid","wake-fascinated":"wake","escape-grapple":"escape"};
+      const operation=entry.id==="coup"?"coup":conditionOperations[entry.id];
+      if(operation&&api?.conditionOperation){
+        const completed=await api.conditionOperation(actor,operation);
+        if(completed){this.store.record(context,entry.kind,entry.name,false);this.refresh();}
+        return completed;
+      }
       const defenseApplied = entry.id === "defense" && typeof api?.commonAction === "function";
       if (defenseApplied) {
         await api.commonAction(actor, entry.id);
@@ -349,6 +358,7 @@ export class ThreeRCombatHud extends App {
       } else this.store.record(context, entry.kind, entry.name, false);
       await postHudAction(actor,token,{label:entry.name,kind:entry.kind,detail:entry.id==="defense"&&!defenseApplied?`${entry.text} 本次仅声明，AC增益尚未自动施加。`:entry.text,
         declared:!defenseApplied && !["prone","stand"].includes(entry.id),context});
+      if(!["move","double-move","run","withdraw"].includes(entry.id))await api?.commitConditionAction?.(actor,entry.kind);
       this.status = entry.kind ? `${entry.name}已记录；动作次数仅提醒。` : `${entry.name}不扣动作提醒。`;
       this.refresh(); return;
     }

@@ -2,6 +2,7 @@ import { MODULE_ID, SOURCES, ITEMS, DOMAIN_SPELLS } from "./catalog.js";
 import { installAdditionalCharacters } from "./characters-install.js";
 import { itemRepairs, repairOwnedItems } from "./item-data.js";
 import { registerSeeds, ruleSection } from "./content.js";
+import { COMMON_GEAR } from "./common-gear.js";
 import { CARD_SPELLS, CARD_GEAR, WING_FAMILIAR } from "./current-card-data.js";
 
 
@@ -218,7 +219,7 @@ export async function installSamson() {
   const packs = {};
   for (const source of Object.keys(SOURCES)) {
     packs[source] = await sourcePack(source, folder);
-    await ensureItems(packs[source], ITEMS[source] ?? []);
+    await ensureItems(packs[source], [...(ITEMS[source]??[]),...COMMON_GEAR.filter(item=>item.flags[MODULE_ID].source===source)]);
   }
   await ensureItems(packs.phb, await coreEquipment());
   const { entries, missing } = await coreSpells();

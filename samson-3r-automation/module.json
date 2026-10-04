@@ -2,7 +2,7 @@
   "id": "samson-3r-automation",
   "title": "3r自动化",
   "description": "按规则书与类别整理角色内容，并为 D35E 角色提供规则自动化。",
-  "version": "0.4.13",
+  "version": "0.4.23",
   "url": "https://github.com/Baihei13/3r-automation",
   "manifest": "https://github.com/Baihei13/3r-automation/releases/latest/download/samson-3r-automation.module.json",
   "authors": [
@@ -30,6 +30,5 @@
         }
       }
     ]
-  },
-  "download": "https://github.com/Baihei13/3r-automation/releases/download/v0.4.13/samson-3r-automation.zip"
+  }
 }
