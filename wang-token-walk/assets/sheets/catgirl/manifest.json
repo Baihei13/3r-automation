@@ -1,0 +1,32 @@
+{
+  "id": "catgirl",
+  "label": "猫耳少女（演示）",
+  "fps": 10,
+  "frameSize": [96, 128],
+  "directions": {
+    "up": [
+      "modules/wang-token-walk/assets/sheets/catgirl/up/0.png",
+      "modules/wang-token-walk/assets/sheets/catgirl/up/1.png",
+      "modules/wang-token-walk/assets/sheets/catgirl/up/2.png",
+      "modules/wang-token-walk/assets/sheets/catgirl/up/3.png"
+    ],
+    "right": [
+      "modules/wang-token-walk/assets/sheets/catgirl/right/0.png",
+      "modules/wang-token-walk/assets/sheets/catgirl/right/1.png",
+      "modules/wang-token-walk/assets/sheets/catgirl/right/2.png",
+      "modules/wang-token-walk/assets/sheets/catgirl/right/3.png"
+    ],
+    "down": [
+      "modules/wang-token-walk/assets/sheets/catgirl/down/0.png",
+      "modules/wang-token-walk/assets/sheets/catgirl/down/1.png",
+      "modules/wang-token-walk/assets/sheets/catgirl/down/2.png",
+      "modules/wang-token-walk/assets/sheets/catgirl/down/3.png"
+    ],
+    "left": [
+      "modules/wang-token-walk/assets/sheets/catgirl/left/0.png",
+      "modules/wang-token-walk/assets/sheets/catgirl/left/1.png",
+      "modules/wang-token-walk/assets/sheets/catgirl/left/2.png",
+      "modules/wang-token-walk/assets/sheets/catgirl/left/3.png"
+    ]
+  }
+}

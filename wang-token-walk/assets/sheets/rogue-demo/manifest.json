@@ -1,0 +1,37 @@
+{
+  "id": "rogue-demo",
+  "label": "游荡者示例",
+  "fps": 10,
+  "eightWay": false,
+  "directional": true,
+  "directions": {
+    "up": [
+      "modules/wang-token-walk/assets/sheets/rogue-demo/up/0.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/up/1.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/up/2.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/up/3.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/up/4.png"
+    ],
+    "right": [
+      "modules/wang-token-walk/assets/sheets/rogue-demo/right/0.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/right/1.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/right/2.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/right/3.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/right/4.png"
+    ],
+    "down": [
+      "modules/wang-token-walk/assets/sheets/rogue-demo/down/0.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/down/1.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/down/2.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/down/3.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/down/4.png"
+    ],
+    "left": [
+      "modules/wang-token-walk/assets/sheets/rogue-demo/left/0.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/left/1.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/left/2.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/left/3.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/left/4.png"
+    ]
+  }
+}

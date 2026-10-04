@@ -1,0 +1,13 @@
+{
+  "fps": 10,
+  "eightWay": false,
+  "directional": false,
+  "directions": {
+    "default": [
+      "modules/wang-token-walk/assets/sheets/rogue-demo/attack/0.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/attack/1.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/attack/2.png",
+      "modules/wang-token-walk/assets/sheets/rogue-demo/attack/3.png"
+    ]
+  }
+}

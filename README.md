@@ -1,5 +1,13 @@
 # 3r自动化
 
+## 2026-10-04 像素动画模块1.5.2独立安装发布
+
+新增独立[Wang Token Walk](wang-token-walk/README.md)，内部ID为wang-token-walk，支持行走/攻击/通用施法/受击/倒地动画、原角色预设持久化及预设＋素材ZIP/COS。个人角色素材另外导入，本包只含通用模块与演示帧。
+
+FVTT安装清单：https://github.com/Baihei13/3r-automation/releases/download/walk-v1.5.2/wang-token-walk.module.json
+
+版本标签为walk-v1.5.2，不设为仓库Latest，其他三个模块的发布清单继续保持。清单minimum13/verified14沿用原值；未运行测试、语法检查、Foundry或浏览器，本版实际安装与播放待用户确认。
+
 ## 2026-10-04 源码更新：HUD0.5.7 / 自动化0.4.24
 
 可用操作、暂不可用、规则说明改成列表顶部一排分类按钮，显示各组数量，点击只看该组；保留当前搜索/动作/法术筛选，窄面板横向滚动。主动能力读取原生动作类别及可选自动化能力接口，修正尖笑等被归为纯说明且无法触发使用的问题；原生item.use接管后等待threeRCompletion，并按完成记录增加HUD动作提醒。无自动化处理的说明型动作标明手动结算。

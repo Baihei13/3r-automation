@@ -1,0 +1,19 @@
+{
+  "WANGTOKENWALK.Title": "Token 走路动画",
+  "WANGTOKENWALK.Enable": "启用走路",
+  "WANGTOKENWALK.Disable": "关闭走路",
+  "WANGTOKENWALK.Test": "原地试播",
+  "WANGTOKENWALK.Sheet": "走路表",
+  "WANGTOKENWALK.Hint": "选中一个 Token，选择走路表后启用。没有合适的表？点「新建走路表」，用文件浏览器直接选各向帧图。",
+  "WANGTOKENWALK.SelectOne": "请只选中一个 Token。",
+  "WANGTOKENWALK.SelectFirst": "请先选中一个 Token。",
+  "WANGTOKENWALK.Enabled": "已启用走路：{name}（{sheet}）",
+  "WANGTOKENWALK.Disabled": "已关闭走路：{name}",
+  "WANGTOKENWALK.NoSheet": "没有可用的走路表。请先「新建走路表」。",
+  "WANGTOKENWALK.HudTooltip": "Token 走路动画",
+  "WANGTOKENWALK.Editor.Title": "制作 / 编辑走路表",
+  "WANGTOKENWALK.Settings.ExtraManifests": "（高级）额外 manifest 路径清单",
+  "WANGTOKENWALK.Settings.ExtraManifestsHint": "一般不必填。日常请用「新建走路表」窗口点选图片。此处仅给要从磁盘挂现成 manifest.json 的进阶用法：每行一个路径。",
+  "WANGTOKENWALK.Settings.DefaultFps": "默认帧率",
+  "WANGTOKENWALK.Settings.DefaultFpsHint": "走路表未写 fps 时使用。"
+}

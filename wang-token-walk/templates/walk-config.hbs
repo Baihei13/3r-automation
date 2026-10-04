@@ -1,0 +1,29 @@
+<form class="flexcol wang-token-walk-form">
+  <p class="notes">{{hint}}</p>
+  <div class="form-group">
+    <label>Token</label>
+    <div class="form-fields"><code>{{tokenName}}</code></div>
+  </div>
+  <div class="form-group">
+    <label>{{labels.sheet}}</label>
+    <div class="form-fields">
+      {{#if hasSheets}}
+      <select name="sheetId">
+        {{#each sheets}}
+        <option value="{{id}}" {{#if selected}}selected{{/if}}>{{label}}</option>
+        {{/each}}
+      </select>
+      {{else}}
+      <span class="notes">（无可用走路表）</span>
+      {{/if}}
+    </div>
+  </div>
+  <div class="form-group button-row">
+    <button type="button" data-action="enable"><i class="fas fa-person-walking"></i> {{labels.enable}}</button>
+    <button type="button" data-action="test"><i class="fas fa-play"></i> {{labels.test}}</button>
+    <button type="button" data-action="disable"><i class="fas fa-ban"></i> {{labels.disable}}</button>
+  </div>
+  <div class="form-group">
+    <button type="button" data-action="refresh"><i class="fas fa-rotate"></i> 刷新走路表列表</button>
+  </div>
+</form>

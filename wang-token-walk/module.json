@@ -1,0 +1,58 @@
+{
+  "id": "wang-token-walk",
+  "title": "Wang Token Walk — 角色与动作帧动画",
+  "description": "<p>通用 Token 帧动画：移动、通用攻击、通用施法与生命变化独立分配，支持动作专属帧、预设＋素材包导入导出和COS/CDN图片目录。</p>",
+  "version": "1.5.2",
+  "authors": [
+    {
+      "name": "Wang"
+    }
+  ],
+  "compatibility": {
+    "minimum": "13",
+    "verified": "14"
+  },
+  "esmodules": [
+    "scripts/main.mjs"
+  ],
+  "styles": [
+    "styles/token-walk.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "languages/en.json"
+    },
+    {
+      "lang": "zh-CN",
+      "name": "简体中文",
+      "path": "languages/zh-CN.json"
+    },
+    {
+      "lang": "cn",
+      "name": "简体中文 (cn)",
+      "path": "languages/zh-CN.json"
+    }
+  ],
+  "flags": {
+    "hotReload": {
+      "extensions": [
+        "css",
+        "json",
+        "mjs",
+        "html"
+      ],
+      "paths": [
+        "scripts",
+        "styles",
+        "languages",
+        "templates",
+        "assets"
+      ]
+    }
+  },
+  "url": "https://github.com/Baihei13/3r-automation/tree/main/wang-token-walk",
+  "manifest": "https://raw.githubusercontent.com/Baihei13/3r-automation/main/wang-token-walk/module.json",
+  "download": "https://github.com/Baihei13/3r-automation/releases/download/walk-v1.5.2/wang-token-walk.zip"
+}

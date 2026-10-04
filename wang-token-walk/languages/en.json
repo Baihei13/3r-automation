@@ -1,0 +1,19 @@
+{
+  "WANGTOKENWALK.Title": "Token Walk Anim",
+  "WANGTOKENWALK.Enable": "Enable Walk",
+  "WANGTOKENWALK.Disable": "Disable Walk",
+  "WANGTOKENWALK.Test": "Preview In Place",
+  "WANGTOKENWALK.Sheet": "Walk Sheet",
+  "WANGTOKENWALK.Hint": "Select a token, pick a sheet, enable. Or create a sheet and pick frame images with the file browser.",
+  "WANGTOKENWALK.SelectOne": "Select exactly one token.",
+  "WANGTOKENWALK.SelectFirst": "Select a token first.",
+  "WANGTOKENWALK.Enabled": "Walk enabled: {name} ({sheet})",
+  "WANGTOKENWALK.Disabled": "Walk disabled: {name}",
+  "WANGTOKENWALK.NoSheet": "No sheets found. Create one first.",
+  "WANGTOKENWALK.HudTooltip": "Token Walk Anim",
+  "WANGTOKENWALK.Editor.Title": "Create / Edit Walk Sheet",
+  "WANGTOKENWALK.Settings.ExtraManifests": "(Advanced) Extra manifest paths",
+  "WANGTOKENWALK.Settings.ExtraManifestsHint": "Usually unused. Prefer the in-app sheet editor. One manifest.json path per line.",
+  "WANGTOKENWALK.Settings.DefaultFps": "Default FPS",
+  "WANGTOKENWALK.Settings.DefaultFpsHint": "Used when a sheet omits fps."
+}
