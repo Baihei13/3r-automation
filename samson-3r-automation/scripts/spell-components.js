@@ -11,6 +11,14 @@ const componentNames={
   "comprehend-languages":[["煤灰","煤烟","soot"],["盐","鹽","salt"]],
   "ears-of-the-city":[["砖头","磚頭","砖块","brick"]]
 };
+const clericComponents={
+  "moon-lust":[["银锭","銀錠","silver ingot","silver bar"]],
+  "omen-of-peril":[["占卜器材","占卜用具","预兆器材","标记木棍","标记骨头","divination tokens"]],
+  "bless-water":[["银粉","銀粉","silver dust","powdered silver"]],
+  "curse-water":[["银粉","銀粉","silver dust","powdered silver"]],
+  "anarchic-water":[["铁粉","鐵粉","iron powder","powdered iron"],["银粉","銀粉","silver dust","powdered silver"]],
+  "axiomatic-water":[["铁粉","鐵粉","iron powder","powdered iron"],["银粉","銀粉","silver dust","powdered silver"]]
+};
 function carried(item,actor,seen=new Set()) {
   const quantity=Number(item.system.quantity??1);
   if(!physical.has(item.type)||item.system.carried===false||item.system.melded||!Number.isFinite(quantity)||quantity<=0||seen.has(item.id))return false;
@@ -39,20 +47,49 @@ export function prepareSpellComponents(item,actor) {
   const symbol=inventory.find(entry=>matches(entry,["圣徽","聖徽","木质圣徽","银质圣徽","holy symbol","wooden holy symbol","silver holy symbol","神圣法器"]));
   const eschew=actor.items.some(entry=>entry.type==="feat"&&["免材施法","施法免材","Eschew Materials","eschew-materials"].some(name=>text(entry.name)===text(name)||text(entry.getFlag(MODULE_ID,"key"))===text(name)));
   const requirements=[];
+  const divine=Boolean(item.getFlag(MODULE_ID,"clericSpell")&&actor.system.attributes?.spells?.spellbooks?.[item.system.spellbook??"primary"]?.spellcastingType==="divine");
+  if(item.getFlag(MODULE_ID,"clericSpell")==="necrotic-awareness") {
+    const cyst=actor.items.find(entry=>/腐囊母体|母体腐囊|mother cyst/i.test(`${entry.name} ${entry.system.uniqueId??""}`));
+    if(!cyst)throw new Error("侦测腐囊需要腐囊母体，普通施法材料包不能代替。");
+    requirements.push({kind:"focus",label:cyst.name});
+  }
   for(const kind of ["material","focus"]) {
     if(!components[kind])continue;
+    if(kind==="focus"&&item.getFlag(MODULE_ID,"clericSpell")==="necrotic-awareness")continue;
+    if(divine&&Number(components.divineFocus)===(kind==="material"?2:3)) {
+      if(!symbol)throw new Error(`${item.name}的神术版本需要圣徽或神圣法器，普通施法材料包不能替代。`);
+      requirements.push({kind:"divineFocus",label:symbol.name});continue;
+    }
     const description=components[`${kind}Description`]||item.system.materials?.[kind==="material"?"value":"focus"]||"";
-    const cost=id==="pesh-vigor"&&kind==="material"?15:Number(String(description).match(/(\d+(?:\.\d+)?)\s*(?:金币|金幣|gp|gold pieces)/i)?.[1]??0);
+    const cost=id==="pesh-vigor"&&kind==="material"?15:Number((String(description).match(/([\d,]+(?:\.\d+)?)\s*(?:金币|金幣|gp|gold pieces)/i)?.[1]??"0").replace(/,/g,""));
     if(!cost&&symbol&&Number(components.divineFocus)===(kind==="material"?2:3)){requirements.push({kind:"divineFocus",label:symbol.name});continue;}
     const supplied=Boolean(!cost&&pouch&&fitsPouch(item,kind,description));
-    if(supplied||!cost&&kind==="material"&&eschew){requirements.push({kind,label:supplied?pouch.name:"免材施法"});continue;}
-    const named=String(description).replace(/<[^>]*>/g,"").replace(/(?:价值|價值)(?:至少)?\s*\d+(?:\.\d+)?\s*(?:金币|金幣)(?:的)?/g,"")
+    if(supplied||cost<=1&&kind==="material"&&eschew){requirements.push({kind,label:supplied?pouch.name:"免材施法"});continue;}
+    const named=String(description).replace(/<[^>]*>/g,"").replace(/(?:价值|價值)(?:至少)?\s*\d+(?:\.\d+)?\s*(?:金币|金幣|gp)(?:的)?/gi,"")
       .replace(/\b(?:worth|costing|valued at)(?: at least)?\s*\d+(?:\.\d+)?\s*(?:gp|gold pieces)\b/gi,"")
-      .replace(/^(?:一小撮|一撮|一滴|一小块|一块|一剂|a pinch of |a piece of |a dose of |a |an )/i,"").trim();
-    const groups=componentNames[id]??[[named]];
+      .replace(/^(?:一小撮|一撮|一滴|一小块|一块|一剂|一个|a pinch of |a piece of |a dose of |a |an )/i,"").replace(/[。.]$/," ").trim();
+    const clericId=item.getFlag(MODULE_ID,"clericSpell");
+    if(item.getFlag(MODULE_ID,"pfLibrarySpell")&&clericId==="guardian-armor"&&kind==="focus") {
+      const armor=inventory.find(entry=>entry.type==="equipment"&&entry.system.equipped&&entry.system.equipmentType==="armor");
+      if(!armor)throw new Error("防护铠甲需要当前穿戴的铠甲，材料包不能替代。");
+      requirements.push({kind,label:armor.name,item:armor.id});continue;
+    }
+    const groups=item.getFlag(MODULE_ID,"componentAliases")?.[kind]??clericComponents[clericId]??componentNames[id]??[[named]];
     const found=groups.map(names=>inventory.find(entry=>matches(entry,names.filter(Boolean))&&(id!=="pesh-vigor"||kind!=="material"||Number(entry.system.quantity)>=1)));
     const label=description||`${cost?`价值${cost}金币的`:""}施法材料或器材`;
     if(found.some(entry=>!entry))throw new Error(`${item.name}缺少${label}${cost?"，普通施法材料包不能替代":"；请携带对应物品或施法材料包"}。`);
+    if(clericId&&cost) {
+      // The CHM gives one 25 GP price for the iron/silver pair, not 25 GP per powder.
+      const combined=["anarchic-water","axiomatic-water"].includes(clericId)&&kind==="material";
+      const values=found.map(entry=>Number(entry.system.price)*(kind==="material"?Number(entry.system.quantity):1));
+      if(values.some(value=>!Number.isFinite(value)||value<0)||
+        (combined?values.reduce((sum,value)=>sum+value,0)<cost:values.some(value=>value<cost)))
+        throw new Error(`${combined?"铁粉和银粉合计":found.map(entry=>entry.name).join("、")}的记录价值不足${cost}金币，请核对这项施法材料或器材。`);
+      if(["bless-water","curse-water","anarchic-water","axiomatic-water"].includes(clericId))for(const entry of found) {
+        const pounds=Number(entry.system.weight)*Number(entry.system.quantity);
+        if(!Number.isFinite(pounds)||pounds<5)throw new Error(`${entry.name}需要至少5磅，请核对背包中的数量与单份重量。`);
+      }
+    }
     requirements.push(...found.map(entry=>({kind,label:entry.name,item:entry.id,consume:id==="pesh-vigor"&&kind==="material"})));
   }
   // Pure DF is not provided by an ordinary component pouch; M/DF and F/DF use the material branch above.

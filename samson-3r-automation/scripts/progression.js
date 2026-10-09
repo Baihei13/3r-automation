@@ -2,7 +2,7 @@ import { MODULE_ID } from "./catalog.js";
 import { allSeeds } from "./content.js";
 import { key, has, curseLevel, choose, timedBuff, replaceTimedBuff, syncSpellResistance } from "./rules-bridge.js";
 const pending=new Set();
-const oracleLevel = actor => actor.items.filter(i=>["oracle","dual-cursed-oracle"].includes(key(i))).reduce((n,i)=>n+Number(i.system.levels),0);
+const oracleLevel = actor => actor.items.filter(i=>i.type==="class"&&["oracle","dual-cursed-oracle"].includes(key(i))).reduce((n,i)=>n+(Number(i.system.levels)||0),0);
 
 export async function syncProgression(actor) {
   if(!actor?.isOwner || pending.has(actor.uuid))return;

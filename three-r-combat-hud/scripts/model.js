@@ -1,5 +1,6 @@
 import { ACTIONS } from "./state.js";
 import { skillIcon } from "./skill-icons.js";
+import { automationApi, automationFlag } from "./integration.js";
 
 export const TABS = [
   ["all", "全部"], ["favorites", "收藏"], ["weapons", "攻击"], ["spells", "法术"],
@@ -13,14 +14,27 @@ const fmt = value => value === Infinity ? "∞" : Number.isFinite(Number(value))
 const actionNames = { ...Object.fromEntries(ACTIONS.map(action => [action.id, `${action.name}动作`])),
   full: "全回合动作", step: "5尺快步", aao: "反应动作", attack: "攻击动作", passive: "被动", round: "1轮", special: "特殊" };
 export const actionLabel = item => actionNames[item.system?.activation?.type] ?? "查看详情";
+// Persisted identity is safe to read even without the optional rule module.
+// Capability and actual execution still belong to that module.
+const martialEntry=item=>item.flags?.["samson-3r-automation"]?.martial;
+const martialBook=entry=>`martial:${entry.profile??"unassigned"}`;
+function martialResource(item,actor) {
+  const m=martialEntry(item),saved=actor?.flags?.["samson-3r-automation"]?.martial;
+  if(m.retired)return "已替换";
+  if(m.kind==="stance")return saved?.activeStance===item.id?"持续":"未进入";
+  const p=saved?.profiles?.[m.profile];
+  if(!p?.readied?.includes(item.id))return "未准备";
+  return p.expended?.includes(item.id)?"0 / 1":"1 / 1";
+}
 
-export function actionKinds(item) {
+export function actionKinds(item, route = itemActionRoute(item)) {
+  if(route?.mode === "reference" || route?.mode === "configure") return [];
   if(item.type==="full-attack")return ["full"];
   if(item.type==="weapon"||item.type==="attack") {
     const melee=item.type==="attack"?item.system.actionType==="mwak":["light","1h","2h"].includes(item.system.weaponSubtype);
     return melee?["standard","full","immediate"]:["standard","full"];
   }
-  const raw=itemActionRoute(item)?.kind ?? item.system?.activation?.type;
+  const raw=route?.kind ?? martialEntry(item)?.action ?? item.system?.activation?.type;
   const kind=raw==="attack"?"standard":raw==="round"?"full":raw==="aao"?"immediate":raw;
   return ACTION_ORDER.includes(kind)?[kind]:[];
 }
@@ -35,8 +49,9 @@ export function actorChoices() {
 }
 
 export function resourceLabel(item) {
-  if (item.getFlag("samson-3r-automation", "key") === "legalistic" && item.actor) {
-    const record = item.actor.getFlag("samson-3r-automation", "promise");
+  if(martialEntry(item))return martialResource(item,item.actor);
+  if (automationFlag(item, "key") === "legalistic" && item.actor) {
+    const record = automationFlag(item.actor, "promise");
     return `每日${record?.used && record.day === Math.floor(game.time.worldTime / 86400) ? 0 : 1}次`;
   }
   if (item.type === "spell" && item.actor?.system.attributes?.spells?.spellbooks?.[item.system.spellbook]?.usePowerPoints) {
@@ -69,33 +84,36 @@ function spellbookName(actor, key) {
 // Match the actual useNative routes. An activation label alone does not make
 // a description-only feat executable, and effect toggles need no action roll.
 export function itemActionRoute(item) {
-  const module = game.modules.get("samson-3r-automation");
-  return module?.active ? module.api?.hudItemAction?.(item) ?? null : null;
+  return automationApi()?.hudItemAction?.(item) ?? null;
 }
 
-export function itemAvailability(item, actor = item.actor) {
+export function itemAvailability(item, actor = item.actor, route = itemActionRoute(item)) {
+  const martial=martialEntry(item);
+  if(martial&&!route)return {availability:"reference",reference:true,unavailable:false,reason:"启用3r自动化后才能发动武术 · 点击查看全文"};
+  if(route?.mode === "reference" || route?.mode === "configure") return {availability:"reference",reference:true,unavailable:false,reason:route.label || "被动能力 · 点击查看规则"};
   const executable = ["weapon", "buff", "aura", "spell", "consumable", "full-attack"].includes(item.type)
-    || item.hasAction || itemActionRoute(item) || actionKinds(item).length > 0;
+    || item.hasAction || route?.mode === "action" || Boolean(route?.kind);
   if (!executable) return { availability: "reference", reference: true, unavailable: false, reason: "规则说明 · 点击查看" };
   if (["buff", "aura"].includes(item.type)) return { availability: "available", reference: false, unavailable: false, reason: "" };
   let reason = "";
-  if (item.system.quantity != null && Number(item.system.quantity) <= 0) reason = "数量为0";
+  if(route?.available===false)reason=route.label||"当前不能使用";
+  else if (item.system.quantity != null && Number(item.system.quantity) <= 0) reason = "数量为0";
   else if (item.system.requiresPsionicFocus && !actor?.system.attributes?.psionicFocus) reason = "需要灵能集中";
-  else if ((itemActionRoute(item)?.kind ?? item.system.activation?.type) === "immediate" && actor?.system.attributes?.conditions?.flatFooted) reason = "措手不及时不能使用反应动作";
-  else if ((item.type === "spell" || item.isCharged || item.system.linkedChargeItem?.id)
+  else if ((route?.kind ?? item.system.activation?.type) === "immediate" && actor?.system.attributes?.conditions?.flatFooted) reason = "措手不及时不能使用反应动作";
+  else if (!martial && (item.type === "spell" || item.isCharged || item.system.linkedChargeItem?.id)
     && Number(item.charges) < Number(item.chargeCost)) {
     const book = actor?.system.attributes?.spells?.spellbooks?.[item.system.spellbook];
     reason = book?.usePowerPoints ? "灵能点不足" : item.type === "spell" ? "无剩余施法次数" : "剩余次数不足";
   }
-  if (!reason) reason = conditionRestriction(actor, item, { kind: actionKinds(item)[0] ?? item.system.activation?.type });
+  if (!reason) reason = conditionRestriction(actor, item, { kind: actionKinds(item,route)[0] ?? item.system.activation?.type });
   return { availability: reason ? "unavailable" : "available", reference: false, unavailable: Boolean(reason), reason };
 }
 
 function conditionRestriction(actor, item, options) {
-  const module = game.modules.get("samson-3r-automation");
-  if (!module?.active || !module.api?.checkConditionAction) return "";
+  const api = automationApi();
+  if (typeof api?.checkConditionAction !== "function") return "";
   // This optional API is a read-only rule check: no rolls, writes or resource use.
-  try { module.api.checkConditionAction(actor, item, options); return ""; }
+  try { api.checkConditionAction(actor, item, options); return ""; }
   catch (error) { return error.message || "当前状态不能执行"; }
 }
 
@@ -121,19 +139,21 @@ export function availabilitySections(entries, category = "") {
 }
 
 function card(item, favorites, actor) {
-  const availability = itemAvailability(item, actor);
+  const route=itemActionRoute(item),m=martialEntry(item);
+  const availability = itemAvailability(item, actor,route);
   return {
     id: item.id, name: displayName(item), img: item.img || "icons/svg/book.svg",
     favorite: favorites.includes(item.id), resource: resourceLabel(item),
-    action: ["buff", "aura"].includes(item.type) ? (item.system.active ? "已启用" : "未启用") : availability.reference ? "查看详情"
-      : itemActionRoute(item)?.label || (itemActionRoute(item)?.kind ? actionNames[itemActionRoute(item).kind] : actionLabel(item)),
+    action: ["buff", "aura"].includes(item.type) ? (item.system.active ? "已启用" : "未启用") : availability.reference ? route?.label || "查看详情"
+      : route?.label || (route?.kind ? actionNames[route.kind] : actionLabel(item)),
     passive: availability.reference, ...availability, item,
-    level: item.type === "spell" ? finite(item.system.level) : null,
-    book: item.type === "spell" ? item.system.spellbook || "primary" : "",
-    spellInfo: item.type === "spell" ? `${finite(item.system.level)}环 · ${spellbookName(actor, item.system.spellbook || "primary")}` : "",
-    low: Boolean((item.type === "spell" || item.isCharged) && Number(item.charges) <= 0),
+    actionKinds:actionKinds(item,route),
+    level: m?finite(m.level):item.type === "spell" ? finite(item.system.level) : null,
+    book: m?martialBook(m):item.type === "spell" ? item.system.spellbook || "primary" : "",
+    spellInfo: m?`${m.level}级${m.kind==="stance"?"架势":"武技"} · ${m.disciplineName}`:item.type === "spell" ? `${finite(item.system.level)}环 · ${spellbookName(actor, item.system.spellbook || "primary")}` : "",
+    low: m?martialResource(item,actor)==="0 / 1":Boolean((item.type === "spell" || item.isCharged) && Number(item.charges) <= 0),
     note: item.type === "weapon" && !item.system.equipped ? "未装备"
-      : item.type === "feat" && !availability.reference && !item.hasAction && !itemActionRoute(item) ? "手动结算" : ""
+      : item.type === "feat" && !availability.reference && !item.hasAction && !route ? "手动结算" : ""
   };
 }
 
@@ -147,7 +167,7 @@ export function itemCards(actor, store, tab, filters = {}) {
     if (["attack", "full-attack", "weapon"].includes(item.type)) {
       if (item.type === "weapon" && weaponIds.has(item.id)) continue;
       group = "weapons";
-    } else if (item.type === "spell") group = "spells";
+    } else if (martialEntry(item)||item.type === "spell") group = "spells";
     else if (item.type === "feat") group = "abilities";
     else if (["buff", "aura"].includes(item.type)) group = "effects";
     else if (["consumable", "equipment", "loot"].includes(item.type)) group = "items";
@@ -155,7 +175,7 @@ export function itemCards(actor, store, tab, filters = {}) {
     if (tab !== "all" && tab !== group && !(tab === "favorites" && layout.favorites.includes(item.id))) continue;
     const entry = card(item, layout.favorites, actor);
     entry.group=group;
-    if(filters.action&&!actionKinds(item).includes(filters.action))continue;
+    if(filters.action&&!entry.actionKinds.includes(filters.action))continue;
     if (tab === "spells" && filters.book && entry.book !== filters.book) continue;
     if (tab === "spells" && filters.level !== "" && filters.level != null && entry.level !== Number(filters.level)) continue;
     if (filters.query && !entry.name.toLocaleLowerCase().includes(filters.query.toLocaleLowerCase())) continue;
@@ -196,7 +216,7 @@ export function actorResources(actor) {
 
 export function spellResources(actor) {
   const result = [];
-  const spells = Array.from(actor.items).filter(item => item.type === "spell");
+  const spells = Array.from(actor.items).filter(item => item.type === "spell"&&!martialEntry(item));
   for (const [key, book] of Object.entries(actor.system.attributes?.spells?.spellbooks ?? {})) {
     const members = spells.filter(item => (item.system.spellbook || "primary") === key);
     if (!members.length && !book.class) continue;
@@ -216,6 +236,17 @@ export function spellResources(actor) {
       power: book.usePowerPoints ? `${fmt(book.powerPoints)} / ${fmt(book.dailyPowerPointsTotal ?? book.powerPointsTotal)}` : "" });
   }
   return result;
+}
+
+export function spellSources(actor,books=spellResources(actor)) {
+  const sources=books.map(({id,name})=>({id,name,martial:false}));
+  for(const item of actor.items){
+    const m=martialEntry(item);if(!m)continue;
+    const id=martialBook(m);if(sources.some(row=>row.id===id))continue;
+    const klass=actor.items.get(m.profile);
+    sources.push({id,name:`${klass?displayName(klass):"未关联来源"} · 武术`,martial:true});
+  }
+  return sources;
 }
 
 export function targetCards() {
@@ -294,8 +325,8 @@ export function reminderView(actor, token, store, context) {
   if (counts.immediate) messages.push("反应动作在自己行动轮使用占本轮迅捷动作；在他人行动轮使用后，下次行动结束前不能再做迅捷或反应动作。");
   if (counts.step && counts.move) messages.push("已同时记录5尺快步与移动，请核对是否符合具体动作规则。");
   const combatant = game.combat?.combatants?.find(entry => token ? entry.tokenId === token.id : entry.actor?.uuid === actor.uuid);
-  if (combatant?.getFlag("samson-3r-automation", "nextSwiftSpent")) messages.push("3r自动化记录了下回合迅捷动作已占用。");
-  const nextSwift = Boolean(combatant?.getFlag("samson-3r-automation", "nextSwiftSpent"));
+  const nextSwift = Boolean(automationFlag(combatant, "nextSwiftSpent"));
+  if (nextSwift) messages.push("3r自动化记录了下回合迅捷动作已占用。");
   const shared = Math.max(counts.swift, counts.immediate);
   const remaining = {
     standard: Math.max(0, 1 - counts.standard - counts.full - Math.max(0, counts.move - 1)),

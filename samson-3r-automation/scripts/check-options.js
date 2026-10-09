@@ -3,6 +3,7 @@ import { DicePF } from "../../../systems/D35E/module/dice.js";
 import { createTransientView } from "./transient-view.js";
 import { typedBonus, has, curseLevel } from "./rules-bridge.js";
 import { effectIsActive } from "./effect-state.js";
+import { BONUS_TYPES } from "./bonus-types.js";
 
 const activeChecks = new Map();
 const day = () => Math.floor(game.time.worldTime / 86400);
@@ -84,6 +85,14 @@ export async function withOptionalCheck(actor, kind, id, options, invoke) {
     &&!["undead","construct"].includes(actor.system.attributes.creatureType))
     choices.push({id:"lifebound",text:"生命之缚 · 本次为稳定伤势体质检定，＋2种族加值。"});
   if(kind==="skill"&&["dip","int","sen"].includes(id)&&has(actor,"legalistic")&&curseLevel(actor,"legalistic")>=5&&!actor.items.some(item=>item.getFlag(MODULE_ID,"key")==="legalistic-conversation"&&item.system.active))choices.push({id:"conversation",text:"守律：一对一交谈 · +3表现加值。勾选确认正在与一个人交谈。"});
+  const clericChecks=kind==="save"?actor.items.filter(effect=>{
+    const check=effect.getFlag(MODULE_ID,"clericCheck");
+    return check&&effectIsActive(effect)&&(check.kind!=="altitude"||/^fort/.test(id));
+  }):[];
+  for(const effect of clericChecks) {
+    const check=effect.getFlag(MODULE_ID,"clericCheck");
+    choices.push({id:`cleric-${effect.id}`,text:`${effect.name} · ${check.label}：${Number(check.value)>=0?"＋":""}${check.value}${BONUS_TYPES[check.type]??check.type}${check.consume?"，掷骰后耗用":""}。`});
+  }
   if (!choices.length || actor.items.some(item => item.getFlag(MODULE_ID, "key") === "legalistic-promise" && item.system.active)) return invoke(actor);
   if (activeChecks.has(actor.uuid)) throw new Error("该角色还有一个检定窗口未完成，请先完成或关闭它。");
   if (!actor.sourceDetails) await actor.refresh({ stopUpdates: false });
@@ -117,6 +126,23 @@ export async function withOptionalCheck(actor, kind, id, options, invoke) {
         else (overrides.sourceDetails[path]??=[]).push(row);
         if(kind==="ability")context.extra.push({name:"负生命值：稳定检定减值",value:Number(actor.system.attributes.hp.value)});
       }
+      // Typed positive checks share the highest value with live buffs and the
+      // already selected promise. Duplicate Bane sources penalize only once.
+      const offered=new Map(),penalties=new Map();
+      for(const effect of clericChecks) {
+        if(!context.selections[`cleric-${effect.id}`]||!effectIsActive(effect))continue;
+        const check=effect.getFlag(MODULE_ID,"clericCheck"),value=Number(check.value)||0;
+        if(value>=0)offered.set(check.type,Math.max(offered.get(check.type)||0,value));
+        else {
+          const group=check.type==="penalty"?effect.getFlag(MODULE_ID,"clericEffect"):check.type;
+          penalties.set(group,{name:effect.name,value:Math.min(penalties.get(group)?.value??0,value)});
+        }
+      }
+      for(const [type,value] of offered) {
+        const baseline=Math.max(typedBonus(actor,type,target),type==="morale"&&context.selected?4:0);
+        (overrides.sourceDetails[path]??=[]).push({name:`${BONUS_TYPES[type]??type}加值`,value:Math.max(0,value-baseline)});
+      }
+      for(const row of penalties.values())(overrides.sourceDetails[path]??=[]).push(row);
     });
   });
   try {
@@ -125,6 +151,8 @@ export async function withOptionalCheck(actor, kind, id, options, invoke) {
     if (context.selected && rolled(actual)) await actor.setFlag(MODULE_ID, "promise", { day: day(), used: true, usedAt: game.time.worldTime });
     if(context.selections?.diplomacy&&rolled(actual)&&actor.items.has(diplomacy.id))await diplomacy.update({"system.active":false});
     if(context.selections?.guidance&&rolled(actual)&&actor.items.has(guidance.id))await guidance.delete();
+    if(rolled(actual))for(const effect of clericChecks)
+      if(context.selections?.[`cleric-${effect.id}`]&&effect.getFlag(MODULE_ID,"clericCheck")?.consume&&actor.items.has(effect.id))await effect.delete();
     if(kind==="ability"&&context.selections?.lifebound) {
       const roll=Array.isArray(actual)?actual.find(entry=>Number.isFinite(entry?.total)):actual;
       if(roll?.total>=10)await actor.update({"system.attributes.conditions.stable":true});

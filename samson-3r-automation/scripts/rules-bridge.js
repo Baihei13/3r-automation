@@ -30,27 +30,43 @@ import { processConditionTime } from "./condition-vitals.js";
 import { itemRepairs } from "./item-data.js";
 import { familiarBonusApplies, installCardFamiliar } from "./card-familiar.js";
 import { installCardSelections } from "./card-selections.js";
+import { clericOwns, prepareClericCast, installClericSpells } from "./cleric-spells.js";
+import { swordsageFeatureAction } from "./martial-class-features.js";
+import { archetypeAvailable } from "./pf-character-foundation.js";
 
 export const key = item => item?.flags?.[MODULE_ID]?.key;
-const CHARACTER_ITEM_ACTIONS={"protective-luck":"luck",ward:"ward",cackle:"cackle","covenant-ally":"covenant-reset",legalistic:"curse-menu",reclusive:"curse-settings",misfortune:"misfortune",fortune:"fortune",lifebound:"lifebound","samsaran-magic":"samsaran-menu",trapfinding:"trap-menu","sneak-attack":"native-attack"};
+const CHARACTER_ITEM_ACTIONS={"protective-luck":"luck",ward:"ward",cackle:"cackle","covenant-ally":"covenant-reset",legalistic:"curse-menu",reclusive:"curse-settings",misfortune:"misfortune",fortune:"fortune",lifebound:"lifebound","samsaran-magic":"samsaran-menu",trapfinding:"trap-menu"};
 const characterItemAction=item=>CHARACTER_ITEM_ACTIONS[key(item)]??(/^(covenant|samsaran)-(health|safeguard|solace|sr|languages|deathwatch|stabilize)$/.test(key(item)??"")?key(item):null);
 // Read-only UI capability discovery. Keep rule identities in their owning module.
 export function hudItemAction(item) {
+  const classFeature=swordsageFeatureAction(item);if(classFeature)return classFeature;
+  if(["sneak-attack","trapfinding","rogue-proficiencies","weapon-finesse"].includes(key(item)))return {mode:"reference",kind:null,label:"被动能力 · 查看完整规则"};
+  if(key(item)==="finesse-training")return {mode:"configure",kind:null,label:"选择巧技训练武器"};
+  if(item.flags?.[MODULE_ID]?.pfClassFeature&&!effectIsActive(item))return {mode:"reference",kind:null,label:"来源已失效 · 查看规则"};
+  if((item.flags?.[MODULE_ID]?.pfClassFeature&&!key(item)?.startsWith("covenant-")) || item.flags?.[MODULE_ID]?.archetype)return {mode:"reference",kind:null,label:"职业规则 · 查看完整规则"};
+  const maneuver=item.getFlag(MODULE_ID,"martial");
+  if(maneuver){
+    const active=maneuver.kind==="stance"&&item.actor?.flags?.[MODULE_ID]?.martial?.activeStance===item.id;
+    const check=item.actor?game.modules.get(MODULE_ID)?.api?.martial?.check(item.actor,item):null;
+    return {mode:"action",kind:maneuver.action,available:check?.available??false,
+      label:check?.available?(active?"结束架势":null):check?.reasons?.join("；")??"从角色武术页学习后使用"};
+  }
   const action=characterItemAction(item);
   if(!action)return {
-    "知识虔诚":{kind:null,label:"进行知识检定"},
-    "修道牧师：学问":{kind:null,label:"进行学问检定"},
+    "知识虔诚":{mode:"action",kind:null,label:"进行知识检定"},
+    "修道牧师：学问":{mode:"action",kind:null,label:"进行学问检定"},
     "驱散不死生物":{kind:"standard"},
     "神圣超魔：法术持久":{kind:"standard"},
-    "自发转换治疗法术":{kind:null,label:"选择转换法术"},
+    "自发转换治疗法术":{mode:"configure",kind:null,label:"选择转换法术"},
     "fist-of-stone-potion":{kind:"standard"},
-    "rhamphorhynchus-familiar":{kind:null,label:"打开魔宠选项"}
+    "rhamphorhynchus-familiar":{mode:"configure",kind:null,label:"打开魔宠选项"}
   }[key(item)]??null;
   const kind={luck:"standard",ward:"standard",cackle:"move",misfortune:"immediate",fortune:"immediate","native-attack":"standard"}[action]
     ?? (/^(covenant|samsaran)-(health|safeguard|solace|sr|languages|deathwatch|stabilize)$/.test(action)?"standard":null);
-  return {kind,label:kind?null:"打开能力选项"};
+  const unselected=Boolean(item.flags?.[MODULE_ID]?.unselected);
+  return {mode:kind?"action":"configure",kind,available:!unselected,label:unselected?"尚未选取此能力":kind?null:"打开能力选项"};
 }
-export const has = (actor,k) => actor.items.some(i=>key(i)===k && effectIsActive(i));
+export const has = (actor,k) => actor.items.some(i=>(key(i)===k||i.flags?.[MODULE_ID]?.grants?.includes(k)) && effectIsActive(i)&&!i.flags?.[MODULE_ID]?.pfClassFeature?.retainedInactive&&archetypeAvailable(i));
 export const worldActors = () => {
   const actors = new Map(game.actors.map(actor=>[actor.uuid,actor]));
   for (const scene of game.scenes) for (const token of scene.tokens) if (!token.actorLink && token.actor) actors.set(token.actor.uuid,token.actor);
@@ -85,9 +101,9 @@ export const casterLevel = (item,actor=item.actor) => {
 const selfOnly = actor => !game.user.targets.size || (game.user.targets.size===1 && [...game.user.targets][0].actor?.uuid===actor.uuid);
 const personalSpell=item=>["personal","self"].includes(item.system.range?.units)||/^(自身|个人|you|self)$/i.test(String(item.system.spellTarget??"").trim());
 export const curseLevel = (actor,curse) => {
-  const oracle=actor.items.filter(i=>["oracle","dual-cursed-oracle"].includes(key(i))).reduce((n,i)=>n+Number(i.system.levels),0);
-  if (actor.getFlag(MODULE_ID,"fixedCurse") === curse) return 1;
-  if (!actor.getFlag(MODULE_ID,"fixedCurse")) return Math.min(oracle,4);
+  const oracle=actor.items.filter(i=>i.type==="class"&&["oracle","dual-cursed-oracle"].includes(key(i))).reduce((n,i)=>n+(Number(i.system.levels)||0),0);
+  if (has(actor,"dual-cursed-oracle")&&actor.getFlag(MODULE_ID,"fixedCurse") === curse) return 1;
+  if (has(actor,"dual-cursed-oracle")&&!actor.getFlag(MODULE_ID,"fixedCurse")) return Math.min(oracle,4);
   return oracle+Math.floor((Number(actor.system.attributes?.hd?.total??oracle)-oracle)/2);
 };
 export function timedBuff(name,k,seconds,changes=[],extra={}) {
@@ -114,7 +130,7 @@ export async function replaceTimedBuff(actor,data) {
   await syncSpellResistance(actor);
   return result;
 }
-const spellKey = item => isDivineFavor(item)?"favor":
+const spellKey = item => clericOwns(item)?null:isDivineFavor(item)?"favor":
   /虔诚护盾|shield.?of.?faith/i.test(`${item.name} ${key(item)}`)?"shield":
   /enhanced-diplomacy|增强交涉/.test(`${item.name} ${key(item)}`)?"diplomacy":
   /spell-Magic Weapon|魔化武器/.test(`${key(item)} ${item.name}`)?"weapon":null;
@@ -225,12 +241,6 @@ export async function completeActors() {
     const cardRepairs=actor.items.map(item=>({_id:item.id,...itemRepairs(item)})).filter(update=>Object.keys(update).length>1);
     if(cardRepairs.length)await actor.updateEmbeddedDocuments("Item",cardRepairs);
     await syncNativeConditions(actor);
-    const witch=actor.items.find(i=>key(i)==="witch");
-    if(witch&&has(actor,"witch-watcher")&&!witch.getFlag(MODULE_ID,"watcherSlotsRepaired")) {
-      const seed=allSeeds().find(i=>key(i)==="witch");
-      if(seed&&JSON.stringify(witch.system.spellsPerLevel)===JSON.stringify(seed.system.spellsPerLevel))
-        await witch.update({"system.spellsPerLevel":seed.system.spellsPerLevel.map(([l,...s])=>[l,...s.map(v=>String(Number(v)<0?-1:Number(v)-1))]),[`flags.${MODULE_ID}.watcherSlotsRepaired`]:true});
-    }
     for(const spell of actor.items.filter(i=>i.type==="spell" && actor.items.some(c=>["oracle","dual-cursed-oracle"].includes(key(c))))) {
       if(spell.system.components?.divineFocus)await spell.update({"system.components.divineFocus":0});
     }
@@ -258,20 +268,24 @@ export async function promiseAttack(actor,item) {
   finally {promiseAttacks.delete(actor.uuid);}
 }
 export function typedBonus(actor,type,targets,rollData=null) {
-  let highest=0;
-  const base=foundry.utils.deepClone(rollData??actor.getRollData());
+  let highest=0,base;
+  const matches=row=>normalizeBonusType(row[3])===type&&targets.includes(row[2]);
   for(const effect of actor.items) {
     if(!effectIsActive(effect))continue;
     if(["weapon","equipment"].includes(effect.type)&&(!effect.system.equipped||effect.system.melded||effect.broken))continue;
-    if(effect.type==="feat"&&effect.hasUnmetRequirements?.(foundry.utils.deepClone(base)).length)continue;
-    const groups=[{rows:effect.system.changes??[],data:effect.getRollData()}];
+    // Most items cannot contribute to this particular bonus. Do not serialize
+    // their complete system data or evaluate unrelated feat prerequisites.
+    const groups=[{rows:(effect.system.changes??[]).filter(matches)}];
     for(const enhancement of effect.system.enhancements?.items??[]) {
       const data=ItemEnhancementHelper.getEnhancementData(foundry.utils.deepClone(enhancement));
-      groups.push({rows:data.changes??[],data:effect.getRollData(),enhancement:data.enh});
+      groups.push({rows:(data.changes??[]).filter(matches),enhancement:data.enh});
     }
+    if(!groups.some(group=>group.rows.length))continue;
+    base??=foundry.utils.deepClone(rollData??actor.getRollData());
+    if(effect.type==="feat"&&effect.hasUnmetRequirements?.(foundry.utils.deepClone(base)).length)continue;
+    const itemData=effect.getRollData();
     for(const group of groups)for(const row of group.rows) {
-      if(normalizeBonusType(row[3])!==type||!targets.includes(row[2]))continue;
-      const data={...base,item:group.data,enhancement:group.enhancement};
+      const data={...base,item:itemData,enhancement:group.enhancement};
       highest=Math.max(highest,Number(new Roll35e(String(row[0]),data).evaluateSync().total)||0);
     }
   }
@@ -294,6 +308,7 @@ export function activateRules() {
   installCardFamiliar();
   installCardSelections();
   installCardSpells();
+  installClericSpells();
   installCheckOptions();
   installStackingRules();
   installFragileRules();
@@ -321,6 +336,11 @@ export function activateRules() {
   const useSpell=ItemUse.prototype.useSpell;
   ItemUse.prototype.useSpell=async function(ev,options={},actor=this.item.actor) {
     const item=options.replacementItem??this.item;
+    if(item.flags?.[MODULE_ID]?.martial) {
+      const api=game.modules.get(MODULE_ID)?.api?.martial;
+      if(!api)throw new Error("武术系统尚未就绪，请重新进入世界。");
+      return api.command({actorUuid:actor.uuid,itemId:item.id,op:item.flags[MODULE_ID].martial.kind==="stance"?"stance":"initiate"});
+    }
     const restriction=actionRestriction(actor,item);
     if(restriction)return ui.notifications.warn(restriction);
     const book=actor.system.attributes?.spells?.spellbooks?.[item.system.spellbook??"primary"];
@@ -342,7 +362,9 @@ export function activateRules() {
       if(context.utility===false)return;
       const card=await prepareCardCast(item,actor,context.targets);
       if(card===false)return;
-      context.utility={...context.utility,...card};
+      const cleric=await prepareClericCast(item,actor,context.targets,context.cl);
+      if(cleric===false)return;
+      context.utility={...context.utility,...card,...cleric};
       const charged=item.system.preparation?.mode!=="atwill";
       if(charged&&new ItemCharges(this.item).getCharges()<=0)return await useSpell.call(this,ev,options,actor);
       const check=await spellConditionCheck(item,actor);
@@ -501,7 +523,9 @@ export function activateRules() {
     }
     const choices=actor?.getFlag(MODULE_ID,"finesseWeapons")??[];
     if(has(actor,"finesse-training")&&Number(actor.items.find(i=>key(i)==="unchained-rogue")?.system.levels)>=3&&choices.includes(weaponKind(weapon))&&data.item.ability.damage)data.item.ability.damage="dex";
-    const stance=actor?.items.find(i=>i.uuid===actor.getFlag(MODULE_ID,"shadowStance"));
+    const activeMartial=actor?.items.find(i=>i.system.active&&i.flags?.[MODULE_ID]?.martialEffect?.stance);
+    const stance=activeMartial?(actor.items.get(actor.flags[MODULE_ID].martial?.activeStance)?.flags?.[MODULE_ID]?.martial?.discipline==="shadow-hand"?activeMartial:null)
+      :actor?.items.find(i=>i.uuid===actor.getFlag(MODULE_ID,"shadowStance"));
     const shadowWeapon=key(weapon)==="sleeve-blade"||/^(dagger|shortsword|short sword|sai|siangham|spikedchain|spiked chain|unarmedstrike|unarmed strike)$/.test(weaponKind(weapon))||/匕首|短剑|刺链|徒手击打|三叉铁尺|铁尺/.test(weapon?.name??"");
     if(has(actor,"shadow-blade")&&stance?.system.active&&shadowWeapon&&item.system.actionType==="mwak")data.shadowBladeDex=Number(actor.system.abilities.dex.mod);
   });
@@ -516,8 +540,9 @@ export function activateRules() {
     const needed=item.getFlag(MODULE_ID,"requiresBuff");
     if(needed&&!has(actor,needed)){hook.customUse=true;ui.notifications.warn("对应增益未激活，这项临时攻击不能使用。");return;}
     if(item.getFlag(MODULE_ID,"unselected")){hook.customUse=true;ui.notifications.warn("尚未选择这项启示；请按升级名额正式选择。");return;}
-    if(key(item)==="fortune" && Number(actor.items.find(i=>["oracle","dual-cursed-oracle"].includes(key(i)))?.system.levels)<5){hook.customUse=true;ui.notifications.warn("幸运启示须先知5级。");return;}
-    if(key(item)==="finesse-training"){hook.customUse=true;chooseFinesseWeapons(actor).catch(report);return;}
+    if(key(item)==="fortune" && actor.items.filter(i=>i.type==="class"&&["oracle","dual-cursed-oracle"].includes(key(i))).reduce((n,i)=>n+(Number(i.system.levels)||0),0)<5){hook.customUse=true;ui.notifications.warn("幸运启示须先知5级。");return;}
+    if(key(item)==="finesse-training"){hook.customUse=true;hook.threeRCompletion=chooseFinesseWeapons(actor);hook.threeRCompletion.catch(report);return;}
+    if(key(item)==="sneak-attack"){hook.customUse=true;hook.threeRCompletion=Promise.resolve(item.sheet.render(true));return;}
     const action=characterItemAction(item);
     if(action){hook.customUse=true;hook.threeRCompletion=dispatchCharacterAction(actor,action);hook.threeRCompletion.catch(report);}
   });

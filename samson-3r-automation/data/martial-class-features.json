@@ -1,0 +1,872 @@
+[
+  {
+    "name": "武器和护甲娴熟",
+    "type": "feat",
+    "img": "icons/svg/sword.svg",
+    "system": {
+      "featType": "classFeat",
+      "source": "贤者之剑 1",
+      "uniqueId": "samson-3r-automation.swordsage.proficiency",
+      "associations": {
+        "classes": [
+          [
+            "贤者之剑",
+            1
+          ]
+        ]
+      },
+      "description": {
+        "value": "<p>武器和护甲娴熟：贤者之剑熟练所有简易和军用近战武器（包括那些可以用作投掷武器的武器）和轻甲，不过不熟练盾牌。</p>"
+      },
+      "shortDescription": "<p>武器和护甲娴熟：贤者之剑熟练所有简易和军用近战武器（包括那些可以用作投掷武器的武器）和轻甲，不过不熟练盾牌。</p>",
+      "activation": {
+        "type": "",
+        "cost": 0
+      },
+      "actionType": "",
+      "abilityType": "",
+      "changes": [],
+      "uses": {
+        "value": 0,
+        "max": "",
+        "per": ""
+      },
+      "showInQuickbar": false
+    },
+    "flags": {
+      "samson-3r-automation": {
+        "key": "swordsage-feature-proficiency",
+        "source": "tob",
+        "category": "feature",
+        "rulebook": "Tome of Battle: The Book of Nine Swords",
+        "ruleSource": {
+          "library": "expansions-2.40",
+          "internalPath": "7 扩展全新体系/ToB战斗卷册/1基础/贤者之剑.htm",
+          "sha256": "c0d9253aa43d52f18f10ffff126973478742e2e942b9b713860a53f4dc4f1302",
+          "encoding": "gb18030"
+        },
+        "martialClassFeature": {
+          "class": "swordsage",
+          "level": 1,
+          "op": null,
+          "uid": "samson-3r-automation.swordsage.proficiency",
+          "revision": 1
+        },
+        "assignedIcon": "icons/svg/sword.svg",
+        "iconRevision": 3
+      }
+    }
+  },
+  {
+    "name": "招式",
+    "type": "feat",
+    "img": "icons/svg/sword.svg",
+    "system": {
+      "featType": "classFeat",
+      "source": "贤者之剑 1",
+      "uniqueId": "samson-3r-automation.swordsage.maneuvers",
+      "associations": {
+        "classes": [
+          [
+            "贤者之剑",
+            1
+          ]
+        ]
+      },
+      "description": {
+        "value": "<p>招式（Maneuvers）：</p>\n<p>你的人物开始的时候会知道6个招式。你可以选择的流派是漠风，钢魂，落日，影手，石龙和虎爪。</p>\n<p>一旦你知道了一个招式，在你使用它之前你必须准备这个招式（见下文准备招式）。除非在描述中特别说明，否则一个军道之剑使用的招式被视作特异能力。你的招式不受法术抗力影响并且你使用招式的时候不会引发借机攻击。</p>\n<p>你在更高等级的时候能够学到更多的招式，就如表1-2所列。要学习一个招式你必须先达到它的所需的要求。见39页表3-1，来决定你所能学的招式的最高等级。</p>\n<p>在达到第4级以及此后的每一个双数等级（6级，8级，10级，以及其后），你可以选择学习一个新的招式来替代一个你所知的。你将失去旧的招式来替换新的。你可以选择任何等级的招式，只要不超过你所能学的招式的最高等级；你不需要用一个等级相同的招式来替换你的旧招式。如，在第十级，你可以用一个1级，2级， 3级，4级招式来替换一个5级或者更低的招式，只要你满足了所有的招式需要的先决条件。在每个可以更换的等级你只能调换一种招式。</p>"
+      },
+      "shortDescription": "<p>招式（Maneuvers）：</p>\n<p>你的人物开始的时候会知道6个招式。你可以选择的流派是漠风，钢魂，落日，影手，石龙和虎爪。</p>\n<p>一旦你知道了一个招式，在你使用它之前你必须准备这个招式（见下文准备招式）。除非在描述中特别说明，否则一个军道之剑使用的招式被视作特异能力。你的招式不受法术抗力影响并且你使用招式的时候不会引发借机攻击。</p>\n<p>你在更高等级的时候能够学到更多的招式，就如表1-2所列。要学习一个招式你必须先达到它的所需的要求。见39页表3-1，来决定你所能学的招式的最高等级。</p>\n<p>在达到第4级以及此后的每一个双数等级（6级，8级，10级，以及其后），你可以选择学习一个新的招式来替代一个你所知的。你将失去旧的招式来替换新的。你可以选择任何等级的招式，只要不超过你所能学的招式的最高等级；你不需要用一个等级相同的招式来替换你的旧招式。如，在第十级，你可以用一个1级，2级， 3级，4级招式来替换一个5级或者更低的招式，只要你满足了所有的招式需要的先决条件。在每个可以更换的等级你只能调换一种招式。</p>",
+      "activation": {
+        "type": "special",
+        "cost": 0
+      },
+      "actionType": "special",
+      "abilityType": "",
+      "changes": [],
+      "uses": {
+        "value": 0,
+        "max": "",
+        "per": ""
+      },
+      "showInQuickbar": true
+    },
+    "flags": {
+      "samson-3r-automation": {
+        "key": "swordsage-feature-maneuvers",
+        "source": "tob",
+        "category": "feature",
+        "rulebook": "Tome of Battle: The Book of Nine Swords",
+        "ruleSource": {
+          "library": "expansions-2.40",
+          "internalPath": "7 扩展全新体系/ToB战斗卷册/1基础/贤者之剑.htm",
+          "sha256": "c0d9253aa43d52f18f10ffff126973478742e2e942b9b713860a53f4dc4f1302",
+          "encoding": "gb18030"
+        },
+        "martialClassFeature": {
+          "class": "swordsage",
+          "level": 1,
+          "op": "open",
+          "uid": "samson-3r-automation.swordsage.maneuvers",
+          "revision": 1
+        },
+        "assignedIcon": "icons/svg/sword.svg",
+        "iconRevision": 3
+      }
+    }
+  },
+  {
+    "name": "准备招式与恢复",
+    "type": "feat",
+    "img": "icons/svg/sword.svg",
+    "system": {
+      "featType": "classFeat",
+      "source": "贤者之剑 1",
+      "uniqueId": "samson-3r-automation.swordsage.readied",
+      "associations": {
+        "classes": [
+          [
+            "贤者之剑",
+            1
+          ]
+        ]
+      },
+      "description": {
+        "value": "<p>准备招式（Maneuvers Readied）：</p>\n<p>在第一级你可以准备你所知的6个招式中的4个，当你提升等级并且知道更多的招式时，你也能准备更多，不过你依旧需要选择准备哪些招式。你所准备的招式始终保持着直到你决定再次冥想和练习并改变它们。你不需要睡眠或者休息来准备招式；任何时候你花费５分钟冥想并练习之后你就可以改变已经准备的招式。</p>\n<p>你开始遭遇的时候你所有的招式都是尚未耗费的，无论你在准备它们之后使用了多少次。一但你发动了一个招式，在目前的遭遇中你就耗费了此招式，因此每一个你所准备的招式在一次遭遇中可以使用一次（除非你如下文所述一样恢复它们）。</p>\n<p>你可以在你的回合内使用一个全回合动作来快速冥想并恢复一个你所耗费的招式。如果你完成了你的冥想你就可以选择更新一个你耗费的招式，在接下来的轮内你可以使用此招式。</p>"
+      },
+      "shortDescription": "<p>准备招式（Maneuvers Readied）：</p>\n<p>在第一级你可以准备你所知的6个招式中的4个，当你提升等级并且知道更多的招式时，你也能准备更多，不过你依旧需要选择准备哪些招式。你所准备的招式始终保持着直到你决定再次冥想和练习并改变它们。你不需要睡眠或者休息来准备招式；任何时候你花费５分钟冥想并练习之后你就可以改变已经准备的招式。</p>\n<p>你开始遭遇的时候你所有的招式都是尚未耗费的，无论你在准备它们之后使用了多少次。一但你发动了一个招式，在目前的遭遇中你就耗费了此招式，因此每一个你所准备的招式在一次遭遇中可以使用一次（除非你如下文所述一样恢复它们）。</p>\n<p>你可以在你的回合内使用一个全回合动作来快速冥想并恢复一个你所耗费的招式。如果你完成了你的冥想你就可以选择更新一个你耗费的招式，在接下来的轮内你可以使用此招式。</p>",
+      "activation": {
+        "type": "special",
+        "cost": 0
+      },
+      "actionType": "special",
+      "abilityType": "",
+      "changes": [],
+      "uses": {
+        "value": 0,
+        "max": "",
+        "per": ""
+      },
+      "showInQuickbar": true
+    },
+    "flags": {
+      "samson-3r-automation": {
+        "key": "swordsage-feature-readied",
+        "source": "tob",
+        "category": "feature",
+        "rulebook": "Tome of Battle: The Book of Nine Swords",
+        "ruleSource": {
+          "library": "expansions-2.40",
+          "internalPath": "7 扩展全新体系/ToB战斗卷册/1基础/贤者之剑.htm",
+          "sha256": "c0d9253aa43d52f18f10ffff126973478742e2e942b9b713860a53f4dc4f1302",
+          "encoding": "gb18030"
+        },
+        "martialClassFeature": {
+          "class": "swordsage",
+          "level": 1,
+          "op": "open",
+          "uid": "samson-3r-automation.swordsage.readied",
+          "revision": 1
+        },
+        "assignedIcon": "icons/svg/sword.svg",
+        "iconRevision": 3
+      }
+    }
+  },
+  {
+    "name": "所知架势",
+    "type": "feat",
+    "img": "icons/svg/sword.svg",
+    "system": {
+      "featType": "classFeat",
+      "source": "贤者之剑 1",
+      "uniqueId": "samson-3r-automation.swordsage.stances",
+      "associations": {
+        "classes": [
+          [
+            "贤者之剑",
+            1
+          ]
+        ]
+      },
+      "description": {
+        "value": "<p>所知步法（Stances Know）：</p>\n<p>在人物开始的时候你知道1个你所能学习流派中的1级步法。在第2，第5，第9，第14和第20级你可以选择一个额外的步法。不像招式，步法不会被耗费，你也不需要准备它们。所有你所知的步法在任何时候都可以使用，你可以用一个迅捷动作来改变你目前使用的步法。除非在步法描述中说明，否则步法视为特异能力。</p>\n<p>不像其他的招术，在高等级的时候你不能用一个新步法来替换已知步法。</p>"
+      },
+      "shortDescription": "<p>所知步法（Stances Know）：</p>\n<p>在人物开始的时候你知道1个你所能学习流派中的1级步法。在第2，第5，第9，第14和第20级你可以选择一个额外的步法。不像招式，步法不会被耗费，你也不需要准备它们。所有你所知的步法在任何时候都可以使用，你可以用一个迅捷动作来改变你目前使用的步法。除非在步法描述中说明，否则步法视为特异能力。</p>\n<p>不像其他的招术，在高等级的时候你不能用一个新步法来替换已知步法。</p>",
+      "activation": {
+        "type": "special",
+        "cost": 0
+      },
+      "actionType": "special",
+      "abilityType": "",
+      "changes": [],
+      "uses": {
+        "value": 0,
+        "max": "",
+        "per": ""
+      },
+      "showInQuickbar": true
+    },
+    "flags": {
+      "samson-3r-automation": {
+        "key": "swordsage-feature-stances",
+        "source": "tob",
+        "category": "feature",
+        "rulebook": "Tome of Battle: The Book of Nine Swords",
+        "ruleSource": {
+          "library": "expansions-2.40",
+          "internalPath": "7 扩展全新体系/ToB战斗卷册/1基础/贤者之剑.htm",
+          "sha256": "c0d9253aa43d52f18f10ffff126973478742e2e942b9b713860a53f4dc4f1302",
+          "encoding": "gb18030"
+        },
+        "martialClassFeature": {
+          "class": "swordsage",
+          "level": 1,
+          "op": "open",
+          "uid": "samson-3r-automation.swordsage.stances",
+          "revision": 1
+        },
+        "assignedIcon": "icons/svg/sword.svg",
+        "iconRevision": 3
+      }
+    }
+  },
+  {
+    "name": "流派专攻：武器专攻",
+    "type": "feat",
+    "img": "icons/svg/sword.svg",
+    "system": {
+      "featType": "classFeat",
+      "source": "贤者之剑 1",
+      "uniqueId": "samson-3r-automation.swordsage.focus-weapon",
+      "associations": {
+        "classes": [
+          [
+            "贤者之剑",
+            1
+          ]
+        ]
+      },
+      "description": {
+        "value": "<p>流派专攻（Discipline Focus）（Ex）：</p>\n<p>作为贤者之剑你可以将你的选练专注于特定的流派使你在使用此流派战斗时获得优势。每次你获得流派专攻能力，从六个贤者之剑流派中选择一个来专攻。每次你获得流派专攻能力时你可以选择一个不同的流派，不过你必须至少知道一个此流派的武功招式。即使你在高等级选择了一个不同的流派，你在早期选择的流派专攻能力也不会改变。</p>\n<p>流派专攻有以下几种方式：</p>\n<p>武器专攻：在第一级你获得你选择流派武器的武器专攻。见第4章流派描述。</p>\n<p>洞察打击（Insighful Strikes）：在第4级你可以选择一个流派，无论何时你使用此流派的打击技时你都可以在伤害骰上附加你的感知加值。在第12级你可以选择第二个流派附加此能力。</p>\n<p>防御步法（Defensive Stance）：在第8级当你使用你所选择的流派步法时你将在豁免上获得+2加值。在第16级你可以选择第二个流派附加此能力。</p>\n<p>你在使用武术知识（Martial Lore）辨识你所选择的流派时获得+2加值。</p>"
+      },
+      "shortDescription": "<p>流派专攻（Discipline Focus）（Ex）：</p>\n<p>作为贤者之剑你可以将你的选练专注于特定的流派使你在使用此流派战斗时获得优势。每次你获得流派专攻能力，从六个贤者之剑流派中选择一个来专攻。每次你获得流派专攻能力时你可以选择一个不同的流派，不过你必须至少知道一个此流派的武功招式。即使你在高等级选择了一个不同的流派，你在早期选择的流派专攻能力也不会改变。</p>\n<p>流派专攻有以下几种方式：</p>\n<p>武器专攻：在第一级你获得你选择流派武器的武器专攻。见第4章流派描述。</p>\n<p>洞察打击（Insighful Strikes）：在第4级你可以选择一个流派，无论何时你使用此流派的打击技时你都可以在伤害骰上附加你的感知加值。在第12级你可以选择第二个流派附加此能力。</p>\n<p>防御步法（Defensive Stance）：在第8级当你使用你所选择的流派步法时你将在豁免上获得+2加值。在第16级你可以选择第二个流派附加此能力。</p>\n<p>你在使用武术知识（Martial Lore）辨识你所选择的流派时获得+2加值。</p>",
+      "activation": {
+        "type": "special",
+        "cost": 0
+      },
+      "actionType": "special",
+      "abilityType": "ex",
+      "changes": [],
+      "uses": {
+        "value": 0,
+        "max": "",
+        "per": ""
+      },
+      "showInQuickbar": true
+    },
+    "flags": {
+      "samson-3r-automation": {
+        "key": "swordsage-feature-focus-weapon",
+        "source": "tob",
+        "category": "feature",
+        "rulebook": "Tome of Battle: The Book of Nine Swords",
+        "ruleSource": {
+          "library": "expansions-2.40",
+          "internalPath": "7 扩展全新体系/ToB战斗卷册/1基础/贤者之剑.htm",
+          "sha256": "c0d9253aa43d52f18f10ffff126973478742e2e942b9b713860a53f4dc4f1302",
+          "encoding": "gb18030"
+        },
+        "martialClassFeature": {
+          "class": "swordsage",
+          "level": 1,
+          "op": "focus",
+          "uid": "samson-3r-automation.swordsage.focus-weapon",
+          "revision": 1
+        },
+        "assignedIcon": "icons/svg/sword.svg",
+        "iconRevision": 3
+      }
+    }
+  },
+  {
+    "name": "快速行动",
+    "type": "feat",
+    "img": "icons/svg/sword.svg",
+    "system": {
+      "featType": "classFeat",
+      "source": "贤者之剑 1",
+      "uniqueId": "samson-3r-automation.swordsage.quick",
+      "associations": {
+        "classes": [
+          [
+            "贤者之剑",
+            1
+          ]
+        ]
+      },
+      "description": {
+        "value": "<p>快速行动（Quick to Act）（Ex）：</p>\n<p>你在先攻上获得+1加值。此加值在第5，第10，第15，第20级各增加1。</p>"
+      },
+      "shortDescription": "<p>快速行动（Quick to Act）（Ex）：</p>\n<p>你在先攻上获得+1加值。此加值在第5，第10，第15，第20级各增加1。</p>",
+      "activation": {
+        "type": "",
+        "cost": 0
+      },
+      "actionType": "",
+      "abilityType": "ex",
+      "changes": [],
+      "uses": {
+        "value": 0,
+        "max": "",
+        "per": ""
+      },
+      "showInQuickbar": false
+    },
+    "flags": {
+      "samson-3r-automation": {
+        "key": "swordsage-feature-quick",
+        "source": "tob",
+        "category": "feature",
+        "rulebook": "Tome of Battle: The Book of Nine Swords",
+        "ruleSource": {
+          "library": "expansions-2.40",
+          "internalPath": "7 扩展全新体系/ToB战斗卷册/1基础/贤者之剑.htm",
+          "sha256": "c0d9253aa43d52f18f10ffff126973478742e2e942b9b713860a53f4dc4f1302",
+          "encoding": "gb18030"
+        },
+        "martialClassFeature": {
+          "class": "swordsage",
+          "level": 1,
+          "op": null,
+          "uid": "samson-3r-automation.swordsage.quick",
+          "revision": 1
+        },
+        "assignedIcon": "icons/svg/sword.svg",
+        "iconRevision": 3
+      }
+    }
+  },
+  {
+    "name": "AC加值",
+    "type": "feat",
+    "img": "icons/svg/sword.svg",
+    "system": {
+      "featType": "classFeat",
+      "source": "贤者之剑 2",
+      "uniqueId": "samson-3r-automation.swordsage.ac",
+      "associations": {
+        "classes": [
+          [
+            "贤者之剑",
+            2
+          ]
+        ]
+      },
+      "description": {
+        "value": "<p>AC加值：</p>\n<p>从第二级开始只要你穿戴轻甲，不受妨碍并且不带盾牌，你可以将你的感知加值附加在你的防御等级上。此AC加值对接触攻击并且在你措手不及时依旧有效。不过当你无法行动或者无助时你会失去此AC加值。</p>"
+      },
+      "shortDescription": "<p>AC加值：</p>\n<p>从第二级开始只要你穿戴轻甲，不受妨碍并且不带盾牌，你可以将你的感知加值附加在你的防御等级上。此AC加值对接触攻击并且在你措手不及时依旧有效。不过当你无法行动或者无助时你会失去此AC加值。</p>",
+      "activation": {
+        "type": "",
+        "cost": 0
+      },
+      "actionType": "",
+      "abilityType": "",
+      "changes": [],
+      "uses": {
+        "value": 0,
+        "max": "",
+        "per": ""
+      },
+      "showInQuickbar": false
+    },
+    "flags": {
+      "samson-3r-automation": {
+        "key": "swordsage-feature-ac",
+        "source": "tob",
+        "category": "feature",
+        "rulebook": "Tome of Battle: The Book of Nine Swords",
+        "ruleSource": {
+          "library": "expansions-2.40",
+          "internalPath": "7 扩展全新体系/ToB战斗卷册/1基础/贤者之剑.htm",
+          "sha256": "c0d9253aa43d52f18f10ffff126973478742e2e942b9b713860a53f4dc4f1302",
+          "encoding": "gb18030"
+        },
+        "martialClassFeature": {
+          "class": "swordsage",
+          "level": 2,
+          "op": null,
+          "uid": "samson-3r-automation.swordsage.ac",
+          "revision": 1
+        },
+        "assignedIcon": "icons/svg/sword.svg",
+        "iconRevision": 3
+      }
+    }
+  },
+  {
+    "name": "流派专攻：洞察打击Ⅰ",
+    "type": "feat",
+    "img": "icons/svg/sword.svg",
+    "system": {
+      "featType": "classFeat",
+      "source": "贤者之剑 4",
+      "uniqueId": "samson-3r-automation.swordsage.focus-strike-4",
+      "associations": {
+        "classes": [
+          [
+            "贤者之剑",
+            4
+          ]
+        ]
+      },
+      "description": {
+        "value": "<p>流派专攻（Discipline Focus）（Ex）：</p>\n<p>作为贤者之剑你可以将你的选练专注于特定的流派使你在使用此流派战斗时获得优势。每次你获得流派专攻能力，从六个贤者之剑流派中选择一个来专攻。每次你获得流派专攻能力时你可以选择一个不同的流派，不过你必须至少知道一个此流派的武功招式。即使你在高等级选择了一个不同的流派，你在早期选择的流派专攻能力也不会改变。</p>\n<p>流派专攻有以下几种方式：</p>\n<p>武器专攻：在第一级你获得你选择流派武器的武器专攻。见第4章流派描述。</p>\n<p>洞察打击（Insighful Strikes）：在第4级你可以选择一个流派，无论何时你使用此流派的打击技时你都可以在伤害骰上附加你的感知加值。在第12级你可以选择第二个流派附加此能力。</p>\n<p>防御步法（Defensive Stance）：在第8级当你使用你所选择的流派步法时你将在豁免上获得+2加值。在第16级你可以选择第二个流派附加此能力。</p>\n<p>你在使用武术知识（Martial Lore）辨识你所选择的流派时获得+2加值。</p>"
+      },
+      "shortDescription": "<p>流派专攻（Discipline Focus）（Ex）：</p>\n<p>作为贤者之剑你可以将你的选练专注于特定的流派使你在使用此流派战斗时获得优势。每次你获得流派专攻能力，从六个贤者之剑流派中选择一个来专攻。每次你获得流派专攻能力时你可以选择一个不同的流派，不过你必须至少知道一个此流派的武功招式。即使你在高等级选择了一个不同的流派，你在早期选择的流派专攻能力也不会改变。</p>\n<p>流派专攻有以下几种方式：</p>\n<p>武器专攻：在第一级你获得你选择流派武器的武器专攻。见第4章流派描述。</p>\n<p>洞察打击（Insighful Strikes）：在第4级你可以选择一个流派，无论何时你使用此流派的打击技时你都可以在伤害骰上附加你的感知加值。在第12级你可以选择第二个流派附加此能力。</p>\n<p>防御步法（Defensive Stance）：在第8级当你使用你所选择的流派步法时你将在豁免上获得+2加值。在第16级你可以选择第二个流派附加此能力。</p>\n<p>你在使用武术知识（Martial Lore）辨识你所选择的流派时获得+2加值。</p>",
+      "activation": {
+        "type": "special",
+        "cost": 0
+      },
+      "actionType": "special",
+      "abilityType": "ex",
+      "changes": [],
+      "uses": {
+        "value": 0,
+        "max": "",
+        "per": ""
+      },
+      "showInQuickbar": true
+    },
+    "flags": {
+      "samson-3r-automation": {
+        "key": "swordsage-feature-focus-strike-4",
+        "source": "tob",
+        "category": "feature",
+        "rulebook": "Tome of Battle: The Book of Nine Swords",
+        "ruleSource": {
+          "library": "expansions-2.40",
+          "internalPath": "7 扩展全新体系/ToB战斗卷册/1基础/贤者之剑.htm",
+          "sha256": "c0d9253aa43d52f18f10ffff126973478742e2e942b9b713860a53f4dc4f1302",
+          "encoding": "gb18030"
+        },
+        "martialClassFeature": {
+          "class": "swordsage",
+          "level": 4,
+          "op": "focus",
+          "uid": "samson-3r-automation.swordsage.focus-strike-4",
+          "revision": 1
+        },
+        "assignedIcon": "icons/svg/sword.svg",
+        "iconRevision": 3
+      }
+    }
+  },
+  {
+    "name": "感知魔法",
+    "type": "feat",
+    "img": "icons/svg/sword.svg",
+    "system": {
+      "featType": "classFeat",
+      "source": "贤者之剑 7",
+      "uniqueId": "samson-3r-automation.swordsage.sense",
+      "associations": {
+        "classes": [
+          [
+            "贤者之剑",
+            7
+          ]
+        ]
+      },
+      "description": {
+        "value": "<p>感知魔法（Sense Magic）（Su）：</p>\n<p>从第七级开始，你可以花10分钟专注于一件武器或者护甲。如果你成功通过等级检定（DC10+武器或护甲的施法者等级），你就能鉴识此物品的能力，包括增强加值和特殊能力。此能力并不能鉴识神器和传古武器的能力，不过能感觉到这些物品中的强大力量。</p>"
+      },
+      "shortDescription": "<p>感知魔法（Sense Magic）（Su）：</p>\n<p>从第七级开始，你可以花10分钟专注于一件武器或者护甲。如果你成功通过等级检定（DC10+武器或护甲的施法者等级），你就能鉴识此物品的能力，包括增强加值和特殊能力。此能力并不能鉴识神器和传古武器的能力，不过能感觉到这些物品中的强大力量。</p>",
+      "activation": {
+        "type": "special",
+        "cost": 0
+      },
+      "actionType": "special",
+      "abilityType": "su",
+      "changes": [],
+      "uses": {
+        "value": 0,
+        "max": "",
+        "per": ""
+      },
+      "showInQuickbar": true
+    },
+    "flags": {
+      "samson-3r-automation": {
+        "key": "swordsage-feature-sense",
+        "source": "tob",
+        "category": "feature",
+        "rulebook": "Tome of Battle: The Book of Nine Swords",
+        "ruleSource": {
+          "library": "expansions-2.40",
+          "internalPath": "7 扩展全新体系/ToB战斗卷册/1基础/贤者之剑.htm",
+          "sha256": "c0d9253aa43d52f18f10ffff126973478742e2e942b9b713860a53f4dc4f1302",
+          "encoding": "gb18030"
+        },
+        "martialClassFeature": {
+          "class": "swordsage",
+          "level": 7,
+          "op": "sense",
+          "uid": "samson-3r-automation.swordsage.sense",
+          "revision": 1
+        },
+        "assignedIcon": "icons/svg/sword.svg",
+        "iconRevision": 3
+      }
+    }
+  },
+  {
+    "name": "流派专攻：防御架势Ⅰ",
+    "type": "feat",
+    "img": "icons/svg/sword.svg",
+    "system": {
+      "featType": "classFeat",
+      "source": "贤者之剑 8",
+      "uniqueId": "samson-3r-automation.swordsage.focus-defense-8",
+      "associations": {
+        "classes": [
+          [
+            "贤者之剑",
+            8
+          ]
+        ]
+      },
+      "description": {
+        "value": "<p>流派专攻（Discipline Focus）（Ex）：</p>\n<p>作为贤者之剑你可以将你的选练专注于特定的流派使你在使用此流派战斗时获得优势。每次你获得流派专攻能力，从六个贤者之剑流派中选择一个来专攻。每次你获得流派专攻能力时你可以选择一个不同的流派，不过你必须至少知道一个此流派的武功招式。即使你在高等级选择了一个不同的流派，你在早期选择的流派专攻能力也不会改变。</p>\n<p>流派专攻有以下几种方式：</p>\n<p>武器专攻：在第一级你获得你选择流派武器的武器专攻。见第4章流派描述。</p>\n<p>洞察打击（Insighful Strikes）：在第4级你可以选择一个流派，无论何时你使用此流派的打击技时你都可以在伤害骰上附加你的感知加值。在第12级你可以选择第二个流派附加此能力。</p>\n<p>防御步法（Defensive Stance）：在第8级当你使用你所选择的流派步法时你将在豁免上获得+2加值。在第16级你可以选择第二个流派附加此能力。</p>\n<p>你在使用武术知识（Martial Lore）辨识你所选择的流派时获得+2加值。</p>"
+      },
+      "shortDescription": "<p>流派专攻（Discipline Focus）（Ex）：</p>\n<p>作为贤者之剑你可以将你的选练专注于特定的流派使你在使用此流派战斗时获得优势。每次你获得流派专攻能力，从六个贤者之剑流派中选择一个来专攻。每次你获得流派专攻能力时你可以选择一个不同的流派，不过你必须至少知道一个此流派的武功招式。即使你在高等级选择了一个不同的流派，你在早期选择的流派专攻能力也不会改变。</p>\n<p>流派专攻有以下几种方式：</p>\n<p>武器专攻：在第一级你获得你选择流派武器的武器专攻。见第4章流派描述。</p>\n<p>洞察打击（Insighful Strikes）：在第4级你可以选择一个流派，无论何时你使用此流派的打击技时你都可以在伤害骰上附加你的感知加值。在第12级你可以选择第二个流派附加此能力。</p>\n<p>防御步法（Defensive Stance）：在第8级当你使用你所选择的流派步法时你将在豁免上获得+2加值。在第16级你可以选择第二个流派附加此能力。</p>\n<p>你在使用武术知识（Martial Lore）辨识你所选择的流派时获得+2加值。</p>",
+      "activation": {
+        "type": "special",
+        "cost": 0
+      },
+      "actionType": "special",
+      "abilityType": "ex",
+      "changes": [],
+      "uses": {
+        "value": 0,
+        "max": "",
+        "per": ""
+      },
+      "showInQuickbar": true
+    },
+    "flags": {
+      "samson-3r-automation": {
+        "key": "swordsage-feature-focus-defense-8",
+        "source": "tob",
+        "category": "feature",
+        "rulebook": "Tome of Battle: The Book of Nine Swords",
+        "ruleSource": {
+          "library": "expansions-2.40",
+          "internalPath": "7 扩展全新体系/ToB战斗卷册/1基础/贤者之剑.htm",
+          "sha256": "c0d9253aa43d52f18f10ffff126973478742e2e942b9b713860a53f4dc4f1302",
+          "encoding": "gb18030"
+        },
+        "martialClassFeature": {
+          "class": "swordsage",
+          "level": 8,
+          "op": "focus",
+          "uid": "samson-3r-automation.swordsage.focus-defense-8",
+          "revision": 1
+        },
+        "assignedIcon": "icons/svg/sword.svg",
+        "iconRevision": 3
+      }
+    }
+  },
+  {
+    "name": "反射闪避",
+    "type": "feat",
+    "img": "icons/svg/sword.svg",
+    "system": {
+      "featType": "classFeat",
+      "source": "贤者之剑 9",
+      "uniqueId": "samson-3r-automation.swordsage.evasion",
+      "associations": {
+        "classes": [
+          [
+            "贤者之剑",
+            9
+          ]
+        ]
+      },
+      "description": {
+        "value": "<p>反射闪避（Evasion）（Ex）：</p>\n<p>从第九级开始你能够以惊人的灵活避开魔法和不寻常的攻击。若有些攻击效果通过反射检定可以减少一半伤害，在通过反射检定后你将不受伤害。你只有在穿轻甲或不穿甲时才可以进行反射闪避。若你处于无助状态下则不能获得反射闪避的效果。</p>"
+      },
+      "shortDescription": "<p>反射闪避（Evasion）（Ex）：</p>\n<p>从第九级开始你能够以惊人的灵活避开魔法和不寻常的攻击。若有些攻击效果通过反射检定可以减少一半伤害，在通过反射检定后你将不受伤害。你只有在穿轻甲或不穿甲时才可以进行反射闪避。若你处于无助状态下则不能获得反射闪避的效果。</p>",
+      "activation": {
+        "type": "",
+        "cost": 0
+      },
+      "actionType": "",
+      "abilityType": "ex",
+      "changes": [],
+      "uses": {
+        "value": 0,
+        "max": "",
+        "per": ""
+      },
+      "showInQuickbar": false
+    },
+    "flags": {
+      "samson-3r-automation": {
+        "key": "swordsage-feature-evasion",
+        "source": "tob",
+        "category": "feature",
+        "rulebook": "Tome of Battle: The Book of Nine Swords",
+        "ruleSource": {
+          "library": "expansions-2.40",
+          "internalPath": "7 扩展全新体系/ToB战斗卷册/1基础/贤者之剑.htm",
+          "sha256": "c0d9253aa43d52f18f10ffff126973478742e2e942b9b713860a53f4dc4f1302",
+          "encoding": "gb18030"
+        },
+        "martialClassFeature": {
+          "class": "swordsage",
+          "level": 9,
+          "op": null,
+          "uid": "samson-3r-automation.swordsage.evasion",
+          "revision": 1
+        },
+        "assignedIcon": "icons/svg/sword.svg",
+        "iconRevision": 3
+      }
+    }
+  },
+  {
+    "name": "流派专攻：洞察打击Ⅱ",
+    "type": "feat",
+    "img": "icons/svg/sword.svg",
+    "system": {
+      "featType": "classFeat",
+      "source": "贤者之剑 12",
+      "uniqueId": "samson-3r-automation.swordsage.focus-strike-12",
+      "associations": {
+        "classes": [
+          [
+            "贤者之剑",
+            12
+          ]
+        ]
+      },
+      "description": {
+        "value": "<p>流派专攻（Discipline Focus）（Ex）：</p>\n<p>作为贤者之剑你可以将你的选练专注于特定的流派使你在使用此流派战斗时获得优势。每次你获得流派专攻能力，从六个贤者之剑流派中选择一个来专攻。每次你获得流派专攻能力时你可以选择一个不同的流派，不过你必须至少知道一个此流派的武功招式。即使你在高等级选择了一个不同的流派，你在早期选择的流派专攻能力也不会改变。</p>\n<p>流派专攻有以下几种方式：</p>\n<p>武器专攻：在第一级你获得你选择流派武器的武器专攻。见第4章流派描述。</p>\n<p>洞察打击（Insighful Strikes）：在第4级你可以选择一个流派，无论何时你使用此流派的打击技时你都可以在伤害骰上附加你的感知加值。在第12级你可以选择第二个流派附加此能力。</p>\n<p>防御步法（Defensive Stance）：在第8级当你使用你所选择的流派步法时你将在豁免上获得+2加值。在第16级你可以选择第二个流派附加此能力。</p>\n<p>你在使用武术知识（Martial Lore）辨识你所选择的流派时获得+2加值。</p>"
+      },
+      "shortDescription": "<p>流派专攻（Discipline Focus）（Ex）：</p>\n<p>作为贤者之剑你可以将你的选练专注于特定的流派使你在使用此流派战斗时获得优势。每次你获得流派专攻能力，从六个贤者之剑流派中选择一个来专攻。每次你获得流派专攻能力时你可以选择一个不同的流派，不过你必须至少知道一个此流派的武功招式。即使你在高等级选择了一个不同的流派，你在早期选择的流派专攻能力也不会改变。</p>\n<p>流派专攻有以下几种方式：</p>\n<p>武器专攻：在第一级你获得你选择流派武器的武器专攻。见第4章流派描述。</p>\n<p>洞察打击（Insighful Strikes）：在第4级你可以选择一个流派，无论何时你使用此流派的打击技时你都可以在伤害骰上附加你的感知加值。在第12级你可以选择第二个流派附加此能力。</p>\n<p>防御步法（Defensive Stance）：在第8级当你使用你所选择的流派步法时你将在豁免上获得+2加值。在第16级你可以选择第二个流派附加此能力。</p>\n<p>你在使用武术知识（Martial Lore）辨识你所选择的流派时获得+2加值。</p>",
+      "activation": {
+        "type": "special",
+        "cost": 0
+      },
+      "actionType": "special",
+      "abilityType": "ex",
+      "changes": [],
+      "uses": {
+        "value": 0,
+        "max": "",
+        "per": ""
+      },
+      "showInQuickbar": true
+    },
+    "flags": {
+      "samson-3r-automation": {
+        "key": "swordsage-feature-focus-strike-12",
+        "source": "tob",
+        "category": "feature",
+        "rulebook": "Tome of Battle: The Book of Nine Swords",
+        "ruleSource": {
+          "library": "expansions-2.40",
+          "internalPath": "7 扩展全新体系/ToB战斗卷册/1基础/贤者之剑.htm",
+          "sha256": "c0d9253aa43d52f18f10ffff126973478742e2e942b9b713860a53f4dc4f1302",
+          "encoding": "gb18030"
+        },
+        "martialClassFeature": {
+          "class": "swordsage",
+          "level": 12,
+          "op": "focus",
+          "uid": "samson-3r-automation.swordsage.focus-strike-12",
+          "revision": 1
+        },
+        "assignedIcon": "icons/svg/sword.svg",
+        "iconRevision": 3
+      }
+    }
+  },
+  {
+    "name": "流派专攻：防御架势Ⅱ",
+    "type": "feat",
+    "img": "icons/svg/sword.svg",
+    "system": {
+      "featType": "classFeat",
+      "source": "贤者之剑 16",
+      "uniqueId": "samson-3r-automation.swordsage.focus-defense-16",
+      "associations": {
+        "classes": [
+          [
+            "贤者之剑",
+            16
+          ]
+        ]
+      },
+      "description": {
+        "value": "<p>流派专攻（Discipline Focus）（Ex）：</p>\n<p>作为贤者之剑你可以将你的选练专注于特定的流派使你在使用此流派战斗时获得优势。每次你获得流派专攻能力，从六个贤者之剑流派中选择一个来专攻。每次你获得流派专攻能力时你可以选择一个不同的流派，不过你必须至少知道一个此流派的武功招式。即使你在高等级选择了一个不同的流派，你在早期选择的流派专攻能力也不会改变。</p>\n<p>流派专攻有以下几种方式：</p>\n<p>武器专攻：在第一级你获得你选择流派武器的武器专攻。见第4章流派描述。</p>\n<p>洞察打击（Insighful Strikes）：在第4级你可以选择一个流派，无论何时你使用此流派的打击技时你都可以在伤害骰上附加你的感知加值。在第12级你可以选择第二个流派附加此能力。</p>\n<p>防御步法（Defensive Stance）：在第8级当你使用你所选择的流派步法时你将在豁免上获得+2加值。在第16级你可以选择第二个流派附加此能力。</p>\n<p>你在使用武术知识（Martial Lore）辨识你所选择的流派时获得+2加值。</p>"
+      },
+      "shortDescription": "<p>流派专攻（Discipline Focus）（Ex）：</p>\n<p>作为贤者之剑你可以将你的选练专注于特定的流派使你在使用此流派战斗时获得优势。每次你获得流派专攻能力，从六个贤者之剑流派中选择一个来专攻。每次你获得流派专攻能力时你可以选择一个不同的流派，不过你必须至少知道一个此流派的武功招式。即使你在高等级选择了一个不同的流派，你在早期选择的流派专攻能力也不会改变。</p>\n<p>流派专攻有以下几种方式：</p>\n<p>武器专攻：在第一级你获得你选择流派武器的武器专攻。见第4章流派描述。</p>\n<p>洞察打击（Insighful Strikes）：在第4级你可以选择一个流派，无论何时你使用此流派的打击技时你都可以在伤害骰上附加你的感知加值。在第12级你可以选择第二个流派附加此能力。</p>\n<p>防御步法（Defensive Stance）：在第8级当你使用你所选择的流派步法时你将在豁免上获得+2加值。在第16级你可以选择第二个流派附加此能力。</p>\n<p>你在使用武术知识（Martial Lore）辨识你所选择的流派时获得+2加值。</p>",
+      "activation": {
+        "type": "special",
+        "cost": 0
+      },
+      "actionType": "special",
+      "abilityType": "ex",
+      "changes": [],
+      "uses": {
+        "value": 0,
+        "max": "",
+        "per": ""
+      },
+      "showInQuickbar": true
+    },
+    "flags": {
+      "samson-3r-automation": {
+        "key": "swordsage-feature-focus-defense-16",
+        "source": "tob",
+        "category": "feature",
+        "rulebook": "Tome of Battle: The Book of Nine Swords",
+        "ruleSource": {
+          "library": "expansions-2.40",
+          "internalPath": "7 扩展全新体系/ToB战斗卷册/1基础/贤者之剑.htm",
+          "sha256": "c0d9253aa43d52f18f10ffff126973478742e2e942b9b713860a53f4dc4f1302",
+          "encoding": "gb18030"
+        },
+        "martialClassFeature": {
+          "class": "swordsage",
+          "level": 16,
+          "op": "focus",
+          "uid": "samson-3r-automation.swordsage.focus-defense-16",
+          "revision": 1
+        },
+        "assignedIcon": "icons/svg/sword.svg",
+        "iconRevision": 3
+      }
+    }
+  },
+  {
+    "name": "精通反射闪避",
+    "type": "feat",
+    "img": "icons/svg/sword.svg",
+    "system": {
+      "featType": "classFeat",
+      "source": "贤者之剑 17",
+      "uniqueId": "samson-3r-automation.swordsage.improved-evasion",
+      "associations": {
+        "classes": [
+          [
+            "贤者之剑",
+            17
+          ]
+        ]
+      },
+      "description": {
+        "value": "<p>精通反射闪避（Improved Evasion）（Ex）：</p>\n<p>从第17级开始你获得精通反射闪避。若有些攻击效果通过反射检定可以减少一半伤害，你在通过反射检定后将不受伤害，如果检定失败你也只受到一半伤害。若你处于无助状态下则不能获得精通反射闪避的效果。</p>"
+      },
+      "shortDescription": "<p>精通反射闪避（Improved Evasion）（Ex）：</p>\n<p>从第17级开始你获得精通反射闪避。若有些攻击效果通过反射检定可以减少一半伤害，你在通过反射检定后将不受伤害，如果检定失败你也只受到一半伤害。若你处于无助状态下则不能获得精通反射闪避的效果。</p>",
+      "activation": {
+        "type": "",
+        "cost": 0
+      },
+      "actionType": "",
+      "abilityType": "ex",
+      "changes": [],
+      "uses": {
+        "value": 0,
+        "max": "",
+        "per": ""
+      },
+      "showInQuickbar": false
+    },
+    "flags": {
+      "samson-3r-automation": {
+        "key": "swordsage-feature-improved-evasion",
+        "source": "tob",
+        "category": "feature",
+        "rulebook": "Tome of Battle: The Book of Nine Swords",
+        "ruleSource": {
+          "library": "expansions-2.40",
+          "internalPath": "7 扩展全新体系/ToB战斗卷册/1基础/贤者之剑.htm",
+          "sha256": "c0d9253aa43d52f18f10ffff126973478742e2e942b9b713860a53f4dc4f1302",
+          "encoding": "gb18030"
+        },
+        "martialClassFeature": {
+          "class": "swordsage",
+          "level": 17,
+          "op": null,
+          "uid": "samson-3r-automation.swordsage.improved-evasion",
+          "revision": 1
+        },
+        "assignedIcon": "icons/svg/sword.svg",
+        "iconRevision": 3
+      }
+    }
+  },
+  {
+    "name": "双重强化",
+    "type": "feat",
+    "img": "icons/svg/sword.svg",
+    "system": {
+      "featType": "classFeat",
+      "source": "贤者之剑 20",
+      "uniqueId": "samson-3r-automation.swordsage.dual",
+      "associations": {
+        "classes": [
+          [
+            "贤者之剑",
+            20
+          ]
+        ]
+      },
+      "description": {
+        "value": "<p>双重强化（Dual Boost）（Ex）：</p>\n<p>当你达到20级时你可以同时使用两种强化技。无论何时你施展一个强化级你可以用一个自由动作同时是占领一个你所知的强化技。这两个强化技都正常耗费。此能力每天可以使用三次。</p>"
+      },
+      "shortDescription": "<p>双重强化（Dual Boost）（Ex）：</p>\n<p>当你达到20级时你可以同时使用两种强化技。无论何时你施展一个强化级你可以用一个自由动作同时是占领一个你所知的强化技。这两个强化技都正常耗费。此能力每天可以使用三次。</p>",
+      "activation": {
+        "type": "special",
+        "cost": 0
+      },
+      "actionType": "special",
+      "abilityType": "ex",
+      "changes": [],
+      "uses": {
+        "value": 0,
+        "max": "",
+        "per": ""
+      },
+      "showInQuickbar": true
+    },
+    "flags": {
+      "samson-3r-automation": {
+        "key": "swordsage-feature-dual",
+        "source": "tob",
+        "category": "feature",
+        "rulebook": "Tome of Battle: The Book of Nine Swords",
+        "ruleSource": {
+          "library": "expansions-2.40",
+          "internalPath": "7 扩展全新体系/ToB战斗卷册/1基础/贤者之剑.htm",
+          "sha256": "c0d9253aa43d52f18f10ffff126973478742e2e942b9b713860a53f4dc4f1302",
+          "encoding": "gb18030"
+        },
+        "martialClassFeature": {
+          "class": "swordsage",
+          "level": 20,
+          "op": "dual",
+          "uid": "samson-3r-automation.swordsage.dual",
+          "revision": 1
+        },
+        "assignedIcon": "icons/svg/sword.svg",
+        "iconRevision": 3
+      }
+    }
+  }
+]

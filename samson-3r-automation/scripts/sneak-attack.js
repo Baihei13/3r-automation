@@ -2,6 +2,7 @@ import { MODULE_ID } from "./catalog.js";
 import { effectIsActive } from "./effect-state.js";
 import { fragileState, weaponFor } from "./fragile.js";
 import { ItemUse } from "../../../systems/D35E/module/item/extensions/use.js";
+import { shadowConcealment } from "./martial-shadow.js";
 
 // PF Unchained Rogue / CRB flanking; 3.5 SRD Rogue has different concealment/type restrictions.
 const key=item=>item?.getFlag(MODULE_ID,"key");
@@ -142,6 +143,23 @@ function opposite(a,b,target) {
   }
   return false;
 }
+function islandStance(actor) {
+  // The live effect is authoritative. Learning a stance or an old selection
+  // flag alone must not grant it after switching, disabling or deleting it.
+  return actor.items.some(item=>item.type==="buff"&&effectIsActive(item)
+    &&item.flags?.[MODULE_ID]?.martialEffect?.stance
+    &&item.flags[MODULE_ID].martialEffect.definition==="island-of-blades");
+}
+function adjacent(a,b) {
+  if(a.document.level!=null&&b.document.level!=null&&a.document.level!==b.document.level)return false;
+  if(Number(a.document.elevation||0)!==Number(b.document.elevation||0))return false;
+  if(a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y)return false;
+  // Any occupied square may touch an enemy square, including diagonally.
+  // Adjacency is a grid relation, not a fixed 5-ft ruler or opposite-side test.
+  const size=canvas.grid.size;
+  return centers(a).some(p=>centers(b).some(q=>Math.abs(p.x-q.x)<=size+1e-6
+    &&Math.abs(p.y-q.y)<=size+1e-6));
+}
 function flank(source,target,item) {
   if(item.system.actionType!=="mwak")return {value:false};
   if(target.actor.system.attributes?.creatureType==="ooze"||elemental(target.actor))return {value:false,reason:"目标类型不能被夹击"};
@@ -153,17 +171,27 @@ function flank(source,target,item) {
   }
   const ownThreat=threatens(source,target,item);
   if(ownThreat.value!==true)return {value:ownThreat.value,reason:`攻击者：${ownThreat.reason}`};
-  const disposition=source.document.disposition;
-  if(!disposition)return {value:null,reason:"中立Token的盟友关系待GM裁定"};
+  const disposition=Number(source.document.disposition),enemy=Number(target.document.disposition);
+  const sides=[CONST.TOKEN_DISPOSITIONS.FRIENDLY,CONST.TOKEN_DISPOSITIONS.HOSTILE];
+  if(!sides.includes(disposition)||!sides.includes(enemy))return {value:null,reason:"中立或未指定阵营的Token，敌我关系未明确"};
+  if(disposition===enemy)return {value:false,reason:"攻击者与目标是同一阵营，未形成对敌夹击"};
+  const island=islandStance(source.actor),near=adjacent(source,target);
   let unknown=false;
   const failures=new Set();
   for(const ally of canvas.tokens.placeables) {
-    if(ally.id===source.id||ally.id===target.id||!ally.actor||ally.document.disposition!==disposition)continue;
+    if(ally.id===source.id||ally.id===target.id||!ally.actor||Number(ally.document.disposition)!==disposition)continue;
     if(!game.user.isGM&&(!ally.isVisible||ally.document.hidden))continue;
+    const name=ally.document.name??ally.actor.name;
+    // Island of Blades grants this benefit to BOTH adjacent allies. It does
+    // not require them to stand opposite each other or both know the stance.
+    if(near&&adjacent(ally,target)&&(island||islandStance(ally.actor))) {
+      if(clearLine(ally,target)&&clearLine(ally,target,"move"))
+        return {value:true,reason:`剑刃外壳：你与${name}均与敌人相邻`};
+      failures.add(`剑刃外壳：${name}与敌人之间有墙壁阻挡`);
+    }
     const positions=centers(source).some(p=>centers(ally).some(q=>opposite(p,q,target)));
     if(!positions)continue;
     const threat=threatens(ally,target);unknown ||= threat.value===null;
-    const name=ally.document.name??ally.actor.name;
     if(threat.value===true)return {value:true,reason:`${name}从相对边威胁目标`};
     failures.add(`${name}：${threat.reason}`);
   }
@@ -291,7 +319,7 @@ export function evaluateSneak(item,context={}) {
     }
     const inherent=Boolean(item.system.nonLethal||item.system.nonLethalNoPenalty);
     if(context.nonLethal&&!inherent)return stop("致命武器改作非致命攻击不能偷袭");
-    const concealment=Number(target.actor.system.attributes?.concealment?.total)||0;
+    const concealment=Math.max(Number(target.actor.system.attributes?.concealment?.total)||0,shadowConcealment(target.actor,target));
     if(concealment>=(pf?50:1)&&!blindsight(source,target))return stop(pf?"目标有全隐蔽":"3R偷袭不能对隐蔽目标使用");
     const type=target.actor.system.attributes?.creatureType;
     if(elemental(target.actor)||(!pf&&["undead","construct","ooze","plant"].includes(type))||pf&&type==="ooze")return stop("此规则下该生物类型免疫偷袭");
@@ -349,7 +377,20 @@ export function finishSneakAttack(chat,options) {
   if(!options.critical&&chat._threeRSneak)chat.attack.threeRSneak={...chat._threeRSneak};
 }
 
-const openAttacks=new Set(),dialogAttacks=new WeakMap(),attackForms=new WeakMap();
+const openAttacks=new Set(),dialogAttacks=new WeakMap(),attackForms=new WeakMap(),attackObservers=new Map();
+let dialogFrame=null;
+function refreshAttackDialogs() {
+  if(!attackObservers.size||dialogFrame!==null)return;
+  // Only open native attack dialogs observe changes. Coalesce UI work; never
+  // update an Actor, recalculate a sheet or retain a movement task queue.
+  dialogFrame=requestAnimationFrame(()=>{
+    dialogFrame=null;
+    for(const [app,observer] of attackObservers) {
+      if(!observer.form.isConnected){attackObservers.delete(app);continue;}
+      observer.refresh();
+    }
+  });
+}
 function attackDialog(app,html) {
   const root=html?.[0]??html;
   const form=root?.matches?.("form.attack-form")?root:root?.querySelector?.("form.attack-form");
@@ -367,6 +408,9 @@ function attackDialog(app,html) {
   const state={sourceId:source?.id};attackForms.set(form,state);
   const box=form.querySelector('[name="flanking"]');
   if(!box)return;
+  const note=document.createElement("p");note.className="three-r-flanking-status";
+  const section=box.closest(".form-group")?.parentElement;
+  if(section)section.insertAdjacentElement("afterend",note);else form.append(note);
   const refresh=()=> {
     const targetIds=form.querySelector('[name="target-ids"]')?.value.split(";").filter(Boolean)??[...game.user.targets].map(t=>t.id);
     let result;
@@ -375,11 +419,12 @@ function attackDialog(app,html) {
     catch(error){console.error(MODULE_ID,"攻击窗口判定程序错误",error);result={flankingError:true,flankingReason:"自动夹击判定发生程序错误"};}
     box.checked=Boolean(result.flanking);
     box.title=result.flankingReason??"自动判断夹击；可使用原有勾选指定本次夹击，偷袭仍检查其他条件";
+    note.textContent=`${result.flanking?"夹击 +2":result.flankingPending?"夹击未能确认":"未获得夹击加值"}：${result.flankingReason||result.reason||"未形成夹击"}`;
   };
   form.addEventListener("change",event=> {
     if(event.target===box)state.flanking=box.checked;
     refresh();
-  });refresh();
+  });attackObservers.set(app,{form,refresh});refresh();
 }
 
 export function installSneakRules() {
@@ -410,10 +455,32 @@ export function installSneakRules() {
     const context={item:this.item,actor:owner,title:`${game.i18n.localize("D35E.Use")}: ${this.item.name} - ${owner.name}`};
     openAttacks.add(context);
     try {return await useAttack.call(this,options,actor,...rest);}
-    finally {openAttacks.delete(context);}
+    finally {openAttacks.delete(context);if(context.dialog)attackObservers.delete(context.dialog);}
   };
   Hooks.on("renderDialog",(app,html)=> {
     try {attackDialog(app,html);}catch(error){console.error(MODULE_ID,"攻击窗口",error);}
+  });
+  Hooks.on("closeDialog",app=>attackObservers.delete(app));
+  Hooks.on("updateToken",(token,change)=>{
+    if(!attackObservers.size||token.parent?.id!==canvas.scene?.id)return;
+    if(["x","y","width","height","elevation","level","disposition","hidden"].some(k=>Object.hasOwn(change,k)))refreshAttackDialogs();
+  });
+  Hooks.on("moveToken",token=>{if(token.parent?.id===canvas.scene?.id)refreshAttackDialogs();});
+  for(const event of ["createToken","deleteToken"])Hooks.on(event,token=>{
+    if(token.parent?.id===canvas.scene?.id)refreshAttackDialogs();
+  });
+  for(const event of ["createItem","deleteItem"])Hooks.on(event,item=>{
+    if(item.actor&&["buff","aura","weapon","attack","feat","class","race"].includes(item.type))refreshAttackDialogs();
+  });
+  Hooks.on("updateItem",(item,change)=>{
+    if(!attackObservers.size||!item.actor)return;
+    const flat=foundry.utils.flattenObject(change);
+    if(Object.keys(flat).some(k=>k.startsWith("system.")||k.startsWith(`flags.${MODULE_ID}.martialEffect`)))refreshAttackDialogs();
+  });
+  Hooks.on("updateActor",(actor,change)=>{
+    if(!attackObservers.size)return;
+    const flat=foundry.utils.flattenObject(change);
+    if(Object.keys(flat).some(k=>k.startsWith("system.attributes.conditions")||k.startsWith("system.traits.")||k.startsWith("flags.D35E.")))refreshAttackDialogs();
   });
   Hooks.on("renderChatMessageHTML",(message,html)=> {
     if(!message.isContentVisible||message.flags?.D35E?.template!=="systems/D35E/templates/chat/attack-roll.html")return;

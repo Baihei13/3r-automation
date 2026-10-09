@@ -6,6 +6,8 @@ import { pfSpellVariant } from "./spell-utilities.js";
 import { automatedSpellActionRepairs } from "./spell-actions.js";
 import { casterClassRepairs, casterBookRepairs } from "./caster-setup.js";
 import { contentIconRepairs } from "./content-icons.js";
+import { martialSpellRepairs } from "./martial-template.js";
+import { pfFoundationRepairs } from "./pf-character-foundation.js";
 
 const seeds = new Map([...Object.values(ITEMS).flat(), ...Object.values(CHARACTER_ITEMS).flat()]
   .map(item => [`${item.flags[MODULE_ID].source}:${item.flags[MODULE_ID].key}`, item]));
@@ -41,6 +43,9 @@ function addCounters(value, additions) {
 // Repair only module-owned fields and known old formulas; retain user edits.
 export function itemRepairs(item) {
   const mark = item.flags?.[MODULE_ID];
+  if(mark?.martial?.definition)return {...martialSpellRepairs(item),...contentIconRepairs(item)};
+  // PF1 library entries carry their own class level and original source fields.
+  if(mark?.pfLibrarySpell)return {};
   const source = SOURCES[mark?.key==="weapon-finesse"?"pf":mark?.source];
   if (!mark?.key || !source) {
     const update={};
@@ -218,6 +223,7 @@ export function itemRepairs(item) {
   if (seed?.system.requirements?.length && !system.requirements?.length)
     update["system.requirements"] = seed.system.requirements;
   if(mark.key==="shadow-blade"&&system.requirements?.some(row=>row[1]==="0"))update["system.requirements"]=seed.system.requirements;
+  Object.assign(update,pfFoundationRepairs(item,seed));
   return finishTextRepairs(item,update);
 }
 

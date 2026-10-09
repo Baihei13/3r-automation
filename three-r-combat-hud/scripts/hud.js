@@ -1,10 +1,11 @@
 import { MODULE_ID, HudStore } from "./state.js";
-import { TABS, ACTION_ORDER, owned, actorChoices, actorResources, itemCards, spellResources, targetCards, checkCards, defenseCards, reminderView, finite, commonAvailability, availabilitySections, AVAILABILITY_TABS } from "./model.js";
+import { TABS, ACTION_ORDER, owned, actorChoices, actorResources, itemCards, spellResources, spellSources, targetCards, checkCards, defenseCards, reminderView, finite, commonAvailability, availabilitySections, AVAILABILITY_TABS } from "./model.js";
 import { useNative, postHudAction, reportError } from "./actions.js";
 import { COMMON_ACTIONS } from "./common-actions.js";
 import { movementState, startStep, resetMovement } from "./movement.js";
 import { THEMES, LAYOUTS, appearanceContext, applyAppearance } from "./appearance.js";
 import { HudFrame } from "./frame.js";
+import { automationApi } from "./integration.js";
 
 const App = foundry.applications.api.HandlebarsApplicationMixin(foundry.applications.api.ApplicationV2);
 
@@ -120,6 +121,9 @@ export class ThreeRCombatHud extends App {
     const max = finite(hp.max);
     const value = finite(hp.value);
     const resources = spellResources(actor);
+    const sources=spellSources(actor,resources),selectedSource=sources.find(book=>book.id===this.book);
+    const hasMartial=sources.some(book=>book.martial);
+    const levelLabel=level=>selectedSource?.martial?`${level}级`:selectedSource||!hasMartial?`${level}环`:`${level}环／级`;
     const targets = targetCards();
     const reminderContext = this.store.context(actor, choice.token);
     const reminder = reminderView(actor, choice.token, this.store, reminderContext);
@@ -157,14 +161,14 @@ export class ThreeRCombatHud extends App {
       defenses: defenseCards(actor), saves: checkCards(actor).saves, movement: Object.fromEntries(Object.entries(movementState(choice.token)).map(([key,value])=>[key,typeof value === "number" ? Math.round(value * 100) / 100 : value])),
       stripActions: ACTION_ORDER.map(id=>({...reminder.actions.find(action=>action.id===id),active:this.actionFilter===id})),
       actionFilterName:reminder.actions.find(action=>action.id===this.actionFilter)?.name??"",
-      filterBook: this.tab === "spells" ? resources.find(book => book.id === this.book)?.name ?? "" : "",
-      filterLevel: this.tab === "spells" && this.level !== "" ? `${this.level}环` : "",
+      filterBook: this.tab === "spells" ? selectedSource?.name ?? "" : "",
+      filterLevel: this.tab === "spells" && this.level !== "" ? levelLabel(this.level) : "",
       targets, hasTargets: targets.length > 0,
       cards: cards.map(({ item, ...entry }) => entry), hasCards: Boolean(cards.length), checks,
       reminder, inCombat: Boolean(reminderContext.combatId), round: reminderContext.round,
       canEndTurn: Boolean(choice.token && game.combat?.started && game.user.isGM && game.combat.current?.tokenId === choice.token.id),
-      books: [{ id: "", name: "全部职业／法术书", selected: !this.book }, ...resources.map(book => ({ id: book.id, name: book.name, selected: this.book === book.id }))],
-      levels: [{ id: "", name: "全部环级", selected: this.level === "" }, ...Array.from({ length: 10 }, (_, level) => ({ id: String(level), name: `${level}环`, selected: this.level === String(level) }))]
+      books: [{ id: "", name: hasMartial?"全部法术／武术来源":"全部职业／法术书", selected: !this.book }, ...sources.map(book => ({ id: book.id, name: book.name, selected: this.book === book.id }))],
+      levels: [{ id: "", name: hasMartial?"全部环级／武术等级":"全部环级", selected: this.level === "" }, ...Array.from({ length: 10 }, (_, level) => ({ id: String(level), name: levelLabel(level), selected: this.level === String(level) }))]
     };
   }
 
@@ -188,8 +192,17 @@ export class ThreeRCombatHud extends App {
     root.style.setProperty("--trh-panel-alpha", String(context.layout === "command" && context.solidPanels ? .94 : context.opacity));
     const sidebar = document.getElementById("sidebar");
     const bounds = sidebar?.getBoundingClientRect();
-    const clearance = bounds && bounds.right >= window.innerWidth - 5 && bounds.width > 60 ? bounds.width : 0;
+    // v13 slides the content beyond the viewport when collapsed. Only the
+    // visible sidebar strip should reserve map space, not its off-screen width.
+    const clearance = bounds && bounds.right >= window.innerWidth - 5
+      ? Math.max(0, Math.min(bounds.right, window.innerWidth) - Math.max(bounds.left, 0)) : 0;
     root.style.setProperty("--trh-sidebar-width", `${clearance}px`);
+    // collapseSidebar fires before the native 250ms margin transition finishes.
+    // Refresh its final geometry too; the render's AbortController cleans this up.
+    sidebar?.addEventListener("transitionend", event => {
+      if (["sidebar", "sidebar-content"].includes(event.target.id)
+        && ["margin-left", "margin-right", "width", "transform"].includes(event.propertyName)) this.refresh();
+    }, listenerOptions);
     this.frame.bind(root, listenerOptions);
     const grid = root.querySelector(".trh-grid");
     if (grid) grid.scrollTop = this.scroll;
@@ -319,7 +332,7 @@ export class ThreeRCombatHud extends App {
     if (action === "rest") return actor.promptRest();
     if (action === "reset-movement") { if(!await resetMovement(token)){ui.notifications.info("战斗外不记录移动距离，无需更正。");return;} await postHudAction(actor,token,{label:"更正移动记录",detail:"已清空本轮移动记录。",context}); this.refresh(); return; }
     if (action === "step") {
-      game.modules.get("samson-3r-automation")?.api?.checkConditionAction?.(actor,null,{kind:"move",common:"step"});
+      automationApi()?.checkConditionAction?.(actor,null,{kind:"move",common:"step"});
       if(movementState(token).stepping){ui.notifications.info("本回合已经启用五尺快步。");return;}
       await startStep(token);
       this.store.record(context, "free", "五尺快步", true);
@@ -335,7 +348,7 @@ export class ThreeRCombatHud extends App {
       if (availability.unavailable) { ui.notifications.warn(availability.reason); this.status=availability.reason; this.refresh(); return; }
       if (entry.id === "movement-correction") return this.handle("reset-movement",data,event);
       if (entry.id === "step") return this.handle("step", data, event);
-      game.modules.get("samson-3r-automation")?.api?.checkConditionAction?.(actor,null,{kind:entry.kind,common:entry.id});
+      automationApi()?.checkConditionAction?.(actor,null,{kind:entry.kind,common:entry.id});
       if (["charge", "defensive", "aao"].includes(entry.id)) {
         const attacks = actor.items.filter(item => item.type === "attack" && item.system.actionType === "mwak");
         if (!attacks.length) { ui.notifications.warn("请先从武器页生成一个近战攻击方式。"); return; }
@@ -346,8 +359,7 @@ export class ThreeRCombatHud extends App {
         if (attack && this.selection().choice?.key===choice.key) return this.handle("use", { itemId: attack, common: entry.id }, event);
         return;
       }
-      const module = game.modules.get("samson-3r-automation");
-      const api = module?.active ? module.api : null;
+      const api = automationApi();
       const conditionOperations={"first-aid":"aid","wake-fascinated":"wake","escape-grapple":"escape"};
       const operation=entry.id==="coup"?"coup":conditionOperations[entry.id];
       if(operation&&api?.conditionOperation){
@@ -426,6 +438,7 @@ export class ThreeRCombatHud extends App {
       else if (result.state === "handled") this.status = "能力选项已处理，动作记录未增加。";
       else if (result.state === "details") this.status = "已打开条目详情。";
       else if (result.state === "blocked") this.status = result.reason;
+      else if (result.state === "pending") this.status = result.reason||"武术操作尚未完成，动作记录未增加。";
       else if (result.state === "toggled") this.status = "已切换效果状态。";
       else this.status = "未收到明确的动作完成结果；如已使用，请手动补记。";
     } catch (error) { this.status = "本次操作出现错误，动作记录未增加。"; throw error; }

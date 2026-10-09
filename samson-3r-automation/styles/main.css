@@ -25,3 +25,6 @@
 .three-r-spell-resolution label { display: flex; align-items: center; gap: 6px; margin: 5px 0; }
 .three-r-spell-options { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
 .three-r-spell-options button { flex: 1 1 90px; width: auto; min-height: 30px; }
+.d35e.sheet.item .three-r-pf-character-choice { display:block; width:100%; min-height:34px; margin:6px 0; padding:5px 10px; background:#314852; color:#fff; border:1px solid #8b6843; font-weight:600; }
+.d35e.sheet.item .three-r-pf-character-choice:hover,
+.d35e.sheet.item .three-r-pf-character-choice:focus-visible { background:#496573; color:#fff; outline:2px solid #b68d4c; }

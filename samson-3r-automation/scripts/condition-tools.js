@@ -2,6 +2,7 @@ import { MODULE_ID } from "./catalog.js";
 import { conditionName, CONDITION_NAMES, conditionState, conditionContext } from "./condition-state.js";
 import { syncNativeConditions } from "./native-conditions.js";
 import { conditionRule } from "./condition-rules.js";
+import { conditionActorLive, reconcileConditionJob } from "./condition-jobs.js";
 
 const esc=text=>foundry.utils.escapeHTML(String(text??""));
 const queues=new Map();
@@ -12,7 +13,10 @@ export function registerConditionTools() {
   game.settings.registerMenu(MODULE_ID,"conditionTools",{name:"状态与来源",label:"打开状态与来源",hint:"施加、解除状态，记录恐惧来源、擒抱对手和原生形态。",icon:"fas fa-link",type:ConditionMenu,restricted:false});
 }
 export const actorQueue=(actor,work)=>{
-  const task=(queues.get(actor.uuid)??Promise.resolve()).catch(()=>{}).then(work);
+  const task=(queues.get(actor.uuid)??Promise.resolve()).catch(()=>{}).then(async()=>{
+    if(!conditionActorLive(actor))return;
+    try{return await work();}catch(error){if(conditionActorLive(actor))throw error;}
+  });
   queues.set(actor.uuid,task);
   return task.finally(()=>{if(queues.get(actor.uuid)===task)queues.delete(actor.uuid);});
 };
@@ -22,11 +26,13 @@ const selectedSource=actor=>{
 };
 export async function applyCondition(actor,id,{seconds=null,sourceActor=selectedSource(actor),sourceItemUuid=null,sourceName=null,context={},start=game.time.worldTime,receipt=null}={}) {
   if(!actor?.isOwner||!CONDITION_NAMES[id])throw new Error("状态或角色编辑权限无效。");
+  if(!conditionActorLive(actor))return null;
   if(seconds!==null&&(!Number.isFinite(seconds)||seconds<=0))throw new Error("状态持续时间必须为正数，或留空表示没有记录结束时间。");
   if(!Number.isFinite(start))throw new Error("状态的开始时间无效。");
   if(seconds!==null&&start+seconds<=game.time.worldTime)return null;
   if(sourceItemUuid) {
     const source=await fromUuid(sourceItemUuid).catch(()=>null);
+    if(!conditionActorLive(actor))return null;
     if(!source)throw new Error("找不到状态的法术或能力来源。");
     sourceActor=source.actor?.uuid??sourceActor;sourceName??=source.name;
   }
@@ -38,8 +44,10 @@ export async function applyCondition(actor,id,{seconds=null,sourceActor=selected
   if(["polymorphed","wildshaped"].includes(id)&&!context.formUuid)throw new Error("请先选择原生变形条目，并在状态来源中记录其UUID；状态图标不能替代形态。");
   if(context.formUuid) {
     const form=await fromUuid(context.formUuid).catch(()=>null);
+    if(!conditionActorLive(actor))return null;
     if(form?.type!=="buff"||form.actor?.uuid!==actor.uuid||form.system.buffType!=="shapechange")throw new Error("请使用这个角色自身的原生变形增益条目UUID。");
     if(!form.system.active)await form.update({"system.active":true});
+    if(!conditionActorLive(actor)||actor.items.get(form.id)!==form)return null;
     if(["polymorphed","wildshaped"].includes(id)) {
       await form.update({[`flags.${MODULE_ID}.nativeConditions`]:[...new Set([...(form.getFlag(MODULE_ID,"nativeConditions")??[]),id])],
         [`flags.${MODULE_ID}.conditionContext`]:context,[`flags.${MODULE_ID}.sourceActor`]:sourceActor,[`flags.${MODULE_ID}.sourceItemUuid`]:sourceItemUuid,
@@ -62,7 +70,9 @@ export async function applyCondition(actor,id,{seconds=null,sourceActor=selected
   return actorQueue(actor,async()=>{
     if(receipt){const previous=actor.items.find(item=>item.getFlag(MODULE_ID,"conditionReceipt")===receipt);if(previous)return previous;}
     const [item]=await actor.createEmbeddedDocuments("Item",[data]);
-    await syncNativeConditions(actor);await syncConditionMarkers(actor);await actor.refresh();
+    if(!conditionActorLive(actor))return;
+    await syncNativeConditions(actor);await syncConditionMarkers(actor);
+    if(!conditionActorLive(actor))return;
     await ChatMessage.create({speaker:ChatMessage.getSpeaker({actor}),content:`<p>${esc(actor.name)}进入<strong>${esc(conditionName(id))}</strong>状态${sourceName?`，来源：${esc(sourceName)}`:""}。</p>`});
     return item;
   });
@@ -76,22 +86,35 @@ export async function clearCondition(actor,id) {
         ...(!remaining.length&&(!item.system.changes?.length||["polymorphed","wildshaped"].includes(id)&&item.system.buffType==="shapechange")?{"system.active":false}:{})};
     });
     if(updates.length)await actor.updateEmbeddedDocuments("Item",updates);
-    const effects=actor.effects.filter(effect=>effect.statuses?.has(id));
-    if(effects.length)await actor.deleteEmbeddedDocuments("ActiveEffect",effects.map(effect=>effect.id));
+    if(!conditionActorLive(actor))return;
     const native=Object.hasOwn(actor.system.attributes.conditions,id);
     await actor.update({[native?`system.attributes.conditions.${id}`:`flags.${MODULE_ID}.conditions.${id}`]:false});
-    await syncNativeConditions(actor);await syncConditionMarkers(actor);await actor.refresh();
+    if(!conditionActorLive(actor))return;
+    // Native icons are already reconciled by actor.update. Our own markers
+    // have one writer below; do not race that writer to delete the same ID.
+    const effects=actor.effects.filter(effect=>effect.statuses?.has(id)&&!effect.getFlag(MODULE_ID,"conditionMarker"));
+    if(effects.length)await actor.deleteEmbeddedDocuments("ActiveEffect",effects.map(effect=>effect.id),{stopUpdates:true,threeRConditionMarker:true});
+    await syncNativeConditions(actor);await syncConditionMarkers(actor);
   });
 }
-export async function syncConditionMarkers(actor) {
-  if(game.users.activeGM!==game.user||!actor?.isOwner)return;
+export function syncConditionMarkers(actor) {
+  if(game.users.activeGM!==game.user||!actor?.isOwner)return Promise.resolve();
+  return reconcileConditionJob(actor,"markers",async()=>{
   const c=conditionState(actor),existing=actor.effects.filter(effect=>effect.getFlag(MODULE_ID,"conditionMarker"));
   const active=Object.keys(CONDITION_NAMES).filter(id=>c[id]&&!CONFIG.D35E.conditions[id]);
-  const old=existing.filter(effect=>!active.includes(effect.getFlag(MODULE_ID,"conditionMarker")));
-  if(old.length)await actor.deleteEmbeddedDocuments("ActiveEffect",old.map(effect=>effect.id),{threeRConditionMarker:true});
-  const needed=active.filter(id=>!actor.effects.some(effect=>!effect.disabled&&effect.statuses?.has(id)));
+  const seen=new Set(),old=existing.filter(effect=>{
+    const id=effect.getFlag(MODULE_ID,"conditionMarker");
+    if(!active.includes(id)||effect.disabled||seen.has(id))return true;
+    seen.add(id);return false;
+  });
+  const ids=old.map(effect=>effect.id).filter(id=>actor.effects.has(id));
+  if(ids.length)await actor.deleteEmbeddedDocuments("ActiveEffect",ids,{stopUpdates:true,threeRConditionMarker:true});
+  if(!conditionActorLive(actor))return;
+  const current=conditionState(actor);
+  const needed=active.filter(id=>current[id]&&!actor.effects.some(effect=>!effect.disabled&&effect.statuses?.has(id)));
   if(needed.length)await actor.createEmbeddedDocuments("ActiveEffect",needed.map(id=>({name:conditionName(id),img:conditionRule(id)?.img??"icons/svg/aura.svg",
-    statuses:[id],changes:[],flags:{[MODULE_ID]:{conditionMarker:id}}})),{threeRConditionMarker:true});
+    statuses:[id],changes:[],flags:{[MODULE_ID]:{conditionMarker:id}}})),{stopUpdates:true,threeRConditionMarker:true});
+  });
 }
 export async function editConditionContext(actor,id=null) {
   actor??=canvas.tokens.controlled[0]?.actor??game.user.character;

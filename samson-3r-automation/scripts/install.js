@@ -1,22 +1,28 @@
 import { MODULE_ID, SOURCES, ITEMS, DOMAIN_SPELLS } from "./catalog.js";
 import { installAdditionalCharacters } from "./characters-install.js";
 import { itemRepairs, repairOwnedItems } from "./item-data.js";
+import { applyMartialRepair } from "./martial-template.js";
 import { registerSeeds, ruleSection } from "./content.js";
-import { COMMON_GEAR } from "./common-gear.js";
 import { CARD_SPELLS, CARD_GEAR, WING_FAMILIAR } from "./current-card-data.js";
-
+import { COMMON_GEAR } from "./common-gear.js";
+import { CLERIC_SPELLS } from "./cleric-content.js";
+import { installPF1Library } from "./pf1-content.js";
+import { installMartialLibrary } from "./martial-content.js";
 
 const clone = value => foundry.utils.deepClone(value);
 const marked = item => item.flags?.[MODULE_ID]?.key;
 const LIBRARY_FOLDER = "3r自动化";
 const CATEGORIES = {
-  race: "种族", racial:"种族特性", class: "职业", feat: "专长", feature: "职业能力",
+  race: "种族", racial:"种族特性", class: "职业", archetype:"职业变体", feat: "专长", feature: "职业能力",
   spell: "法术", weapon: "武器", equipment: "防具", consumable: "消耗品",
   hex: "巫术", curse: "诅咒", revelation: "启示", trait: "背景特性",
-  mystery: "秘示域", patron: "庇护主", item: "物品"
+  mystery: "秘示域", patron: "庇护主", item: "物品", martial:"武技与架势"
 };
 
 function category(item) {
+  if(item.flags?.[MODULE_ID]?.catalogAlias)return "旧角色兼容（新角色请选PF人类）";
+  const martial=item.flags?.[MODULE_ID]?.martial;
+  if(martial)return `武技与架势 · ${martial.disciplineName}`;
   const explicit = item.flags?.[MODULE_ID]?.category;
   if (explicit) return CATEGORIES[explicit] ?? explicit;
   if (item.type === "feat" && item.system?.featType !== "feat") return CATEGORIES.feature;
@@ -60,14 +66,24 @@ async function ensureItems(pack, entries) {
     const folder = folders.get(category(expected(item)));
     const seed = entries.find(entry => marked(entry) === marked(item));
     const update = itemRepairs(item);
+    if(marked(item)==="dual-cursed-oracle"&&item.type==="class"&&seed?.type==="feat") {
+      // Library only: change the definition with native forced replacement.
+      // Owned legacy classes keep their type, ID, levels and spellbook tag.
+      const system=clone(game.model.Item.feat??{});
+      for(const template of system.templates??[])foundry.utils.mergeObject(system,clone(game.model.Item.templates?.[template]??{}));
+      delete system.templates;foundry.utils.mergeObject(system,clone(seed.system));
+      for(const field of Object.keys(update))if(field.startsWith("system."))delete update[field];
+      Object.assign(update,{type:"feat","==system":system,[`flags.${MODULE_ID}.archetype`]:clone(seed.flags[MODULE_ID].archetype),[`flags.${MODULE_ID}.category`]:"archetype"});
+      if(!item.getFlag(MODULE_ID,"legacyDualDefinition"))update[`flags.${MODULE_ID}.legacyDualDefinition`]={type:"class",system:clone(item.system)};
+    }
     if (item.folder?.id !== folder.id) update.folder = folder.id;
     // Only migrate names that still equal the old English source or one of its aliases.
     const translated = seed?.type === "spell" ? translatedSpellName(item) : null;
     if (translated && seed.name === translated) update.name = translated;
     if (seed?.type === "feat" && !["计划领域", "战争领域"].includes(marked(item))
-      && item.system.featType !== seed.system.featType)
+      && !update.type && item.system.featType !== seed.system.featType)
       update["system.featType"] = seed.system.featType;
-    if (Object.keys(update).length) await item.update(update);
+    if (Object.keys(update).length) await applyMartialRepair(item,update);
   }
 }
 
@@ -155,6 +171,7 @@ const SPELL_ALIASES = {
 
 const SPELL_NAMES = {
   "Divine Favor": "神恩", Deathwatch: "死亡侦测", Augury: "卜筮术",
+  "Read Magic":"阅读魔法",
   "Cure Light Wounds":"治疗轻伤", "Inflict Light Wounds":"造成轻伤",
   "Clairaudience/Clairvoyance": "锐耳术／鹰眼术", Status: "状态术",
   "Detect Scrying": "侦测探知", "Heroes' Feast": "英雄宴",
@@ -162,7 +179,7 @@ const SPELL_NAMES = {
   "Magic Weapon": "魔化武器", "Spiritual Weapon": "灵能武器", "Magic Vestment": "魔化防具",
   "Divine Power": "神能", "Flame Strike": "焰击术", "Blade Barrier": "剑刃障壁",
   "Power Word Blind": "律令目盲", "Power Word Stun": "律令震慑", "Power Word Kill": "律令死亡",
-  "Read Magic":"阅读魔法", Message: "传讯术", Erase: "抹消术", Identify: "鉴定术",
+  Message: "传讯术", Erase: "抹消术", Identify: "鉴定术",
   "Unseen Servant": "隐形仆役", "Fox's Cunning": "狐之狡黠",
   "Illusory Script": "幻影文字", "Secret Page": "秘密书页", Tongues: "巧言术",
   "Analyze Dweomer": "解析魔法", Sequester: "隐匿术", Vision: "异象术"
@@ -177,7 +194,7 @@ function translatedSpellName(item) {
 }
 
 async function coreSpells() {
-  const names = [...new Set(["Read Magic","Divine Favor","Cure Light Wounds","Inflict Light Wounds", ...Object.values(DOMAIN_SPELLS).flat()])];
+  const names = [...new Set(["Divine Favor","Cure Light Wounds","Inflict Light Wounds","Read Magic", ...Object.values(DOMAIN_SPELLS).flat()])];
   const entries = [];
   const missing = [];
   for (const name of names) {
@@ -218,8 +235,9 @@ export async function installSamson() {
     ?? await Folder.create({ name: LIBRARY_FOLDER, type: "Compendium" });
   const packs = {};
   for (const source of Object.keys(SOURCES)) {
+    if(SOURCES[source].libraryOnly)continue;
     packs[source] = await sourcePack(source, folder);
-    await ensureItems(packs[source], [...(ITEMS[source]??[]),...COMMON_GEAR.filter(item=>item.flags[MODULE_ID].source===source)]);
+    await ensureItems(packs[source], [...(ITEMS[source] ?? []), ...COMMON_GEAR.filter(item=>item.flags[MODULE_ID].source===source)]);
   }
   await ensureItems(packs.phb, await coreEquipment());
   const { entries, missing } = await coreSpells();
@@ -236,6 +254,27 @@ export async function installSamson() {
     if(selected.length)await ensureItems(packs[source],selected);
   }
   await ensureItems(packs.ua, [await cloisteredClass(packs.phb)]);
+  // Refresh rule-owned compendium fields only. Actor preparations, charges,
+  // names, descriptions and existing spell choices are never migrated here.
+  registerSeeds(CLERIC_SPELLS);
+  for(const source of Object.keys(SOURCES)) {
+    const spells=CLERIC_SPELLS.filter(seed=>seed.flags[MODULE_ID].source===source);
+    if(!spells.length)continue;
+    await ensureItems(packs[source],spells);
+    for(const item of await packs[source].getDocuments()) {
+      const seed=spells.find(entry=>marked(entry)===marked(item));
+      if(!seed||item.getFlag(MODULE_ID,"clericRevision")===1)continue;
+      const saved={name:item.name,system:clone(item.system),flags:clone(item.flags[MODULE_ID])};
+      const ruleFields=["source","level","school","spellbook","actionType","activation","components","range","spellTarget","target","spellDuration","spellDurationData","save","sr","description","shortDescription","learnedAt","specialActions","ability","damage","attackParts","effectNotes","measureTemplate","preparation"];
+      const update={name:seed.name,...Object.fromEntries(ruleFields.filter(field=>seed.system[field]!==undefined).map(field=>[`system.${field}`,clone(seed.system[field])])),
+        ...Object.fromEntries(Object.entries(seed.flags[MODULE_ID]).map(([field,value])=>[`flags.${MODULE_ID}.${field}`,clone(value)])),
+        [`flags.${MODULE_ID}.previousClericDefinition`]:saved};
+      if(item.img===item.getFlag(MODULE_ID,"assignedIcon")||item.img?.startsWith("icons/svg/"))update.img=seed.img;
+      await item.update(update);
+    }
+  }
+  await installPF1Library(folder);
+  await installMartialLibrary(packs.tob,ensureItems);
   await linkDomains(packs);
   if (missing.length) console.warn(`${MODULE_ID}: system spells not found`, missing);
   await installAdditionalCharacters(packs, ensureItems, coreItem);
@@ -247,7 +286,6 @@ export async function installSamson() {
       command: `game.modules.get("${MODULE_ID}").api.open();`,
       ownership: { default: 3 }, flags: { [MODULE_ID]: { samsonPanel: true } } });
   }
-  if (missing.length) ui.notifications.warn(`系统法术合集中缺少 ${missing.length} 个条目；详见控制台。`);
+  if (missing.length) ui.notifications.warn(`规则合集中有 ${missing.length} 个法术来源缺失；详见控制台。`);
   return packs;
 }
-

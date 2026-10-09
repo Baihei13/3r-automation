@@ -3,6 +3,7 @@ import { installSamson } from "./install.js";
 import { registerCantripSetting, activateCantripRule, refreshCantripRule } from "./cantrips.js";
 import { openCharacterPanel } from "./character-panel.js";
 import { itemRepairs } from "./item-data.js";
+import { applyMartialRepair } from "./martial-template.js";
 import { loadSpellTexts, localizeSpellHeaders } from "./spell-text.js";
 import { installPresentation } from "./presentation.js";
 import { effectIsActive } from "./effect-state.js";
@@ -10,6 +11,13 @@ import { repairFragile } from "./fragile.js";
 import { installMovementOpportunities } from "./movement-opportunities.js";
 import { registerContentSearch, installContentSearchButton, openContentSearch } from "./content-search.js";
 import { loadCharacterContent } from "./content.js";
+import { loadPFCharacterFoundation,installPFCharacterFoundation,preparePFImport,registerPFFeatureCache,syncWorldPFFeatures } from "./pf-character-foundation.js";
+import { loadClericContent } from "./cleric-content.js";
+import { loadPF1Content } from "./pf1-content.js";
+import { loadMartialContent } from "./martial-content.js";
+import { registerSwordsageFeatureCache,syncWorldSwordsageFeatures } from "./martial-class-features.js";
+import { installMartialRuntime,martialAPI } from "./martial-runtime.js";
+import { learningDialog } from "./martial-sheet.js";
 import { activateRules, completeActors, applySpellBuff, processRuleTime, timedBuff, casterLevel, typedBonus, recordAction, hudItemAction } from "./rules-bridge.js";
 import { installConditionRuntime, assertConditionAction, commitConditionAction } from "./condition-runtime.js";
 import { applyCondition, clearCondition, editConditionContext, registerConditionTools } from "./condition-tools.js";
@@ -306,6 +314,7 @@ Hooks.once("init", () => {
   registerContentSearch();
   registerConditionTools();
   game.modules.get(MODULE_ID).api = { search: openContentSearch, open: openAutomation, openCharacter: openCharacterPanel, install: installSamson, repairFragile, processTime: processRuleTime,
+    martial:martialAPI,
     applyCondition, clearCondition, openConditions:editConditionContext, conditionState, conditionOperation, checkConditionAction:assertConditionAction, commitConditionAction, completeConditionRest, hudItemAction,
     commonAction: async (actor,action) => {
       if(action!=="defense" || !actor.testUserPermission(game.user,"OWNER")) throw new Error("动作或操纵权限无效。");
@@ -321,18 +330,37 @@ Hooks.once("init", () => {
 
 Hooks.once("ready", async () => {
   if (game.system.id !== "D35E") return;
+  const api=game.modules.get(MODULE_ID).api;
+  let phase="内容搜索入口";
+  api.startup={state:"loading",phase};
+  try {
   installContentSearchButton();
+  phase="法术全文";
   await loadSpellTexts();
+  phase="角色资料";
   await loadCharacterContent();
+  phase="PF种族与职业规则";await loadPFCharacterFoundation();
+  phase="3R牧师资料";
+  await loadClericContent();
+  phase="PF1资料";
+  await loadPF1Content();
+  phase="武术资料";
+  await loadMartialContent();
+  phase="规则与界面";
   localizeSpellHeaders();
   installPresentation();
   activateRules();
+  phase="状态与伤势功能";
   installConditionRuntime();
+  phase="武术页与结算";
+  installMartialRuntime();
+  phase="移动与其他入口";
   installMovementOpportunities();
   Hooks.on("preCreateItem", item => {
     const update = itemRepairs(item);
     if (Object.keys(update).length) item.updateSource(update);
   });
+  installPFCharacterFoundation();
   Hooks.on("D35E.ItemUse.preRollAllAttacks", applyCombatBonuses);
   Hooks.on("D35E.ChatAttack.preAddDamage", applyKnowledgeDamage);
   Hooks.on("D35E.ItemUse.preUseItem",(item,actor,hook)=>{
@@ -350,11 +378,18 @@ Hooks.once("ready", async () => {
       const originalDrop = app.addItemFromDropData.bind(app);
       app.addItemFromDropData = async dropData => {
         const uuid = dropData?.uuid;
-        if (!Object.keys(SOURCES).some(source =>
+        if (!uuid?.startsWith("Compendium.world.samson-pf1-")&&!Object.keys(SOURCES).some(source =>
           uuid?.startsWith(`Compendium.world.samson-${source}.Item.`))) return originalDrop(dropData);
         const item = await fromUuid(uuid);
         if (!(item instanceof Item)) return originalDrop(dropData);
         const key = item.getFlag(MODULE_ID, "key");
+        if(item.getFlag(MODULE_ID,"martial")) {
+          const entry=item.getFlag(MODULE_ID,"martial");
+          try{const answer=await learningDialog(app.actor,entry.kind==="stance"?"stance":"move",false,entry.definition);
+          if(!answer)return;
+          return await martialAPI.command({actorUuid:app.actor.uuid,op:"learn",...answer});}
+          catch(error){ui.notifications.error(error.message);return;}
+        }
         if (item.type === "feat" && !["extra-hex", "additional-traits"].includes(key)
           && app.actor.items.some(existing => existing.getFlag(MODULE_ID, "key") === key
             && existing.getFlag(MODULE_ID, "source") === item.getFlag(MODULE_ID, "source"))) {
@@ -367,6 +402,8 @@ Hooks.once("ready", async () => {
         delete data.ownership;
         delete data._stats;
         delete data.system.uniqueId;
+        try { if(!await preparePFImport(app.actor,data))return; }
+        catch(error){ui.notifications.warn(error.message);return;}
         app.enrichDropData?.(data);
         return app.importItem(data, "compendium");
       };
@@ -376,7 +413,20 @@ Hooks.once("ready", async () => {
     root?.querySelectorAll(".samson-open, .samson-import-feat").forEach(button => button.remove());
   });
   if (game.users.activeGM === game.user) {
-    try { await installSamson(); await completeActors(); await refreshCantripRule(); await expireBuffs(); }
-    catch (error) { console.error(`${MODULE_ID}: setup failed`, error); ui.notifications.error(`3r自动化安装未完成：${error.message}`); }
+    phase="职业与规则合集安装";await installSamson();
+    phase="旧世界武术模板迁移";
+    for(const item of game.items)if(item.flags?.[MODULE_ID]?.martial){
+      const update=itemRepairs(item);if(Object.keys(update).length)await applyMartialRepair(item,update);
+    }
+    phase="PF职业归属同步";await syncWorldPFFeatures();
+    phase="角色规则同步";await completeActors();await refreshCantripRule();await expireBuffs();
+  }
+  phase="贤者之剑职业特性";await registerSwordsageFeatureCache();await syncWorldSwordsageFeatures();
+  phase="PF职业能力表";await registerPFFeatureCache();
+  api.startup={state:"ready",phase:"初始化完成",libraryInstaller:game.users.activeGM===game.user};
+  } catch(error) {
+    api.startup={state:"failed",phase,error:error.message};
+    console.error(`${MODULE_ID}: startup failed at ${phase}`,error);
+    ui.notifications.error(`3r自动化启动未完成（${phase}）：${error.message}`,{permanent:true});
   }
 });

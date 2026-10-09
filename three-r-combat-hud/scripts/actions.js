@@ -1,5 +1,6 @@
 import { MODULE_ID, ACTIONS } from "./state.js";
 import { owned, displayName, itemAvailability, itemActionRoute } from "./model.js";
+import { automationApi } from "./integration.js";
 
 const escape = value => String(value).replace(/[&<>"']/g, character =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[character]);
@@ -43,13 +44,13 @@ export async function useNative(actor, token, itemId, event, reminderContext, co
   if (!owned(actor)) throw new Error("你没有操纵这个角色的权限。");
   let item = actor.items.get(itemId);
   if (!item) throw new Error("这个条目已经移除，请重新选择。");
-  const availability = itemAvailability(item, actor);
-  if (availability.reference) { await item.sheet.render(true); return { state: "details" }; }
-  if (availability.unavailable) { ui.notifications.warn(availability.reason); return { state: "blocked", reason: availability.reason }; }
   const route = itemActionRoute(item);
+  const availability = itemAvailability(item, actor,route);
+  if (availability.reference && route?.mode !== "configure") { await item.sheet.render(true); return { state: "details" }; }
+  if(route?.mode==="configure"&&route.available===false){ui.notifications.warn(route.label||"当前不能配置这项能力。");return {state:"blocked"};}
+  if (availability.unavailable) { ui.notifications.warn(availability.reason); return { state: "blocked", reason: availability.reason }; }
   if (common === "aao") {
-    const module = game.modules.get("samson-3r-automation");
-    if (module?.active) module.api?.checkConditionAction?.(actor,item,{kind:"immediate",common:"aao"});
+    automationApi()?.checkConditionAction?.(actor,item,{kind:"immediate",common:"aao"});
   }
   if (item.type === "weapon") item = await attackForWeapon(actor, item);
   if (!item) return { state: "cancelled" };
@@ -68,6 +69,7 @@ export async function useNative(actor, token, itemId, event, reminderContext, co
   let fullSelection = null;
   let charging = false;
   let customCompletion = null;
+  let customResult = null;
   let customChat = false;
   // D35E custom hooks return early. Await the owning module's work rather than
   // mistaking that early return for cancellation or recording before completion.
@@ -118,7 +120,7 @@ export async function useNative(actor, token, itemId, event, reminderContext, co
   try {
     result = await item.use({ ev: event, skipDialog: false });
     if (result?.roll) rolled = await result.roll;
-    if (customCompletion) await customCompletion;
+    if (customCompletion) customResult = await customCompletion;
   } finally {
     Hooks.off("createChatMessage", hookId);
     Hooks.off("renderDialog", dialogHookId);
@@ -126,8 +128,15 @@ export async function useNative(actor, token, itemId, event, reminderContext, co
     dialogListeners.abort();
   }
   const after = Number(actor.items.get(item.id)?.charges);
+  // The GM receipt is authoritative for martial actions, including ending a
+  // stance (which has no charge change). A waiting chat card is not execution.
+  if(item.flags?.["samson-3r-automation"]?.martial&&customCompletion){
+    if(customResult?.state!=="performed")return {state:customResult?.state==="cancelled"?"cancelled":"pending",reason:customResult?.reason};
+    return {state:"performed",kind:customResult.kind??route?.kind,label:displayName(item),hasChat};
+  }
   const resourceUsed = Number.isFinite(before) && Number.isFinite(after) && after < before;
   const performed = actualCard || rolled?.rolled === true || result === true || result?.documentName === "ChatMessage" || resourceUsed || customChat;
+  if (route?.mode === "configure") return { state: "handled" };
   if (!performed && customCompletion && route && !route.kind) return { state: "handled" };
   if (!performed) return { state: result?.wasRolled === false || result?.roll === false ? "cancelled" : "unknown" };
 

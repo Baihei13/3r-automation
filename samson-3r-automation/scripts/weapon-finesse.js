@@ -4,6 +4,7 @@ import { weaponFor } from "./fragile.js";
 
 const key=item=>item?.flags?.[MODULE_ID]?.key;
 const usable=(item,actor)=>effectIsActive(item)&&!item.getFlag(MODULE_ID,"unselected")
+  &&!item.flags?.[MODULE_ID]?.pfClassFeature?.retainedInactive
   &&!item.hasUnmetRequirements?.(foundry.utils.deepClone(actor.getRollData()))?.length;
 
 // Apply at ItemRolls, where D35E actually selects the attack ability. Do not
@@ -11,7 +12,7 @@ const usable=(item,actor)=>effectIsActive(item)&&!item.getFlag(MODULE_ID,"unsele
 export function applyWeaponFinesse(item,data,options) {
   const actor=item.actor,weapon=weaponFor(item);
   if(!actor||data.item?.actionType!=="mwak"||!["str","dex"].includes(data.item.ability?.attack))return;
-  const feat=actor.items.some(i=>i.type==="feat"&&usable(i,actor)&&(key(i)==="weapon-finesse"
+  const feat=actor.items.some(i=>i.type==="feat"&&usable(i,actor)&&(["weapon-finesse","rogue-bonus-weapon-finesse"].includes(key(i))
     ||i.system.customTag==="weaponFinesse"||["Weapon Finesse","武器娴熟"].includes(i.originalName)
     ||["Weapon Finesse","武器娴熟"].includes(i.name)));
   const training=actor.items.some(i=>key(i)==="finesse-training"&&usable(i,actor))

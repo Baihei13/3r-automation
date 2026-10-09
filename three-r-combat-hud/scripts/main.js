@@ -54,13 +54,14 @@ Hooks.once("ready", async () => {
   hud = new ThreeRCombatHud();
   installMovement(() => hud.refresh());
   hud.refresh();
-  console.info(`${MODULE_ID}: 0.5.7，可用操作、暂不可用、规则说明横排分类切换；借机攻击合入反应提醒。`);
+  console.info(`${MODULE_ID}: 0.5.11，支持v13.351与v14；能力区区分动作、被动规则与配置，仅依赖D35E。`);
 });
 
 Hooks.on("getSceneControlButtons", controls => {
   if (game.system.id !== "D35E" || !controls.tokens?.tools) return;
   controls.tokens.tools.threeRCombatHud = {
     name: "threeRCombatHud", title: "3r战斗HUD", icon: "fa-solid fa-gamepad", button: true,
+    order: Math.max(-1, ...Object.values(controls.tokens.tools).map(tool => Number.isFinite(tool.order) ? tool.order : -1)) + 1,
     onChange: () => hud?.toggle().catch(reportError)
   };
 });

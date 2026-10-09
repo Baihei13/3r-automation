@@ -8,6 +8,13 @@ export function effectDeadline(item) {
   return Number.isFinite(timeline)?timeline:Number.isFinite(original)?original:null;
 }
 export function effectIsActive(item,now=game.time.worldTime) {
+  const feature=item.flags?.[MODULE_ID]?.pfClassFeature;
+  if(feature?.retainedInactive)return false;
+  if(feature?.classId&&item.actor) {
+    const klass=item.actor.items.get(feature.classId);
+    if(klass?.type!=="class"||klass.flags?.[MODULE_ID]?.key!==feature.class||Number(klass.system.levels)<feature.level
+      ||klass.system.disabledAbilities?.some(row=>row.uid===feature.uid&&Number(row.level)===feature.level))return false;
+  }
   if(!["buff","aura"].includes(item.type))return true;
   const end=effectDeadline(item);
   return Boolean(item.system.active)&&(end===null||end>now);

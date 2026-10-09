@@ -23,6 +23,15 @@ export const SOURCES = {
   cd: { label: "完美神力", book: "Complete Divine" },
   cc: { label: "完美斗士", book: "Complete Champion" },
   sc: { label: "法术汇编", book: "Spell Compendium" },
+  phb2: { label: "3.5 玩家手册II", book: "Player's Handbook II" },
+  lm: { label: "死者之书", book: "Libris Mortis" },
+  rod: { label: "天命族裔", book: "Races of Destiny" },
+  boed: { label: "崇善之书", book: "Book of Exalted Deeds" },
+  cm: { label: "完美巫师", book: "Complete Mage" },
+  frost: { label: "霜燃之书", book: "Frostburn" },
+  sand: { label: "沙暴之书", book: "Sandstorm" },
+  forge: { label: "战争熔炉", book: "Forge of War" },
+  fc1: { label: "邪魔释典I", book: "Fiendish Codex I" },
   uw: { label: "Ultimate Wilderness", book: "Ultimate Wilderness" },
   bm: { label: "Black Markets", book: "Black Markets" },
   hots: { label: "Heroes of the Streets", book: "Heroes of the Streets" }
@@ -44,8 +53,8 @@ export const ITEMS = {
   pf: [
     { name: "PF 人类", type: "race", img: "icons/svg/mystery-man.svg", system: {
       source: SOURCES.pf.book, description: { value: "<p>自选一项属性 +2；1 级额外专长；每级额外 1 点技能点；中型，陆地速度 30 尺。</p>" },
-      changes: [["2", "ability", "str", "racial"]], counterName: "feat.base;bonusSkillPoints"
-    }, flags: { [MODULE_ID]: { key: "human-pf", source: "pf", abilityChoice: "str" } } }
+      changes: [], counterName: "feat.base;bonusSkillPoints"
+    }, flags: { [MODULE_ID]: { key: "human-pf", source: "pf", humanChoicePending: true } } }
   ],
   ua: [
     feature("修道牧师：学问", "ua", "按修道牧师等级 + 智力修正值作逸闻知识检定；知识（历史）至少 5 级再加 +2。不可取 10 或 20。"),

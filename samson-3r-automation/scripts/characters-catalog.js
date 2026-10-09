@@ -159,13 +159,7 @@ export const CHARACTER_ITEMS = {
       ["-2", "skill", "skill.slt", "penalty"]]
   })],
   um: [
-    klass("dual-cursed-oracle", "双重诅咒先知", "um", "选择两个诅咒，其中一个不随等级提升；厄运是可选启示，不能自动附送。", {
-      customTag: "dualCursedOracle", hd: 8, hp: 8, bab: "med", skillsPerLevel: 4,
-      savingThrows: { fort: { value: "low" }, ref: { value: "low" }, will: { value: "high" } },
-      spellcastingType: "divine", spellcastingSpontaneus: true, hasSpellbook: true,
-      spellcastingAbility: "cha", spellslotAbility: "cha", spellsPerLevel: ORACLE_SLOTS,
-      spellsKnownPerLevel: ORACLE_KNOWN
-    }),
+    feat("dual-cursed-oracle", "双重诅咒先知", "um", "archetype", "先知职业变体；选择两个诅咒，其中一个不随等级提升。"),
     feat("misfortune", "厄运", "um", "revelation", "1 级：直觉动作，在结果宣布前使 30 尺内目标重掷一个已掷出的 d20，必须接受新结果；同一目标每日仅一次。")
   ],
   bof: [feat("legalistic", "守律诅咒", "bof", "curse", "违背承诺时恶心 24 小时或直到履约；每日一次，履约时对自己的一次检定 +4 士气。")],

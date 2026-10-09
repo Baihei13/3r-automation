@@ -45,6 +45,8 @@ export function isDivineFavor(item) {
   return item?.type === "spell" && englishName(item) === "Divine Favor";
 }
 export function spellTextRepairs(item) {
+  // These source-backed 3R definitions must not receive PF prose or parameters.
+  if(item.flags?.[MODULE_ID]?.clericSpell)return {};
   // Source packs stay untouched. Translate local identified copies and our packs.
   if (!item.flags?.[MODULE_ID]?.key && item.parent?.documentName !== "Actor") return {};
   const update={},saved={};

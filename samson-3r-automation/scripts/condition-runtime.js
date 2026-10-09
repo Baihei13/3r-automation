@@ -1,6 +1,7 @@
 import { MODULE_ID } from "./catalog.js";
 import { conditionState, conditionContext, conditionName, conditionActionRestriction, skillConditionFailure, limitedAction, CONDITION_NAMES } from "./condition-state.js";
-import { syncConditionMarkers, editConditionContext } from "./condition-tools.js";
+import { editConditionContext } from "./condition-tools.js";
+import { installConditionJobLifecycle, reportConditionError, conditionActorLive } from "./condition-jobs.js";
 import { ItemUse } from "../../../systems/D35E/module/item/extensions/use.js";
 import { ChatAttack } from "../../../systems/D35E/module/item/chat/chatAttack.js";
 import { Roll35e } from "../../../systems/D35E/module/roll.js";
@@ -12,7 +13,7 @@ import { installConditionTurns, conditionAttackConsequences } from "./condition-
 const esc=text=>foundry.utils.escapeHTML(String(text??""));
 const resultRoll=result=>Array.isArray(result)?result.find(value=>Number.isFinite(value?.total)):result;
 const warn=reason=>{ui.notifications.warn(reason);return null;};
-const report=error=>{console.error(MODULE_ID,error);ui.notifications.error(`状态结算：${error.message}`);};
+const report=error=>reportConditionError("状态结算",error);
 const post=(actor,text)=>ChatMessage.create({speaker:ChatMessage.getSpeaker({actor}),content:`<p>${esc(text)}</p>`});
 const kindFor=item=>item.type==="full-attack"?"full":item.system.activation?.type==="attack"?"standard":item.system.activation?.type;
 export async function commitConditionAction(actor,kind,{movement=0,healed=false}={}) {
@@ -83,6 +84,8 @@ async function conditionAttackParts(chat,options) {
   return {...options,extraParts:old.some(part=>String(part.source??"").startsWith("状态："))?old:[...old,...parts]};
 }
 export function installConditionRuntime() {
+  installConditionJobLifecycle();
+  const movementModeWrites=new WeakMap();
   const proto=CONFIG.Actor.documentClass.prototype;
   for(const [id,name] of Object.entries(CONDITION_NAMES))if(!CONFIG.statusEffects.some(effect=>effect.id===id))CONFIG.statusEffects.push({id,name,img:"icons/svg/aura.svg"});
   const choices=foundry.applications.hud.TokenHUD.prototype._getStatusEffectChoices;
@@ -124,6 +127,8 @@ export function installConditionRuntime() {
   };
   const spell=ItemUse.prototype.useSpell;
   ItemUse.prototype.useSpell=async function(event,options={},actor=this.item.actor) {
+    // Martial commands already check and commit their own action once.
+    if((options.replacementItem??this.item).flags?.[MODULE_ID]?.martial)return spell.call(this,event,options,actor);
     const item=options.replacementItem??this.item,reason=conditionActionRestriction(actor,item,{kind:kindFor(item)});
     if(reason)return warn(reason);
     const before=Number(this.item.charges),hp=Number(actor.system.attributes.hp.value),result=await spell.call(this,event,options,actor);
@@ -203,18 +208,26 @@ export function installConditionRuntime() {
     if(operation.isUndo||operation.threeRForcedMovement||user.id!==game.user.id||!doc.actor?.isOwner)return;
     if(Number(movement.passed.distance)>0)commitConditionAction(doc.actor,"move",{movement:Number(movement.passed.distance)}).catch(report);
     const mode=movement.passed.waypoints.at(-1)?.action;
-    if(mode)doc.actor.setFlag(MODULE_ID,"movementMode",mode).catch(report);
-  });
-  Hooks.on("updateActor",(actor,change,options)=>{
-    if(options.threeRConditionMarker||game.users.activeGM!==game.user)return;
-    if(change.system?.attributes?.conditions||change.system?.attributes?.hp||Object.keys(change).some(key=>key.startsWith("system.attributes.conditions")||key.startsWith("system.attributes.hp")||key.startsWith(`flags.${MODULE_ID}.conditions`))||change.flags?.[MODULE_ID]?.conditions)
-      syncConditionMarkers(actor).catch(report);
+    if(!mode)return;
+    const actor=doc.actor,ticket={};
+    movementModeWrites.set(actor,ticket);
+    (async()=>{
+      await doc.object?.movementAnimationPromise;
+      if(movementModeWrites.get(actor)!==ticket||doc.actor!==actor||!conditionActorLive(actor)||!actor.isOwner||doc.parent!==canvas.scene||actor.getFlag(MODULE_ID,"movementMode")===mode)return;
+      // This is metadata, not a bonus or resource change. Actor.setFlag() runs
+      // the full D35E updater and minion synchronization, even for the same mode.
+      await actor.update({[`flags.${MODULE_ID}.movementMode`]:mode},
+        {updateChanges:false,skipMinions:true,skipToken:true});
+    })().catch(report);
   });
   Hooks.on("renderActorSheet",(app,html)=>{
     const root=html?.nodeType===1?html:html?.[0];if(!app.actor?.isOwner||!root||root.querySelector('[data-3r-condition-context]'))return;
-    const tab=root.querySelector('[data-tab="buffs"], [data-tab="conditions"]');if(!tab)return;
+    // A data-tab also appears on navigation links. Only insert into page content.
+    const tab=root.querySelector('.primary-body > .tab[data-tab="buffs"], .primary-body > .tab[data-tab="conditions"]');if(!tab)return;
+    const toolbar=document.createElement("div");toolbar.className="three-r-condition-toolbar";
     const button=document.createElement("button");button.type="button";button.dataset.threeRConditionContext="";button.setAttribute("data-3r-condition-context","");
-    button.innerHTML='<i class="fas fa-link"></i> 状态与来源';button.addEventListener("click",()=>editConditionContext(app.actor).catch(report));tab.prepend(button);
+    button.innerHTML='<i class="fas fa-link"></i> 状态与来源';button.addEventListener("click",event=>{event.preventDefault();event.stopPropagation();editConditionContext(app.actor).catch(report);});
+    toolbar.append(button);tab.prepend(toolbar);
   });
   Hooks.on("renderItemSheet",(app,html)=>{
     const root=html?.nodeType===1?html:html?.[0],item=app.item;

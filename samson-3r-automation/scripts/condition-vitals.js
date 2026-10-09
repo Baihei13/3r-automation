@@ -3,11 +3,12 @@ import { conditionState, conditionContext } from "./condition-state.js";
 import { clearCondition, applyCondition, actorQueue } from "./condition-tools.js";
 import { Roll35e } from "../../../systems/D35E/module/roll.js";
 import { ActorUpdater } from "../../../systems/D35E/module/actor/update/actorUpdater.js";
+import { conditionActorLive, conditionBookkeepingOptions, reportConditionError } from "./condition-jobs.js";
 
 const gm=()=>game.users.activeGM===game.user;
-const report=error=>{console.error(MODULE_ID,error);ui.notifications.error(`伤势结算：${error.message}`);};
+const report=error=>reportConditionError("伤势结算",error);
 const post=(actor,text)=>ChatMessage.create({speaker:ChatMessage.getSpeaker({actor}),content:`<p>${foundry.utils.escapeHTML(text)}</p>`});
-const worldActors=()=>[...new Map([...game.actors,...game.scenes.flatMap(scene=>scene.tokens.filter(token=>!token.actorLink&&token.actor).map(token=>token.actor))].map(actor=>[actor.uuid,actor])).values()];
+const worldActors=()=>[...new Map([...game.actors,...game.scenes.contents.flatMap(scene=>scene.tokens.contents.filter(token=>!token.actorLink&&token.actor).map(token=>token.actor))].map(actor=>[actor.uuid,actor])).values()];
 export async function damageConditionHP(actor,amount) {
   if(!actor?.isOwner||!Number.isFinite(amount)||amount<=0)throw new Error("伤势结算的对象或伤害无效。");
   // Bleeding and strenuous activity lose actual HP, bypassing temporary HP.
@@ -38,16 +39,18 @@ async function percent(actor,label) {
   return roll.total<=10;
 }
 async function processActor(actor,now) {
+  if(!conditionActorLive(actor))return;
   let c=conditionState(actor),clock=actor.getFlag(MODULE_ID,"injuryClock");
   const hp=()=>Number(actor.system.attributes.hp.value);
   const mode=c.dead?null:c.dying?"dying":c.stable&&hp()<0?(c.unconscious?"stable":actor.getFlag(MODULE_ID,"naturalRecovery")?null:"recovering"):null;
   // A new condition starts its own clock; loading an old world never fabricates past damage.
-  if(!mode) {if(clock)await actor.unsetFlag(MODULE_ID,"injuryClock");}
-  else if(!clock||clock.mode!==mode)await actor.setFlag(MODULE_ID,"injuryClock",{mode,next:now+(mode==="dying"?6:mode==="stable"?3600:86400)});
+  if(!mode) {if(clock)await actor.update({[`flags.${MODULE_ID}.-=injuryClock`]:null},conditionBookkeepingOptions);}
+  else if(!clock||clock.mode!==mode)await actor.update({[`flags.${MODULE_ID}.injuryClock`]:{mode,next:now+(mode==="dying"?6:mode==="stable"?3600:86400)}},conditionBookkeepingOptions);
   else {
     let next=clock.next,steps=0,currentMode=mode;
-    while(next<=now&&steps++<1000&&!c.dead) {
+    while(next<=now&&steps++<1000&&!c.dead&&conditionActorLive(actor)) {
       const success=await percent(actor,currentMode==="dying"?"濒死：10%机会自行稳定":currentMode==="stable"?"稳定：10%机会恢复意识":"无援助恢复：10%机会开始自然恢复");
+      if(!conditionActorLive(actor))return;
       if(currentMode==="dying") {
         if(success) {
           await stabilizeCondition(actor,{aided:false});currentMode="stable";next+=3600;
@@ -64,29 +67,33 @@ async function processActor(actor,now) {
         }
       }else {
         if(conditionContext(actor,"stable").aided||success) {
-          await actor.setFlag(MODULE_ID,"naturalRecovery",true);currentMode=null;break;
+          await actor.update({[`flags.${MODULE_ID}.naturalRecovery`]:true},conditionBookkeepingOptions);currentMode=null;break;
         }
         await damageConditionHP(actor,1);next+=86400;
       }
       c=conditionState(actor);
     }
-    if(currentMode&&!c.dead)await actor.setFlag(MODULE_ID,"injuryClock",{mode:currentMode,next});
-    else await actor.unsetFlag(MODULE_ID,"injuryClock");
+    if(!conditionActorLive(actor))return;
+    if(currentMode&&!c.dead)await actor.update({[`flags.${MODULE_ID}.injuryClock`]:{mode:currentMode,next}},conditionBookkeepingOptions);
+    else await actor.update({[`flags.${MODULE_ID}.-=injuryClock`]:null},conditionBookkeepingOptions);
   }
+  if(!conditionActorLive(actor))return;
   const nonlethal=Number(actor.system.attributes.hp.nonlethal)||0;
   const stamp=actor.getFlag(MODULE_ID,"nonlethalClock");
   if(nonlethal>0&&!c.dead&&!c.petrified) {
-    if(!Number.isFinite(stamp))await actor.setFlag(MODULE_ID,"nonlethalClock",now);
+    if(!Number.isFinite(stamp))await actor.update({[`flags.${MODULE_ID}.nonlethalClock`]:now},conditionBookkeepingOptions);
     else if(now-stamp>=3600) {
       const hours=Math.floor((now-stamp)/3600),heal=hours*(Number(actor.system.attributes.hd.total)||0);
       await actor.update({"system.attributes.hp.nonlethal":Math.max(0,nonlethal-heal),[`flags.${MODULE_ID}.nonlethalClock`]:stamp+hours*3600});
     }
-  }else if(stamp!==undefined)await actor.unsetFlag(MODULE_ID,"nonlethalClock");
+  }else if(stamp!==undefined)await actor.update({[`flags.${MODULE_ID}.-=nonlethalClock`]:null},conditionBookkeepingOptions);
 }
 let queue=Promise.resolve();
 export function processConditionTime() {
   if(!gm())return Promise.resolve();
-  queue=queue.catch(report).then(async()=>{for(const actor of worldActors())await processActor(actor,game.time.worldTime);});
+  queue=queue.catch(report).then(async()=>{for(const actor of worldActors()) {
+    try{await processActor(actor,game.time.worldTime);}catch(error){if(conditionActorLive(actor))report(error);}
+  }});
   return queue;
 }
 export function installConditionVitals() {
@@ -164,14 +171,14 @@ export function installConditionVitals() {
     }
   });
   Hooks.on("updateActor",(actor,change,options)=>{
-    if(!gm()||options.threeRConditionInjury)return;
+    if(!gm()||!conditionActorLive(actor)||options.threeRConditionInjury||options.threeRConditionBookkeeping)return;
     const changed=change.system?.attributes?.hp||Object.keys(change).some(key=>key.startsWith("system.attributes.hp"));
     if(!changed)return;
     const c=conditionState(actor),mode=c.dead?null:c.dying?"dying":c.stable?"stable":null;
     const old=actor.getFlag(MODULE_ID,"injuryClock");
-    if(mode&&mode!==old?.mode)actor.setFlag(MODULE_ID,"injuryClock",{mode,next:game.time.worldTime+(mode==="dying"?6:3600)}).catch(report);
-    if(Number(actor.system.attributes.hp.nonlethal)>0&&!Number.isFinite(actor.getFlag(MODULE_ID,"nonlethalClock")))actor.setFlag(MODULE_ID,"nonlethalClock",game.time.worldTime).catch(report);
+    if(mode&&mode!==old?.mode)actor.update({[`flags.${MODULE_ID}.injuryClock`]:{mode,next:game.time.worldTime+(mode==="dying"?6:3600)}},conditionBookkeepingOptions).catch(error=>{if(conditionActorLive(actor))report(error);});
+    if(Number(actor.system.attributes.hp.nonlethal)>0&&!Number.isFinite(actor.getFlag(MODULE_ID,"nonlethalClock")))actor.update({[`flags.${MODULE_ID}.nonlethalClock`]:game.time.worldTime},conditionBookkeepingOptions).catch(error=>{if(conditionActorLive(actor))report(error);});
   });
   Hooks.on("updateWorldTime",()=>processConditionTime().catch(report));
-  if(gm())for(const actor of worldActors())if(Number(actor.system.attributes.hp.nonlethal)>0&&!Number.isFinite(actor.getFlag(MODULE_ID,"nonlethalClock")))actor.setFlag(MODULE_ID,"nonlethalClock",game.time.worldTime).catch(report);
+  if(gm())for(const actor of worldActors())if(Number(actor.system.attributes.hp.nonlethal)>0&&!Number.isFinite(actor.getFlag(MODULE_ID,"nonlethalClock")))actor.update({[`flags.${MODULE_ID}.nonlethalClock`]:game.time.worldTime},conditionBookkeepingOptions).catch(error=>{if(conditionActorLive(actor))report(error);});
 }

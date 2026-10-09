@@ -1,10 +1,20 @@
 import { MODULE_ID } from "./catalog.js";
 import { RULE_ICON_KEYS } from "./rule-icon-map.js";
+import { MARTIAL_ICON_PATHS } from "./martial-icon-map.js";
 
 // Replace default art or the exact icon assigned by revision 1; preserve user art.
 const defaults = new Set(["", "icons/svg/book.svg", "icons/svg/item-bag.svg"]);
 const supported = new Set(["feat", "spell", "buff"]);
 const path = key => `modules/${MODULE_ID}/assets/icons/${key}.png`;
+const martialDefaults=new Set([...defaults,"icons/svg/sword.svg","icons/svg/aura.svg"]);
+function martialIcon(item) {
+  const mark=item.flags?.[MODULE_ID],target=MARTIAL_ICON_PATHS[mark?.key];
+  if(!target||item.img===target)return null;
+  // Only known placeholder art or an unchanged icon assigned by this module
+  // may be upgraded. A different image is a user's choice, even on an old item.
+  if(!martialDefaults.has(item.img??"")&&!(mark.assignedIcon===item.img&&[1,2].includes(mark.iconRevision)))return null;
+  return target;
+}
 
 function legacyIconKey(item) {
   const mark = item.flags?.[MODULE_ID] ?? {};
@@ -41,6 +51,11 @@ function replaceable(item) {
 }
 
 export function applySeedIcon(item) {
+  if(MARTIAL_ICON_PATHS[item.flags?.[MODULE_ID]?.key]) {
+    const target=martialIcon(item);
+    if(target){item.img=target;item.flags[MODULE_ID].iconRevision=3;item.flags[MODULE_ID].assignedIcon=target;}
+    return item;
+  }
   if (replaceable(item)) {
     item.img = path(iconKey(item));
     item.flags[MODULE_ID].iconRevision = 2;
@@ -51,6 +66,12 @@ export function applySeedIcon(item) {
 
 export function contentIconRepairs(item) {
   const mark = item.flags?.[MODULE_ID];
+  if(MARTIAL_ICON_PATHS[mark?.key]) {
+    const target=martialIcon(item);
+    return target?{img:target,[`flags.${MODULE_ID}.previousIcon`]:mark.previousIcon??item.img??"",
+      [`flags.${MODULE_ID}.iconRevision`]:3,[`flags.${MODULE_ID}.assignedIcon`]:target,
+      ...(mark.martialClassFeature?.generated?.img===item.img?{[`flags.${MODULE_ID}.martialClassFeature.generated.img`]:target}:{})}:{};
+  }
   if (!replaceable(item)) return {};
   const update = {
     img:path(iconKey(item)),
