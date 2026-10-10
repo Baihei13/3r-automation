@@ -4,6 +4,8 @@ import { clearCondition, applyCondition, actorQueue } from "./condition-tools.js
 import { Roll35e } from "../../../systems/D35E/module/roll.js";
 import { ActorUpdater } from "../../../systems/D35E/module/actor/update/actorUpdater.js";
 import { conditionActorLive, conditionBookkeepingOptions, reportConditionError } from "./condition-jobs.js";
+import { prepareConditionUpdate } from "./condition-icons.js";
+import { conditionAdmin } from "./condition-policy.js";
 
 const gm=()=>game.users.activeGM===game.user;
 const report=error=>reportConditionError("伤势结算",error);
@@ -100,7 +102,15 @@ export function installConditionVitals() {
   const update=ActorUpdater.prototype.update;
   ActorUpdater.prototype.update=async function(change,options,...args) {
     const requested=foundry.utils.expandObject(change).system?.attributes?.conditions??{};
-    const result=await update.call(this,change,options,...args);
+    let result=await prepareConditionUpdate(this,update,change,options,...args);
+    // Same public D35E updateChanges/merge path as ActorUpdater.update, after
+    // restoring the real Actor. No temporary view reaches numeric calculation.
+    if(options?.updateChanges!==false) {
+      const calculated=await this.updateChanges({updated:result},options??{});
+      if(calculated?.diff?.items)delete calculated.diff.items;
+      result=foundry.utils.mergeObject(result,calculated?.diff??{});
+    }
+    delete result.effects;
     // The native HP preprocessor overwrites explicitly supplied stable/death
     // results. Keep explicit outcomes of healing, stabilization and death saves.
     for(const [id,value] of Object.entries(requested))if(typeof value==="boolean")result[`system.attributes.conditions.${id}`]=value;
@@ -113,7 +123,7 @@ export function installConditionVitals() {
     const numeric=typeof value==="number"?value:typeof value==="string"&&value.startsWith("+")?hp+Number(value):Number(value);
     if(value!==undefined&&Number.isFinite(numeric)&&numeric>hp&&!options.threeRResurrection) {
       const c=conditionState(this);
-      if(c.dead||c.petrified){ui.notifications.warn(c.dead?"死亡须按复活效果处理，普通治疗无效。":"石化须先解除，普通治疗不能修复石质身体。");return Promise.resolve(this);}
+      if((c.dead||c.petrified)&&!conditionAdmin(options)){ui.notifications.warn(c.dead?"死亡须按复活效果处理，普通治疗无效。":"石化须先解除，普通治疗不能修复石质身体。");return Promise.resolve(this);}
       change["system.attributes.conditions.dying"]=false;
       change["system.attributes.conditions.stable"]=numeric<0;
       if(numeric<0)change[`flags.${MODULE_ID}.conditionContext.stable.aided`]=true;
@@ -152,11 +162,11 @@ export function installConditionVitals() {
     }
     return actorUpdate.call(this,change,options);
   };
-  Hooks.on("preUpdateActor",(actor,change,options)=>{
+  Hooks.on("preUpdateActor",(actor,change,options,userId)=>{
     const current=Number(actor.system.attributes.hp.value),next=change["system.attributes.hp.value"]??change.system?.attributes?.hp?.value;
     if(!Number.isFinite(next)||next<=current||options.threeRResurrection)return;
     const c=conditionState(actor);
-    if(c.dead||c.petrified) {
+    if((c.dead||c.petrified)&&!conditionAdmin({...options,user:game.users.get(options.threeRConditionUserId??userId??game.user.id)})) {
       ui.notifications.warn(c.dead?"死亡不能用普通治疗恢复生命；请按复活效果结算。":"石化的身体不能用普通治疗修复。");
       return false;
     }

@@ -22,6 +22,20 @@ const button=(action,label,id="",reason="")=>`<button type="button" data-martial
 function resolutionHint(item) {
   const p=planFor(item);
   if(!p)return "尚未登记结算参数；请由DM按全文处理";
+  const repaired={
+    "stance-of-clarity":"每次行动选择一个目标，原生防御结算读取对该目标的洞察AC＋2及对其他攻击者的AC−2。",
+    "step-of-the-wind":"读取Foundry原生困难地形区域，忽略其有限移动倍率；对其中目标攻击＋2，冲撞／摔绊对抗＋4。第三方地形与单独录入的技能惩罚尚未接入。",
+    "stonefoot-stance":"更大体型攻击者的AC＋2、力量对抗＋2；实际路径累计5尺后结束架势。",
+    "hunter-s-sense":"5尺内原生感官定位；移动动作嗅闻30尺内普通气味的方向。风向、气味强度／掩盖和气味追踪尚未实现。",
+    "blood-in-the-water":"从原生应用伤害时的实际命中和重击结果叠加攻击／武器伤害，不重复计同一击；一分钟未重击清零。",
+    "mighty-throw":"原生近战接触攻击，命中后进行双方3.5摔绊对抗；按修正自动选优势属性。主GM点选最多10尺的合法远离落点，目标倒地，不引发借机。特殊触及、坐骑及未登记的摔绊免疫尚需裁定。",
+    "charging-minotaur":"校验方格地图冲锋路线、双方力量／体型／已识别专长及稳定性；成功后推移并结算2d6＋力量钝击。主GM选择实际推进距离，非方格及特殊冲锋能力尚未接入。",
+    "sudden-leap":"保留跳跃骰，地图点选落点并限制距离；读取同一行动的直线助跑，未助跑时距离减半。翻滚避借机使用原生技能；特殊地形技能修正和垂直跳跃尚未实现。",
+    "distracting-ember":"放置5尺触及的场景夹击标记，供原生攻击夹击计算使用；发动者行动末移除。标记没有火元素的生命值／完整生物数据，受攻击等情况尚未实现。"
+  };
+  repaired["mind-over-body"]=repaired["action-before-thought"]=repaired["moment-of-perfect-mind"]="从正在进行的原生豁免读取种类和DC；操作者选定应对后以专注骰替代，天然1不自动失败。必须有可靠来源，第三方无来源快掷尚未接入。";
+  repaired["counter-charge"]="从原生冲锋窗口在攻击前邀请操作者；双方同属性对抗读取实际属性、体型及已接架势，成功阻止攻击，失败敌方额外＋2。成功后可选的两格推离仍需操作者在地图处理。";
+  if(repaired[martial(item)?.definition])return repaired[martial(item).definition];
   const names={attack:"原生攻击与伤害结算卡",area:"范围豁免与效果结算卡",boost:"持续强化与后续攻击联动",stance:"架势效果与事件入口",counter:"应对检定；敌方事件由DM处理",movement:"移动检定／落点确认",throw:"对抗初骰与结算卡",opposed:"对抗初骰与结算卡",scene:"记录发动；场景结果由DM处理",initiative:"记录发动；先攻调整由DM处理","extra-action":"记录发动；额外动作由DM处理"};
   return `${names[p.mode]??"由DM按全文处理"}${p.note?`。${p.note}`:""}${p.conflict?`。来源差异：${p.conflict}`:""}`;
 }
@@ -53,10 +67,10 @@ function contents(actor,section="known") {
     }).join("");
   };
   const setup=`<section class="martial-setup"><p>还可学习${s.pending.known}招武技、${s.pending.stances}种架势。等级和学习条件自动读取角色卡。</p><div class="martial-toolbar">${owner&&s.pending.known?button("learn","学习武技"):""}${owner&&s.pending.stances?button("learn-stance","学习架势"):""}</div></section>`;
-  const boundary=`<details class="martial-boundaries"><summary>自动化范围与使用方法</summary><p>已接学习前提、准备与消耗、恢复、架势切换及部分攻击／伤害／豁免／状态结算。发动攻击技前，先在场景选择目标；需要武器的招式会让你选择角色卡里的原生攻击。</p><p>结算卡需要DM确认命中、距离、路线等实际条件；确认后才应用已接入的数值。敌方攻击重定向、特定目标AC、完整虚体规则等仍需DM处理。141条是完整规则资料数量，数值自动化仍在继续补齐。</p></details>`;
+  const boundary=`<details class="martial-boundaries"><summary>自动化范围与使用方法</summary><p>已接学习前提、准备与消耗、恢复、架势切换及部分攻击／伤害／豁免／状态结算。先在场景选择目标；武器、应对属性、落点等真实选择仍由操作者决定。命中与重击读取原生结算，不填写敌方AC或DC。</p><p>每招“效果说明”列出已接入和仍未实现的部分。141条是完整规则资料数量，不代表141条都已实现数值效果；特殊地形、完整虚体、部分重定向和高等级场景效果仍有缺口。</p></details>`;
   const preparation=s.moves.length?`<div class="martial-toolbar"><span class="martial-ready-count" aria-live="polite">已勾选 ${selected.size}/${s.quotas.readied} 招${preparationDrafts.has(actor)?" · 尚未保存":""}</span>${owner?button("prepare","准备所选武技","",preparingBlocked?"战斗或遭遇内不能更换准备":selected.size!==s.quotas.readied?`请勾选${s.quotas.readied}招`:""):""}</div><p>${preparingBlocked?"每招用后变为0/1，可整轮冥想恢复一招。":"准备后可直接使用，无需开始遭遇。勾选后点击准备才保存；更换准备需要五分钟冥想与练习。"}</p>`:"";
   let body;
-  if(section==="stances")body=`<p>架势持续生效，不占准备名额和使用次数。进入、切换或主动结束用迅捷动作。</p>${list(s.stances)}<div class="martial-toolbar">${owner&&s.pending.stances?button("learn-stance","学习架势"):""}${owner&&gm&&s.activeStance?button("event","处理当前架势事件"):""}</div>`;
+  if(section==="stances")body=`<p>架势持续生效，不占准备名额和使用次数。进入、切换或主动结束用迅捷动作。</p>${list(s.stances)}<div class="martial-toolbar">${owner&&s.pending.stances?button("learn-stance","学习架势"):""}${owner&&martial(s.activeStance)?.definition==="hunter-s-sense"?button("scent","嗅闻方向（移动动作）"):""}${owner&&gm&&s.activeStance&&martial(s.activeStance)?.definition!=="blood-in-the-water"?button("event","处理当前架势事件"):""}</div>`;
   else if(section==="growth")body=`<p>待选武技 ${s.pending.known}；待选架势 ${s.pending.stances}。学习时记录取得等级；升级不会代选。</p><p>贤者之剑流派专攻：${esc(Object.entries(p.choices??{}).filter(([k,v])=>v&&k!=="unarmored").map(([k,v])=>(DISCIPLINES[v]??v)).join("、")||"尚未选择")}</p><div class="martial-toolbar">${owner?button("focus","选择贤者之剑流派专攻")+button("configure","配置武术知识与职业能力")+(s.level>=7?button("sense","感知魔法"):"")+(s.level>=4?button("replace","按升级机会替换武技"):"")+(s.level>=20?button("dual","双重强化：两招同时发动")+(gm?button("reset-dual","DM：休息后恢复每日次数"):""):""):""}</div><details><summary>规则与来源</summary><p>扩展大全2.40 / 战斗卷册；条目全文保存具体源页与哈希。轻甲AC默认按汇编原文，仅穿轻甲；不穿甲是否生效请在专攻配置中由DM选择。</p><p>反射闪避、双重强化及复杂招式的结算边界见条目和覆盖记录。</p></details>`;
   else body=`${s.pending.known||s.pending.stances?setup:""}<div class="martial-toolbar"><span>${s.encounter?"遭遇进行中":preparationDrafts.has(actor)?"准备勾选尚未保存":p.readied.length?"已准备的武技可直接使用":"在下表勾选要准备的武技"}</span>${owner&&p.expended.length?button("recover","冥想恢复一招"):""}${owner&&pending?button("resume","继续未完成使用"):""}</div>${list(s.moves,true)}${preparation}${owner&&gm?`<details class="martial-dm"><summary>DM：恢复与行动管理（可选）</summary><div class="martial-toolbar">${complete||s.encounter?button(s.encounter?"end":"start",s.encounter?"确认结束遭遇并恢复武技":"确认新遭遇并恢复武技"):""}${!combat?button("turn","开始下一次行动")+button("end-turn","结束当前行动")+button("target-turn","当前目标开始行动"):""}</div></details>`:""}`;
   if(section==="growth")body=`<p>职业特性请在“特性 → 职业”展开贤者之剑查看，或打开“职业特性”分类。贤者之剑的流派专攻需要先学会该流派的武技或架势，再自行选择。</p>${body}${owner&&gm?`<details class="martial-dm"><summary>DM：补录历史学习记录</summary><p>只有补录过去等级的选择时需要填写当时等级。普通学习会自动读取当前角色卡，已有取得记录不会重算。</p><div class="martial-toolbar">${button("history-learn","补录武技")}${button("history-stance","补录架势")}${button("history-replace","补录升级替换")}</div></details>`:""}`;

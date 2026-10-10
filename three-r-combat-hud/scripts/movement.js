@@ -18,7 +18,7 @@ async function save(document, next) {
   live.set(document.uuid, next);
   const write = (queues.get(document.uuid) ?? Promise.resolve()).catch(() => {}).then(() => {
     // A queued movement must not write into a later round or after combat ends.
-    if (turnKey(document) !== next.turn) { if(live.get(document.uuid)===next)live.delete(document.uuid); return false; }
+    if (!document.parent?.tokens.has(document.id) || turnKey(document) !== next.turn) { if(live.get(document.uuid)===next)live.delete(document.uuid); return false; }
     return document.setFlag(MODULE_ID, "movement", next).then(() => true);
   });
   queues.set(document.uuid, write);
@@ -57,7 +57,7 @@ export async function resetMovement(token) {
 const displacement = movement => movement.passed.waypoints.some(point => CONFIG.Token.movement.actions[point.action]?.teleport);
 export function installMovement(refresh) {
   Hooks.on("preMoveToken", (document, movement, operation) => {
-    if (!movementCombat(document) || operation.isUndo || displacement(movement)) return;
+    if (!movementCombat(document) || operation.isUndo || operation.threeRForcedMovement || displacement(movement)) return;
     const state = movementState(document);
     if (state.mode !== "step") return;
     const cost = Number(movement.passed.cost) + Number(movement.pending.cost);
@@ -68,7 +68,7 @@ export function installMovement(refresh) {
     }
   });
   Hooks.on("moveToken", (document, movement, operation, user) => {
-    if (!movementCombat(document) || user.id !== game.user.id || !document.isOwner || operation.isUndo || displacement(movement)) return;
+    if (!movementCombat(document) || user.id !== game.user.id || !document.isOwner || operation.isUndo || operation.threeRForcedMovement || displacement(movement)) return;
     const distance = Number(movement.passed.distance), cost = Number(movement.passed.cost);
     if (!Number.isFinite(distance) || !Number.isFinite(cost) || distance <= 0) return;
     const before = movementState(document);

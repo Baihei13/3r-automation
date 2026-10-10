@@ -8,6 +8,7 @@ import { casterClassRepairs, casterBookRepairs } from "./caster-setup.js";
 import { contentIconRepairs } from "./content-icons.js";
 import { martialSpellRepairs } from "./martial-template.js";
 import { pfFoundationRepairs } from "./pf-character-foundation.js";
+import { METAMAGIC_TEXT } from "./metamagic-text.js";
 
 const seeds = new Map([...Object.values(ITEMS).flat(), ...Object.values(CHARACTER_ITEMS).flat()]
   .map(item => [`${item.flags[MODULE_ID].source}:${item.flags[MODULE_ID].key}`, item]));
@@ -17,6 +18,17 @@ const humans = new Set(["human-pf", "human-dex", "human-cha"]);
 
 function finishTextRepairs(item,update) {
   Object.assign(update, contentIconRepairs(item));
+  const mark=item.flags?.[MODULE_ID],rule=METAMAGIC_TEXT[mark?.key];
+  if(rule&&mark.source===rule.source&&!mark.metamagicTextRevision) {
+    const old=item.system.description?.value??"";
+    const plain=old.replace(/<p data-3r-rulebook>[\s\S]*?<\/p>/g,"").replace(/<[^>]*>/g,"").trim();
+    if(plain===rule.previousSummary) {
+      update[`flags.${MODULE_ID}.previousMetamagicText`]=old;
+      update["system.description.value"]=rule.description;
+      update[`flags.${MODULE_ID}.metamagicTextRevision`]=1;
+      update[`flags.${MODULE_ID}.provenance`]=foundry.utils.deepClone(rule.provenance);
+    }
+  }
   // Repair text after content migrations, so a seed cannot restore English.
   if(update["system.description"]&&update["system.description.value"]!==undefined) {
     update["system.description"].value=update["system.description.value"];

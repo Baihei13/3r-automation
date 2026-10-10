@@ -59,7 +59,7 @@ export function installShadowMovement() {
     }
     if(!operation.isUndo&&movement.passed.waypoints.some(point=>CONFIG.Token.movement.actions[point.action]?.teleport))return;
     // API moves (repositioning/forced movement) require explicit DM confirmation.
-    if(!operation.isUndo&&!["dragging","keyboard"].includes(movement.method))return;
+    if(!operation.isUndo&&!operation.threeRVoluntaryMovement&&!["dragging","keyboard"].includes(movement.method))return;
     const units=String(document.parent.grid.units??"").trim();
     const unit=/^(ft|feet|foot|尺|英尺)$/i.test(units)?1:/^(m|米|公尺|met(er|re)s?)$/i.test(units)?0.3048:null;
     if(unit===null&&!operation.isUndo)return;

@@ -1,4 +1,4 @@
-import { MODULE_ID, clockLabel, durationLabel, nativeBuffSeconds, nativeEffectTimer, remaining } from "./time.mjs";
+import { MODULE_ID, clockLabel, durationLabel, nativeBuffSeconds, nativeEffectTimer, remaining, martialDeadlinePresentation } from "./time.mjs";
 import { weatherSummary } from "./calendar-weather.js";
 import { conditionPresentation, nativeConditionPresentation } from "./condition-presentation.js";
 
@@ -42,10 +42,11 @@ function visibleEffects(actor) {
     buffUuids.add(item.uuid);
     const t = item.getFlag(MODULE_ID, "timer");
     const seconds = t ? remaining(t, now) : nativeBuffSeconds(item);
+    const deadline=martialDeadlinePresentation(item);
     const condition=conditionPresentation(item);
     if(condition&&(seconds==null||seconds>0))for(const id of condition.ids)representedStatuses.add(id);
     const row = { key: item.uuid, name: condition?.name??item.name, img: condition?.img??item.img, kind: condition?"状态":"增益",
-      time: seconds == null ? "未记录结束时间" : durationLabel(seconds), badge: seconds == null ? "—" : shortTime(seconds) };
+      time: deadline?.time??(seconds == null ? "未记录结束时间" : durationLabel(seconds)), badge: deadline?.badge??(seconds == null ? "—" : shortTime(seconds)) };
     result.push(row);
     effectEntries.set(row.key, { row, document: item, actor, condition });
   }

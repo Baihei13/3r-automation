@@ -1,5 +1,5 @@
 import { MODULE_ID } from "./catalog.js";
-import { clone,martial,state,getState,classLevel,profileId } from "./martial-state.js";
+import { clone,martial,state,getState,classLevel,profileId,martialCombat } from "./martial-state.js";
 import { PLANS } from "./martial-plans.js";
 import { timedBuff,worldActors } from "./rules-bridge.js";
 import { weaponKind } from "./progression.js";
@@ -17,6 +17,13 @@ import { createCustomChatMessage } from "../../../systems/D35E/module/chat.js";
 import { DicePF } from "../../../systems/D35E/module/dice.js";
 import { martialEventSource } from "./martial-events.js";
 import { installNativeMartialEvents,nativeMartialSave } from "./martial-native.js";
+import { chooseClarityTarget,requestClarityTarget,installClarityChoices,feetScale,opposedStanceBonus } from "./martial-context.js";
+import { resolveThrow,resolveMinotaur,resolveLeap,resolveEmber,installMartialMapCleanup } from "./martial-map.js";
+import { installMartialScent,syncScentTokens } from "./martial-scent.js";
+import { installMartialTerrain } from "./martial-terrain.js";
+import { installMartialRunup } from "./martial-runup.js";
+import { conditionActorLive } from "./condition-jobs.js";
+import { bindConditionOperation,martialConditionOptions } from "./condition-policy.js";
 
 const esc=v=>foundry.utils.escapeHTML(String(v??""));
 const safeKey=v=>encodeURIComponent(String(v)).replaceAll(".","%2E");
@@ -31,14 +38,14 @@ const serial=(key,work)=>{const next=(queues.get(key)??Promise.resolve()).catch(
 const receipt=(actor,id)=>clone(actor.flags?.[MODULE_ID]?.martial?.receipts?.[id]);
 const patch=(actor,id,value)=>actor.update({[`flags.${MODULE_ID}.martial.receipts.${id}`]:value},{updateChanges:false,skipMinions:true,skipToken:true});
 const post=(actor,content,flags={})=>ChatMessage.create({speaker:ChatMessage.getSpeaker({actor}),content,flags:{[MODULE_ID]:flags}});
-const rollData=actor=>({...actor.getRollData(),martialIL:getState(actor).initiatorLevel});
+const rollData=actor=>({...actor.getRollData(),martialIL:getState(actor,{readOnly:true}).initiatorLevel});
 async function dice(actor,formula,label) {
   const r=await new Roll35e(formula,rollData(actor)).roll();
   await r.toMessage({speaker:ChatMessage.getSpeaker({actor}),flavor:label});return r;
 }
 async function cached(actor,id,key,work) {
-  let r=receipt(actor,id);if(r.steps[key]!==undefined)return r.steps[key];
-  const value=await work();r=receipt(actor,id);r.steps[key]=value;await patch(actor,id,r);return value;
+  let r=receipt(actor,id);if(!conditionActorLive(actor)||!r)throw new Error("武术来源已删除，未追加结算。");if(r.steps[key]!==undefined)return r.steps[key];
+  const value=await work();r=receipt(actor,id);if(!conditionActorLive(actor)||!r)throw new Error("武术来源已删除，未追加结算。");r.steps[key]=value;await patch(actor,id,r);return value;
 }
 const dcFor=(actor,item,p,r)=>p.dc==="skill"?Number(r.steps.skill?.total):10+martial(item).level+Number(actor.system.abilities[p.dcAbility||"wis"].mod||0);
 const physical=item=>{const uid=item?.system.damage?.parts?.[0]?.[2];return uid&&uid!=="base"?uid:"damage-slashing";};
@@ -46,10 +53,14 @@ const typeFor=(type,item)=>type==="base"?physical(item):type;
 const targetDocs=async ids=>(await Promise.all((ids??[]).map(uuid=>fromUuid(uuid)))).filter(a=>a?.documentName==="Actor");
 
 async function makeEffect(target,actor,item,id,{changes=[],until=null,seconds=null,marker={},stance=false}={}) {
+  if(!conditionActorLive(target)||!conditionActorLive(actor))throw new Error("效果来源或目标已删除，未创建效果。");
   const stamp=`${id}:${target.uuid}:${marker.role??"effect"}`;
   const old=target.items.find(i=>effectSafe(i)?.stamp===stamp);if(old)return old;
   const origin=state(actor),targetTurn=Number(state(target).turn)||0;
-  const deadline=until?{actor:until.startsWith("target")?target.uuid:actor.uuid,phase:until.endsWith("end")?"end":"start",turn:until.startsWith("target")?targetTurn:origin.turn||0}:null;
+  const clockActor=until?.startsWith("target")?target:actor;
+  const combat=martialCombat(clockActor);
+  const deadline=until?{actor:clockActor.uuid,phase:until.endsWith("end")?"end":"start",turn:until.startsWith("target")?targetTurn:origin.turn||0,
+    until,combatId:combat?.id??null,round:combat?.round??null}:null;
   const data=timedBuff(item.name,`martial-effect-${martial(item).definition}`,seconds,changes,{sourceActor:actor.uuid,sourceItemUuid:item.uuid,
     martialEffect:{definition:martial(item).definition,stamp,stance,deadline,profile:martial(item).profile,...marker}});
   data.img=item.img;data.system.description.value=item.system.description.value;
@@ -74,9 +85,12 @@ async function applyOutcome(target,actor,item,id,parts,{saved=false,abilities={}
         const pool=target.items.get(reduction.id);if(!pool)continue;
         if(pool.flags?.[MODULE_ID]?.martialPoolReceipts?.[stamp])continue;
         await target.updateDamageReductionPoolItems([reduction]);
+        if(!conditionActorLive(target))return;
+        if(target.items.get(pool.id)!==pool)continue;
         await pool.update({[`flags.${MODULE_ID}.martialPoolReceipts.${stamp}`]:true});
       }
     }
+    if(!conditionActorLive(target))return;
     const incoming=Math.max(0,Number(damage.damage)||0),temp=Math.max(0,Number(hp.temp)||0),absorbed=Math.min(incoming,temp);
     const update={"system.attributes.hp.value":death?-10:Number(hp.value)-incoming+absorbed,"system.attributes.hp.temp":temp-absorbed,
       "system.attributes.hp.nonlethal":Number(hp.nonlethal||0)+Math.max(0,Number(damage.nonLethalDamage)||0),
@@ -90,16 +104,20 @@ async function applyOutcome(target,actor,item,id,parts,{saved=false,abilities={}
 
 export async function leaveMartialStance(actor) {
   const old=actor.items.filter(i=>effectSafe(i)?.stance||effectSafe(i)?.definition==="child-of-shadow"&&effectSafe(i)?.role==="event-concealment");if(old.length)await actor.deleteEmbeddedDocuments("Item",old.map(i=>i.id));
+  await syncScentTokens(actor);
 }
 export async function enterMartialStance(actor,item,context,id) {
   const p=PLANS[martial(item).definition];
   const existing=actor.items.find(i=>effectSafe(i)?.stamp===`${id}:${actor.uuid}:effect`);
   if(!existing){await leaveMartialStance(actor);await makeEffect(actor,actor,item,id,{changes:p.changes??[],stance:true,marker:{context,description:p.note}});}
-  await post(actor,`<p>进入架势：${esc(item.name)}。</p><p>${esc(p.note??"架势数值与攻击效果已接入；条件性效果须确认实际情境。")}</p>`);
+  if(martial(item).definition==="stance-of-clarity")await chooseClarityTarget(actor,context.focusTarget);
+  await syncScentTokens(actor);
+  await post(actor,`<p>进入架势：${esc(item.name)}。</p>`);
 }
 
 export async function expireMartial(clockActor,phase) {
   if(game.users.activeGM!==game.user)return;
+  if(phase==="start")await requestClarityTarget(clockActor);
   for(const actor of worldActors()) {
     const due=actor.items.filter(i=>active(i)&&effect(i).deadline?.actor===clockActor.uuid&&effect(i).deadline.phase===phase);
     for(const i of due) {
@@ -165,10 +183,16 @@ async function nativeAttackCard(actor,item,id,r,weapon) {
   const slot=Number(r.steps.nativeIndex)||0;
   if(game.messages.some(m=>m.flags?.[MODULE_ID]?.nativeMartial?.id===id&&m.flags[MODULE_ID].nativeMartial.actor===actor.uuid&&(m.flags[MODULE_ID].nativeMartial.slot||0)===slot))return;
   const seed=weapon.toObject();delete seed._id;
-  seed.name=item.name;seed.img=item.img;
+  const dual=p.sequence==="dual";
+  seed.name=dual?`${item.name}：${slot===0?"主手":"副手"}（${weapon.name}）`:item.name;seed.img=item.img;
   seed.system.description=clone(item.system.description);
   seed.system.shortDescription=item.system.shortDescription;
   seed.system.activation=clone(item.system.activation);
+  if(martial(item).definition==="mighty-throw") {
+    seed.type="attack";seed.system.actionType="mwak";seed.system.attackType="weapon";
+    seed.system.ability={attack:"str",damage:"",critRange:21,critMult:1};
+    seed.system.damage={parts:[["0","","damage-bludgeoning"]]};seed.system.enh=0;seed.system.damageBonus="";seed.system.attackParts=[];
+  }
   if(p.mode==="area") {
     seed.type="attack";seed.system.actionType="save";seed.system.attackType="spell";
     seed.system.damage={parts:[[p.damage||"0","",p.type||"energy-force"]]};
@@ -178,7 +202,7 @@ async function nativeAttackCard(actor,item,id,r,weapon) {
   let skillSuccess=true;
   if(p.skill) {
     const target=(await targetDocs(r.context.targets))[0],dc=p.dc==="ac"?Number(target?.system.attributes.ac.normal.total):Number(p.dc);
-    const v=await cached(actor,id,"skill",async()=>{const roll=total(await actor.rollSkill(p.skill,{skipDialog:true}));return {total:roll.total,success:Number.isFinite(dc)?roll.total>=dc:null};});
+    const v=await cached(actor,id,"skill",async()=>{const roll=total(await actor.rollSkill(p.skill,{skipDialog:true,...martialConditionOptions(actor,id)}));if(!roll)throw new Error("技能检定未完成，未生成攻击。");return {total:roll.total,success:Number.isFinite(dc)?roll.total>=dc:null};});
     skillSuccess=v.success;
     if(p.jumpOver&&skillSuccess===null) {
       const answer=await foundry.applications.api.DialogV2.wait({window:{title:`DM：${item.name}的实际跳跃`},rejectClose:false,content:`<p>跳跃检定${v.total}。按实际目标高度和起跳情况，是否已成功跃过目标？</p>`,buttons:[{action:"yes",label:"成功跃过",callback:()=>true},{action:"no",label:"未跃过",callback:()=>false}]});
@@ -187,25 +211,27 @@ async function nativeAttackCard(actor,item,id,r,weapon) {
     }
     if(p.abortOnSkillFail&&!skillSuccess){await post(actor,`<p>${esc(item.name)}：技能检定失败，招式已消耗，没有攻击。</p>`);return;}
   }
-  if(p.replacementSkill)await cached(actor,id,"replacementDamage",async()=>({total:total(await actor.rollSkill(p.replacementSkill,{skipDialog:true})).total}));
+  if(p.replacementSkill)await cached(actor,id,"replacementDamage",async()=>{const roll=total(await actor.rollSkill(p.replacementSkill,{skipDialog:true,...martialConditionOptions(actor,id)}));if(!roll)throw new Error("替代伤害检定未完成。");return {total:roll.total};});
   seed.flags??={};seed.flags[MODULE_ID]={...(seed.flags[MODULE_ID]??{}),martialAttack:{definition:martial(item).definition,id,context:r.context,native:true,single:true,skillSuccess}};
-  seed.system.ability.vsTouchAc=Boolean(p.touch);
+  seed.system.ability.vsTouchAc=Boolean(p.touch||martial(item).definition==="mighty-throw");
   const dc=p.save?dcFor(actor,item,p,receipt(actor,id)):null;
   // Native spell-only DC bonuses do not raise a maneuver's fixed source DC.
   seed.system.save={dc:dc?`${dc}-@featSpellDCBonus`:"",type:p.save?`${{fort:"fortitude",ref:"reflex",will:"will"}[p.save]}${p.mode==="area"&&p.save==="ref"?"half":"partial"}`:"",ability:"",description:""};
   const temporary=new CONFIG.Item.documentClass(seed,{parent:actor});
-  const meta={id,slot,area:p.mode==="area",areaDamage:Boolean(p.damage),actor:actor.uuid,item:item.id,weapon:r.context.weaponId,targets:r.context.targets,dc,save:p.save,bypassDR:Boolean(p.bypassDR),flatFooted:Boolean(p.flatFooted&&skillSuccess)};
+  bindConditionOperation(temporary,{...martialConditionOptions(actor,id),threeRConditionCommitted:true});
+  const progress=receipt(actor,id);
+  const meta={id,slot,sequence:p.sequence,dualState:dual?(slot===0?"ready":Number(progress.steps.nativeIndex)>0?"ready":"waiting"):undefined,area:p.mode==="area",areaDamage:Boolean(p.damage),actor:actor.uuid,item:item.id,weapon:r.context.weaponId,targets:r.context.targets,dc,save:p.save,bypassDR:Boolean(p.bypassDR),flatFooted:Boolean(p.flatFooted&&skillSuccess)};
   const hook=Hooks.on("preCreateChatMessage",message=>{
-    if(message.speaker.actor===actor.id&&message.flags?.D35E?.template==="systems/D35E/templates/chat/attack-roll.html"&&message.flags.D35E.chatTemplateData?.name===item.name)
+    if(message.speaker.actor===actor.id&&message.flags?.D35E?.template==="systems/D35E/templates/chat/attack-roll.html"&&message.flags.D35E.chatTemplateData?.name===seed.name)
       message.updateSource({[`flags.${MODULE_ID}.nativeMartial`]:meta});
   });
-  try {const result=await new ItemUse(temporary).useAttack({skipDialog:true,isFullAttack:false,temporaryItem:true},null,true);await result?.roll;}
+  try {const result=await new ItemUse(temporary).useAttack({skipDialog:true,isFullAttack:false,temporaryItem:true,attackType:dual&&slot===1?"offhand-normal":"primary"},null,true);await result?.roll;}
   finally{Hooks.off("preCreateChatMessage",hook);chosenRolls.delete(id);}
   if(p.selfChanges)await makeEffect(actor,actor,item,id,{changes:p.selfChanges,until:p.until,marker:{role:"self"}});
 }
 
-async function nextNativeAttack(actor,item,id) {
-  const p=PLANS[martial(item).definition],r=receipt(actor,id),index=Number(r.steps.nativeIndex)||0;
+async function nextNativeAttack(actor,item,id,previewIndex=null) {
+  const p=PLANS[martial(item).definition],r=receipt(actor,id),index=previewIndex??(Number(r.steps.nativeIndex)||0);
   if(r.steps.nativeStopped)return;
   const weapons=[...new Set([r.context.weaponId,r.context.secondWeaponId].filter(Boolean))];
   if(p.sequence==="dual"&&index>=2||p.extraAttacksPerWeapon&&index>=weapons.length*p.extraAttacksPerWeapon)return;
@@ -222,23 +248,41 @@ async function nextNativeAttack(actor,item,id) {
   const seed=weapon.toObject();delete seed._id;
   if(p.sequence==="avalanche")seed.system.attackBonus=`(${seed.system.attackBonus||0})-${4*index}`;
   const temporary=new CONFIG.Item.documentClass(seed,{parent:actor});
-  await nativeAttackCard(actor,item,id,{...r,context:{...r.context,weaponId,targets:[target.uuid]}},temporary);
+  await nativeAttackCard(actor,item,id,{...r,steps:{...r.steps,nativeIndex:index},context:{...r.context,weaponId,targets:[target.uuid]}},temporary);
 }
-async function advanceNativeAttack(actor,item,id,target,hit) {
+async function advanceNativeAttack(actor,item,id,target,hit,slot) {
   const p=PLANS[martial(item).definition];if(!(p.sequence&&!p.full||p.extraAttacksPerWeapon))return;
-  const r=receipt(actor,id);r.steps.nativeIndex=(Number(r.steps.nativeIndex)||0)+1;
-  if(p.sequence==="path")r.steps.nativeVisited=[...(r.steps.nativeVisited??[]),target.uuid];
-  if(p.sequence==="avalanche"&&!hit||(p.sequence==="avalanche"||p.sequence==="dual"||p.sameTarget)&&Number(target.system.attributes.hp.value)<=-1)r.steps.nativeStopped=true;
-  await patch(actor,id,r);await nextNativeAttack(actor,item,id);
+  const r=receipt(actor,id),index=Number(r.steps.nativeIndex)||0;
+  // A repeated application resumes any failed continuation without advancing
+  // the attack count twice or applying the weapon damage again.
+  if(index===slot) {
+    r.steps.nativeIndex=index+1;
+    if(p.sequence==="path")r.steps.nativeVisited=[...(r.steps.nativeVisited??[]),target.uuid];
+    if(p.sequence==="avalanche"&&!hit||(p.sequence==="avalanche"||p.sequence==="dual"||p.sameTarget)&&Number(target.system.attributes.hp.value)<=-1)r.steps.nativeStopped=true;
+    await patch(actor,id,r);
+  }
+  if(p.sequence==="dual") {
+    for(const message of game.messages.filter(m=>m.flags?.[MODULE_ID]?.nativeMartial?.id===id&&m.flags[MODULE_ID].nativeMartial.actor===actor.uuid)) {
+      const meta=message.flags[MODULE_ID].nativeMartial;
+      const state=meta.slot<Number(r.steps.nativeIndex)?"resolved":r.steps.nativeStopped?"stopped":"ready";
+      if(meta.dualState!==state)await message.setFlag(MODULE_ID,"nativeMartial.dualState",state);
+    }
+  }
+  await nextNativeAttack(actor,item,id);
 }
 
 async function applyNativeMartialHit(message,target,{hit,crit,special=true}) {
   const meta=message.flags[MODULE_ID].nativeMartial,actor=await fromUuid(meta.actor),item=actor?.items.get(meta.item);
   if(!item)return;
   const p=PLANS[martial(item).definition],id=meta.id,key=`nativeSpecial:${meta.slot||0}:${safeKey(target.uuid)}`;
-  let r=receipt(actor,id);if(!r||r.steps[key])return;
-  if(!hit){r.steps[key]={hit:false};await patch(actor,id,r);await advanceNativeAttack(actor,item,id,target,false);return;}
-  if(p.requiresCritical&&!special){r.steps[key]={hit:true,special:false};await patch(actor,id,r);await advanceNativeAttack(actor,item,id,target,true);return;}
+  let r=receipt(actor,id);if(!r)return;
+  if(r.steps[key]){await advanceNativeAttack(actor,item,id,target,r.steps[key].hit,meta.slot||0);return;}
+  if(!hit){r.steps[key]={hit:false};await patch(actor,id,r);await advanceNativeAttack(actor,item,id,target,false,meta.slot||0);return;}
+  if(martial(item).definition==="mighty-throw") {
+    await resolveThrow(actor,item,id,r,target,{cache:cached,condition:applyCondition,post});
+    r=receipt(actor,id);r.steps[key]={hit:true};await patch(actor,id,r);return;
+  }
+  if(p.requiresCritical&&!special){r.steps[key]={hit:true,special:false};await patch(actor,id,r);await advanceNativeAttack(actor,item,id,target,true,meta.slot||0);return;}
   let saved=false;
   if(p.save) {
     const prior=nativeMartialSave(message,target);
@@ -281,30 +325,32 @@ async function applyNativeMartialHit(message,target,{hit,crit,special=true}) {
   if(p.ongoing)await makeEffect(target,actor,item,id,{until:"target-start",marker:{role:"ongoing",ongoing:p.ongoing}});
   if(p.extraSaved||p.secondary||p.zone||p.criticalConfirmation||p.movement||p.distanceRoll||p.bypassHardness)
     await post(actor,`<p>${esc(item.name)}：原生武器伤害及已接入的豁免/状态已处理。${p.extraSaved?"按豁免变化的附加伤害尚需DM依全文应用。":""}${p.secondary||p.zone?"次级范围或路线效果需DM处理。":""}${p.movement||p.distanceRoll?"地图落点需DM处理。":""}</p>`);
-  r=receipt(actor,id);r.steps[key]={hit:true,saved};await patch(actor,id,r);await advanceNativeAttack(actor,item,id,target,true);
+  r=receipt(actor,id);r.steps[key]={hit:true,saved};await patch(actor,id,r);await advanceNativeAttack(actor,item,id,target,true,meta.slot||0);
 }
 
 async function executeNativeCounter(actor,item,id,r) {
   const p=PLANS[martial(item).definition],source=martialEventSource(r.context.eventKey);
   if(!source)throw new Error("敌方事件已结束或重载，请由DM按发动记录处理；不猜测DC或重复消耗。");
   if(p.skill) {
-    const roll=total(await actor.rollSkill(p.skill,{skipDialog:true}));
+    const roll=total(await actor.rollSkill(p.skill,{skipDialog:true,...martialConditionOptions(actor,id)}));
+    if(!roll)throw new Error("应对技能检定未完成。");
     if(p.replaces==="ac")source.ac=roll.total;
     else {source.roll=roll;source.skillSave=true;source.success=roll.total>=source.dc;}
     await post(actor,`<p>${esc(item.name)}：${p.replaces==="ac"?"本次攻击以察言观色检定结果替代AC":"本次豁免使用专注检定，天然1不自动失败"}。</p>`);
   }else if(p.saveBonus) {
-    const il=getState(actor).initiatorLevel,buff=await makeEffect(actor,actor,item,id,{changes:[[String(il),"savingThrows",source.save,"untyped"]],marker:{role:"counter-save"}});
+    const il=getState(actor,{readOnly:true}).initiatorLevel,buff=await makeEffect(actor,actor,item,id,{changes:[[String(il),"savingThrows",source.save,"untyped"]],marker:{role:"counter-save"}});
     try{await actor.refresh();source.roll=total(await actor.rollSavingThrow(source.save,null,source.dc,{skipDialog:true,threeRNativeSave:true}));}finally{await actor.deleteEmbeddedDocuments("Item",[buff.id]);await actor.refresh();}
   }else if(p.opposedAbility) {
     const enemy=await fromUuid(source.attacker),ability=r.context.opposedAbility;
     if(!enemy||!["str","dex"].includes(ability))throw new Error("冲锋来源或对抗属性已改变。");
     const sizes=["fine","dim","tiny","sm","med","lg","huge","grg","col"],a=sizes.indexOf(actor.system.traits.actualSize??actor.system.traits.size),b=sizes.indexOf(enemy.system.traits.actualSize??enemy.system.traits.size);
     const bonus=a>=0&&b>=0&&(ability==="str"?a>b:a<b)?4:0;
-    const mods=[actor,enemy].map((who,i)=>Number(who.system.abilities[ability].mod)+Number(who.system.abilities[ability].checkMod||0)-Number(who.system.attributes.energyDrain||0)+(i===0?bonus:0));
+    const extras=[bonus+opposedStanceBonus(actor,enemy,ability),opposedStanceBonus(enemy,actor,ability)];
+    const mods=[actor,enemy].map((who,i)=>Number(who.system.abilities[ability].mod)+Number(who.system.abilities[ability].checkMod||0)-Number(who.system.attributes.energyDrain||0)+extras[i]);
     let won;
     for(let attempt=0;attempt<10;attempt++) {
       const values=[];
-      for(const [who,extra] of [[actor,bonus],[enemy,0]])values.push(await DicePF.d20Roll({parts:["@mod+@checkMod-@drain+@extra"],data:{mod:who.system.abilities[ability].mod,checkMod:who.system.abilities[ability].checkMod||0,drain:Number(who.system.attributes.energyDrain)||0,extra},title:`${item.name}：${ability==="str"?"力量":"敏捷"}对抗${attempt?"（同值同修正重掷）":""}`,speaker:ChatMessage.getSpeaker({actor:who}),fastForward:true,chatTemplate:"systems/D35E/templates/chat/roll-ext.html"}));
+      for(const [who,extra] of [[actor,extras[0]],[enemy,extras[1]]])values.push(total(await DicePF.d20Roll({parts:["@mod+@checkMod-@drain+@extra"],data:{mod:who.system.abilities[ability].mod,checkMod:who.system.abilities[ability].checkMod||0,drain:Number(who.system.attributes.energyDrain)||0,extra},title:`${item.name}：${ability==="str"?"力量":"敏捷"}对抗${attempt?"（同值同修正重掷）":""}`,speaker:ChatMessage.getSpeaker({actor:who}),fastForward:true,chatTemplate:"systems/D35E/templates/chat/roll-ext.html"})));
       if(values[0].total!==values[1].total){won=values[0].total>values[1].total;break;}
       if(mods[0]!==mods[1]){won=mods[0]>mods[1];break;}
     }
@@ -344,9 +390,16 @@ export async function executeMartial(actor,item,r,id) {
     let weapon=actor.items.get(context.weaponId);
     if(p.pure)weapon=new CONFIG.Item.documentClass({name:item.name,type:"attack",system:{actionType:p.touch==="ranged"?"rwak":"mwak",attackType:"weapon",proficient:true,ability:{attack:p.touch==="ranged"?"dex":"str",damage:"",critRange:20,critMult:2},damage:{parts:[["0","","base"]]},activation:{type:martial(item).action,cost:1}}},{parent:actor});
     if(!weapon)throw new Error("原生攻击已移除；保留发动记录，恢复同一操作时请处理攻击来源。");
-    if(p.sequence&&!p.full){await nextNativeAttack(actor,item,id);r=receipt(actor,id);r.status="done";r.result={state:"performed",kind:r.kind,commandId:id};await patch(actor,id,r);return r.result;}
+    if(p.sequence&&!p.full){
+      await nextNativeAttack(actor,item,id);
+      // Wolf Fang Strike has exactly two known weapon attacks. Show both
+      // native rolls now, but permit the second application only after the
+      // first outcome; a defeated target cancels the second preview.
+      if(p.sequence==="dual")await nextNativeAttack(actor,item,id,1);
+      r=receipt(actor,id);r.status="done";r.result={state:"performed",kind:r.kind,commandId:id};await patch(actor,id,r);return r.result;
+    }
     if(!p.full&&!p.sequence){await nativeAttackCard(actor,item,id,r,weapon);r=receipt(actor,id);r.status="done";r.result={state:"performed",kind:r.kind,commandId:id};await patch(actor,id,r);return r.result;}
-    if(p.skill)await cached(actor,id,"skill",async()=>{const roll=total(await actor.rollSkill(p.skill,{skipDialog:true}));if(!roll)throw new Error("技能骰未完成。");return {total:roll.total,success:roll.total>=Number(context.dc)};});
+    if(p.skill)await cached(actor,id,"skill",async()=>{const roll=total(await actor.rollSkill(p.skill,{skipDialog:true,...martialConditionOptions(actor,id)}));if(!roll)throw new Error("技能骰未完成。");return {total:roll.total,success:roll.total>=Number(context.dc)};});
     r=receipt(actor,id);
     if(p.abortOnSkillFail&&r.steps.skill?.success===false){await post(actor,`<p>${esc(item.name)}：跳跃失败，招式已消耗，没有攻击。</p>`);}
     else if(p.full||["dual","path","avalanche"].includes(p.sequence)) {
@@ -357,6 +410,7 @@ export async function executeMartial(actor,item,r,id) {
         await cached(actor,id,"nativeFull",async()=>{
           const seed=weapon.toObject();delete seed._id;seed.flags??={};seed.flags[MODULE_ID]={...seed.flags[MODULE_ID],martialAttack:{definition:martial(item).definition,id,context}};
           const temporary=new CONFIG.Item.documentClass(seed,{parent:actor});
+          bindConditionOperation(temporary,{...martialConditionOptions(actor,id),threeRConditionCommitted:true});
           for(let n=0;n<(p.sequence==="two-full"?2:1);n++){const result=await new ItemUse(temporary).useAttack({skipDialog:true,isFullAttack:true,temporaryItem:true});await result?.roll;}
           return true;
         });await post(actor,`<p>${esc(item.name)}：已生成原生全回合攻击卡；命中与伤害通过原生卡结算。</p>`);
@@ -364,21 +418,36 @@ export async function executeMartial(actor,item,r,id) {
     }else {
       await cached(actor,id,"attack",()=>attackRoll(actor,item,id,weapon,(p.attackBonus||0)+(p.skill&&r.steps.skill?.success===false?p.skillFailPenalty||0:0)));
       if(p.twoDice)await cached(actor,id,"attackSecond",()=>attackRoll(actor,item,id,weapon));
-      if(p.replacementSkill)await cached(actor,id,"replacementDamage",async()=>{const roll=total(await actor.rollSkill(p.replacementSkill,{skipDialog:true}));return {total:roll.total};});
+      if(p.replacementSkill)await cached(actor,id,"replacementDamage",async()=>{const roll=total(await actor.rollSkill(p.replacementSkill,{skipDialog:true,...martialConditionOptions(actor,id)}));if(!roll)throw new Error("替代伤害检定未完成。");return {total:roll.total};});
       if(p.selfChanges)await makeEffect(actor,actor,item,id,{changes:p.selfChanges,until:p.until,marker:{role:"self"}});
       await card(actor,item,id,receipt(actor,id),p.twoDice?`<p>第二个攻击骰 ${receipt(actor,id).steps.attackSecond.attack.total}；低骰命中才加寒冷伤害。</p>`:"");
     }
   } else if(p.mode==="counter") {
     await executeNativeCounter(actor,item,id,r);
   }else if(p.mode==="movement") {
-    if(p.skill)await cached(actor,id,"movementSkill",async()=>{const r=total(await actor.rollSkill(p.skill,{skipDialog:true}));return {total:r.total};});
+    if(martial(item).definition==="sudden-leap") {
+      await resolveLeap(actor,item,id,r,{cache:cached,condition:applyCondition,post});
+      r=receipt(actor,id);r.status="done";r.result={state:"performed",kind:r.kind,commandId:id};await patch(actor,id,r);return r.result;
+    }
+    if(p.skill)await cached(actor,id,"movementSkill",async()=>{const roll=total(await actor.rollSkill(p.skill,{skipDialog:true,...martialConditionOptions(actor,id)}));if(!roll)throw new Error("移动技能检定未完成。");return {total:roll.total};});
     await card(actor,item,id,receipt(actor,id),`<p>移动结果${receipt(actor,id).steps.movementSkill?`：跳跃 ${receipt(actor,id).steps.movementSkill.total}`:""}；请按原文在地图移动至合法落点。这里不会替代地图碰撞、跳跃距离与借机判断。</p>`);
   }else if(p.mode==="area") {
     await nativeAttackCard(actor,item,id,r,item);
   }else if(p.mode==="throw"||p.mode==="opposed") {
+    if(martial(item).definition==="mighty-throw") {
+      const touch=new CONFIG.Item.documentClass({name:item.name,type:"attack",system:{actionType:"mwak",attackType:"weapon",proficient:true,baseWeaponType:"unarmed",ability:{attack:"str",damage:"",critRange:21,critMult:1},damage:{parts:[["0","","damage-bludgeoning"]]},activation:{type:"standard",cost:1}}},{parent:actor});
+      await nativeAttackCard(actor,item,id,r,touch);
+      r=receipt(actor,id);r.status="done";r.result={state:"performed",kind:r.kind,commandId:id};await patch(actor,id,r);return r.result;
+    }
+    if(martial(item).definition==="charging-minotaur") {
+      const target=(await targetDocs(context.targets))[0];if(!target)throw new Error("冲撞目标已不存在。");
+      await resolveMinotaur(actor,item,id,r,target,{cache:cached,damage:applyOutcome,post,makeEffect});
+      r=receipt(actor,id);r.status="done";r.result={state:"performed",kind:r.kind,commandId:id};await patch(actor,id,r);return r.result;
+    }
     await cached(actor,id,"opposed",async()=>{const a=Number(actor.system.abilities.str.mod)||0,b=Number(actor.system.abilities.dex.mod)||0;const roll=await dice(actor,`1d20+${p.mode==="throw"?Math.max(a,b):a}+${p.throwBonus??p.bonus??0}`,item.name+"：对抗初骰（体型/专长由DM补正）");return {total:roll.total};});
     await card(actor,item,id,receipt(actor,id),`<p>对抗初骰 ${receipt(actor,id).steps.opposed.total}。先确认接触攻击、体型、对抗修正与移动要求，再确认差额、距离及落点。</p>`);
-  }else await card(actor,item,id,r,`<p>${esc(p.note)}。这是场景/动作权限声明；不会凭空召唤战斗单位或额外推进先攻。</p>`);
+  }else if(martial(item).definition==="distracting-ember")await resolveEmber(actor,item,id,r,{cache:cached,makeEffect,post});
+  else await card(actor,item,id,r,`<p>${esc(p.note)}。这是场景/动作权限声明；不会凭空召唤战斗单位或额外推进先攻。</p>`);
   r=receipt(actor,id);r.status="done";r.result={state:"performed",kind:r.kind,commandId:id};await patch(actor,id,r);return r.result;
 }
 
@@ -523,15 +592,12 @@ export async function martialEvent(actor) {
   if(!game.user.isGM)throw new Error("架势的敌方事件由DM确认。");
   const stance=currentStance(actor),p=PLANS[effectSafe(stance)?.definition],item=actor.items.get(state(actor).activeStance);
   if(!stance||!item)throw new Error("当前没有武术架势。");
+  if(p.event==="critical-hit")throw new Error("嗜血读取原生攻击应用时的实际重击结果，不另行手动增加层数。");
   const answer=await ask(`${item.name}：事件`, `<p>${esc(p.note??p.event??"此架势的数值持续生效。")}</p><label><input name="confirmed" type="checkbox" value="yes" required>已核对事件真实发生及本架势全部条件</label>`);
   if(answer?.confirmed!=="yes")return {state:"cancelled"};
   const id=foundry.utils.randomID();
   if(p.event==="melee-miss")await makeEffect(actor,actor,item,id,{changes:[["2","ac","ac","dodge"]],until:"start",marker:{role:"event-ac"}});
-  else if(p.event==="critical-hit") {
-    const m=effect(stance),last=Number(m.lastCritical)||0,count=(game.time.worldTime-last<60?Number(m.bloodCount)||0:0)+1;
-    await stance.update({[`flags.${MODULE_ID}.martialEffect.bloodCount`]:count,[`flags.${MODULE_ID}.martialEffect.lastCritical`]:game.time.worldTime,
-      "system.changes":[[String(count),"attack","attack","untyped"],[String(count),"damage","wdamage","untyped"]]});
-  }else if(p.damage) {
+  else if(p.damage) {
     const targets=await targetDocs([...game.user.targets].filter(t=>t.actor).map(t=>t.actor.uuid)),roll=await dice(actor,p.damage,item.name+"：事件伤害");
     for(const target of targets)await applyOutcome(target,actor,item,id,[{type:typeFor(p.type??"base",item),total:roll.total}]);
   }else if(p.event==="moved-ten")await confirmShadowMovement(actor);
@@ -550,6 +616,11 @@ const preferred={
 const preferredWeapon=(actor,item,flow)=>{const weapon=actor.items.get(item.system.originalWeaponId)??item;return preferred[flow]?.test(`${weaponKind(weapon)} ${weapon.name}`);};
 export function installMartialEffects() {
   installShadowMovement();
+  installMartialMapCleanup();
+  installMartialScent();
+  installMartialTerrain();
+  installMartialRunup();
+  installClarityChoices();
   installNativeMartialEvents(applyNativeMartialHit);
   const nativeAttack=ItemRolls.prototype.rollAttack;
   ItemRolls.prototype.rollAttack=async function(options={}) {
@@ -579,7 +650,7 @@ export function installMartialEffects() {
     const command=options.data?.martialCommand,p=PLANS[command?.definition];
     if(!command?.native)return nativeDamage.call(this,options);
     const data=clone(options.data);
-    if(p?.replacementSkill||p?.pure||p?.mode==="area") {
+    if(p?.replacementSkill||p?.pure||p?.mode==="area"||command.definition==="mighty-throw") {
       data.item.ability.damage="";data.item.enh=0;data.item.damageBonus="";data.attributes.damage={general:0,weapon:0,spell:0};
       for(const key of Object.keys(data))if(key.startsWith("featDamage"))delete data[key];
       if(p.replacementSkill){data.item.damage.parts=[[String(receipt(this.item.actor,command.id).steps.replacementDamage.total*p.replacementMultiplier),"",physical(this.item)]];options={...options,critical:false,extraParts:[]};}
@@ -613,7 +684,7 @@ export function installMartialEffects() {
     for(const actor of worldActors()){const i=currentStance(actor);if(effectSafe(i)?.definition==="blood-in-the-water"&&Number(effect(i).bloodCount)>0&&now-Number(effect(i).lastCritical)>=60)await i.update({"system.changes":[],[`flags.${MODULE_ID}.martialEffect.bloodCount`]:0});}
   });
   Hooks.on("D35E.ItemUse.preRollAllAttacks",(item,data,attacks)=>{
-    const actor=item.actor;if(!actor)return;const s=getState(actor),stance=currentStance(actor),sp=PLANS[effectSafe(stance)?.definition];
+    const actor=item.actor;if(!actor)return;const s=getState(actor,{readOnly:true}),stance=currentStance(actor),sp=PLANS[effectSafe(stance)?.definition];
     const w=actor.items.get(item.system.originalWeaponId)??item;
     const separateFocus=actor.items.some(i=>i.type==="feat"&&/武器专攻|weapon.?focus/i.test(i.name)&&[w.name,weaponKind(w)].some(name=>name&&i.name.toLowerCase().includes(name.toLowerCase())));
     if(swordsageFeatureAvailable(actor,"focus-weapon")&&s.profile.choices.weapon&&preferredWeapon(actor,item,s.profile.choices.weapon)&&!separateFocus)for(const a of attacks)a.bonus=`(${a.bonus||0})+1`;
@@ -625,6 +696,7 @@ export function installMartialEffects() {
   });
   Hooks.on("D35E.ChatAttack.preAddDamage",(chat,options)=>{
     const commandNative=chat.rollData.martialCommand,planNative=PLANS[commandNative?.definition];
+    if(commandNative?.native&&commandNative.definition==="mighty-throw"){options.extraParts=[];return;}
     if(commandNative?.native) {
       const extra=planNative?.skill&&!commandNative.skillSuccess?null:planNative?.extra;
       if(extra)options.extraParts=[...(options.extraParts??[]),[extra[0],"武技附加伤害",typeFor(extra[1],chat.item)]];
@@ -632,7 +704,7 @@ export function installMartialEffects() {
       if(planNative?.pure||planNative?.replacementSkill)return;
     }
     const actor=chat.item?.actor;if(!actor||chat.item.system.actionType!=="mwak")return;
-    const s=getState(actor),command=chat.rollData.martialCommand,sp=PLANS[effectSafe(currentStance(actor))?.definition];
+    const s=getState(actor,{readOnly:true}),command=chat.rollData.martialCommand,sp=PLANS[effectSafe(currentStance(actor))?.definition];
     const extras=[];
     if(sp?.extra)extras.push(sp.extra);
     for(const i of actor.items.filter(active)){const p=effect(i).plan;if(p?.extra&&!p.trigger)extras.push(p.extra);}
@@ -665,11 +737,21 @@ export function installMartialEffects() {
     }return use.apply(this,args);
   };
   Hooks.on("preUpdateToken",(token,change,options)=>{if(!token.actor||change.x===undefined&&change.y===undefined)return;const m=token.actor.items.find(i=>active(i)&&effect(i).immobilize);if(m&&!game.user.isGM){ui.notifications.warn("当前武术效果禁止自主移动；强制位移由DM处理。");return false;}
-    const grid=token.parent.grid;options.threeRMartialDistance=Math.hypot((change.x??token.x)-token.x,(change.y??token.y)-token.y)/Number(grid.size||1)*Number(grid.distance||0);
   });
-  Hooks.on("updateToken",async(token,change,options)=>{
-    if(game.users.activeGM!==game.user||!token.actor||change.x===undefined&&change.y===undefined)return;
-    const stance=currentStance(token.actor),p=PLANS[effectSafe(stance)?.definition];if(p?.endsOnMove){const moved=Number(effect(stance).moved||0)+Number(options.threeRMartialDistance||0);if(moved>=p.endsOnMove){await leaveMartialStance(token.actor);await token.actor.update({[`flags.${MODULE_ID}.martial.activeStance`]:null});await post(token.actor,`<p>${esc(stance.name)}因累计移动至少5尺结束。</p>`);}else await stance.update({[`flags.${MODULE_ID}.martialEffect.moved`]:moved});}
+  Hooks.on("moveToken",(token,movement,options)=>{
+    if(game.users.activeGM!==game.user||!token.actor||options.isUndo)return;
+    const stance=currentStance(token.actor),p=PLANS[effectSafe(stance)?.definition],scale=feetScale(token.parent);
+    if(!p?.endsOnMove||!scale)return;
+    const feet=Number(movement.passed.distance)/scale;if(!(feet>0))return;
+    serial(`stance-move:${token.actor.uuid}`,async()=>{
+      if(game.users.activeGM!==game.user||token.parent.tokens.get(token.id)!==token||!token.actor.items.has(stance.id)||currentStance(token.actor)?.id!==stance.id)return;
+      const m=effect(stance),parts=clone(m.moveParts??[]),origin=movement.origin,key=`${movement.id}:${origin.x}:${origin.y}:${origin.elevation}:${origin.level}`;
+      const prior=parts.find(row=>row.key===key),increment=Math.max(0,feet-(prior?.feet??0));if(!increment)return;
+      if(prior)prior.feet=feet;else parts.push({key,feet});
+      const moved=Number(m.moved||0)+increment;
+      if(moved>=p.endsOnMove-1e-6){await leaveMartialStance(token.actor);await token.actor.update({[`flags.${MODULE_ID}.martial.activeStance`]:null},{updateChanges:false,skipMinions:true,skipToken:true});await post(token.actor,`<p>${esc(stance.name)}因累计移动至少5尺结束。</p>`);}
+      else await stance.update({[`flags.${MODULE_ID}.martialEffect.moved`]:moved,[`flags.${MODULE_ID}.martialEffect.moveParts`]:parts.slice(-32)},{updateChanges:false,skipMinions:true,skipToken:true});
+    }).catch(error=>ui.notifications.error(error.message));
   });
   const bind=(message,html)=>{const root=html?.nodeType===1?html:html?.[0];root?.querySelectorAll("[data-martial-resolve]").forEach(button=>{if(button.dataset.martialBound)return;button.dataset.martialBound="yes";button.disabled=!game.user.isGM;button.addEventListener("click",async()=>{button.disabled=true;try{await resolveCard(await fromUuid(button.dataset.actor),button.dataset.martialResolve);}catch(error){ui.notifications.error(error.message);}finally{button.disabled=!game.user.isGM;}});});};
   Hooks.on("renderChatMessage",bind);Hooks.on("renderChatMessageHTML",bind);

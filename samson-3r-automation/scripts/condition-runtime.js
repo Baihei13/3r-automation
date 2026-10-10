@@ -9,6 +9,9 @@ import { effectIsActive } from "./effect-state.js";
 import { installConditionVitals, damageConditionHP, completeConditionRest } from "./condition-vitals.js";
 import { createTransientView } from "./transient-view.js";
 import { installConditionTurns, conditionAttackConsequences } from "./condition-turns.js";
+import { installConditionIcons } from "./condition-icons.js";
+import { conditionAdmin,conditionItemOptions } from "./condition-policy.js";
+import { martialAttackMissChance,installMartialMissPresentation } from "./martial-miss.js";
 
 const esc=text=>foundry.utils.escapeHTML(String(text??""));
 const resultRoll=result=>Array.isArray(result)?result.find(value=>Number.isFinite(value?.total)):result;
@@ -16,7 +19,9 @@ const warn=reason=>{ui.notifications.warn(reason);return null;};
 const report=error=>reportConditionError("状态结算",error);
 const post=(actor,text)=>ChatMessage.create({speaker:ChatMessage.getSpeaker({actor}),content:`<p>${esc(text)}</p>`});
 const kindFor=item=>item.type==="full-attack"?"full":item.system.activation?.type==="attack"?"standard":item.system.activation?.type;
-export async function commitConditionAction(actor,kind,{movement=0,healed=false}={}) {
+export async function commitConditionAction(actor,kind,options={}) {
+  if(conditionAdmin(options))return;
+  const {movement=0,healed=false}=options;
   const c=conditionState(actor),combat=game.combat;
   if(combat?.started&&["standard","move","full","round"].includes(kind)&&(c.staggered||c.disabled||c.nauseated))
     await actor.setFlag(MODULE_ID,"conditionAction",{key:`${combat.id}:${combat.round}`,kind,at:game.time.worldTime,
@@ -30,6 +35,7 @@ export function assertConditionAction(actor,item,options={}) {
   if(reason)throw new Error(reason);
 }
 export async function spellConditionCheck(item,actor) {
+  if(conditionAdmin())return {};
   const c=conditionState(actor),comp=item.system.components??{},sl=Number(item.system.level)||0;
   if((c.grappled||c.pinned)&&comp.somatic)return {blocked:"擒抱或压制中不能施展带姿势成分的法术。"};
   if((c.grappled||c.pinned)&&(comp.material||comp.focus||comp.divineFocus)&&!conditionContext(actor,c.pinned?"pinned":"grappled").materialReady)return {blocked:"擒抱中施法需要事先拿好所需材料和器材；请在状态详情中记录。"};
@@ -85,6 +91,8 @@ async function conditionAttackParts(chat,options) {
 }
 export function installConditionRuntime() {
   installConditionJobLifecycle();
+  installConditionIcons();
+  installMartialMissPresentation();
   const movementModeWrites=new WeakMap();
   const proto=CONFIG.Actor.documentClass.prototype;
   for(const [id,name] of Object.entries(CONDITION_NAMES))if(!CONFIG.statusEffects.some(effect=>effect.id===id))CONFIG.statusEffects.push({id,name,img:"icons/svg/aura.svg"});
@@ -105,7 +113,7 @@ export function installConditionRuntime() {
   const rest=proto.rest;
   proto.rest=async function(...args) {
     const c=conditionState(this);
-    if(c.dead||c.petrified){warn("当前状态不能通过休息恢复生命或能力。");return Promise.resolve({completed:false});}
+    if((c.dead||c.petrified)&&!conditionAdmin()){warn("当前状态不能通过休息恢复生命或能力。");return Promise.resolve({completed:false});}
     if(game.modules.get("d35e-world-timeline")?.active)return rest.apply(this,args);
     const updates=[],actor=this;
     const view=createTransientView(actor,{update:(...values)=>{const promise=actor.update(...values);updates.push(promise);return promise;}});
@@ -122,33 +130,35 @@ export function installConditionRuntime() {
   const ability=proto.rollAbilityTest;
   proto.rollAbilityTest=function(id,options={}) {
     const c=conditionState(this);
-    if(["dead","dying","unconscious","petrified","stunned","dazed","cowering","banished"].some(state=>c[state])||c.paralyzed&&["str","dex"].includes(id))return Promise.resolve(warn("当前状态使这项主动属性检定无法进行。"));
+    if(!conditionAdmin(options)&&(["dead","dying","unconscious","petrified","stunned","dazed","cowering","banished"].some(state=>c[state])||c.paralyzed&&["str","dex"].includes(id)))return Promise.resolve(warn("当前状态使这项主动属性检定无法进行。"));
     return ability.call(this,id,options);
   };
   const spell=ItemUse.prototype.useSpell;
   ItemUse.prototype.useSpell=async function(event,options={},actor=this.item.actor) {
     // Martial commands already check and commit their own action once.
     if((options.replacementItem??this.item).flags?.[MODULE_ID]?.martial)return spell.call(this,event,options,actor);
-    const item=options.replacementItem??this.item,reason=conditionActionRestriction(actor,item,{kind:kindFor(item)});
+    const item=options.replacementItem??this.item,operation=conditionItemOptions(item,options),reason=conditionActionRestriction(actor,item,{...operation,kind:kindFor(item)});
     if(reason)return warn(reason);
     const before=Number(this.item.charges),hp=Number(actor.system.attributes.hp.value),result=await spell.call(this,event,options,actor);
     const rolled=result?.roll?await result.roll:result;
-    if(!result?.getFlag?.(MODULE_ID,"conditionFailed")&&rolled!==false&&(result?.documentName==="ChatMessage"||result?.wasRolled||Number(this.item.charges)<before))await commitConditionAction(actor,kindFor(item),{healed:Number(actor.system.attributes.hp.value)>hp});
+    if(!result?.getFlag?.(MODULE_ID,"conditionFailed")&&rolled!==false&&(result?.documentName==="ChatMessage"||result?.wasRolled||Number(this.item.charges)<before))await commitConditionAction(actor,kindFor(item),{...operation,healed:Number(actor.system.attributes.hp.value)>hp});
     return result;
   };
   const useAttack=ItemUse.prototype.useAttack;
   ItemUse.prototype.useAttack=async function(options={},actor=this.item.actor,...args) {
+    actor??=this.item.actor;
+    const operation=conditionItemOptions(this.item,options);
     const kind=options.isFullAttack||this.item.type==="full-attack"?"full":kindFor(this.item);
-    const reason=conditionActionRestriction(actor,this.item,{kind});if(reason)return warn(reason);
+    const reason=conditionActionRestriction(actor,this.item,{...operation,kind});if(reason)return warn(reason);
     const result=await useAttack.call(this,options,actor,...args);
     const rolled=result?.roll?await result.roll:result;
-    if(this.item.type!=="spell"&&result?.wasRolled&&rolled!==false)await commitConditionAction(actor,kind);
+    if(this.item.type!=="spell"&&result?.wasRolled&&rolled!==false&&!this.item.flags?.[MODULE_ID]?.martialAttack)await commitConditionAction(actor,kind,operation);
     return result;
   };
   const rollAttack=ItemUse.prototype.rollAttack;
   ItemUse.prototype.rollAttack=function(fullAttack,form,...args) {
     const root=form?.nodeType===1?form:form?.[0],charging=root?.querySelector('[name="charge"]')?.checked;
-    const reason=conditionActionRestriction(args[1]??this.item.actor,this.item,{kind:fullAttack||charging?"full":kindFor(this.item),common:charging?"charge":null});
+    const reason=conditionActionRestriction(args[1]??this.item.actor,this.item,{...conditionItemOptions(this.item),kind:fullAttack||charging?"full":kindFor(this.item),common:charging?"charge":null});
     if(reason){warn(reason);return Promise.resolve(false);}
     return rollAttack.call(this,fullAttack,form,...args);
   };
@@ -161,6 +171,11 @@ export function installConditionRuntime() {
       this._threeRConditionMiss=concealment.total<=this._threeRConcealment;
     }
     const result=await attack.call(this,next);
+    if(!options.critical&&this.hasAttack) {
+      const chance=martialAttackMissChance(this.item.actor,this.item);
+      this.attack.martialMissChance=chance;
+      if(chance)this.attack.tooltip+=`<p>攻击失手率：${chance}%（应用伤害时检定）。</p>`;
+    }
     if(!options.critical&&this._threeRConcealment) {
       const roll=concealment;this.rolls.push(roll);
       this.attack.conditionMiss=this._threeRConditionMiss;
@@ -180,11 +195,19 @@ export function installConditionRuntime() {
     if(operation.isUndo||operation.threeRForcedMovement&&game.user.isGM||!doc.actor)return;
     if(movement.passed.waypoints.some(point=>CONFIG.Token.movement.actions[point.action]?.teleport))return;
     const c=conditionState(doc.actor);
+    if(conditionAdmin(operation)) {
+      // Moving a restricted token as GM is map administration. Carry the
+      // existing forced-movement context so post-move rule trackers ignore it.
+      const restricted=["dead","dying","unconscious","paralyzed","petrified","pinned","cowering","stunned","dazed","banished","helpless","grappled","fascinated","confused","disabled","staggered","nauseated","prone","panicked","frightened","turned"].some(id=>c[id])
+        ||c.entangled&&conditionContext(doc.actor,"entangled").anchored;
+      if(restricted)operation.threeRForcedMovement=true;
+      return;
+    }
     if(c.confused&&doc.actor.getFlag(MODULE_ID,"confusionTurn")?.mode!=="flee"&&doc.actor.getFlag(MODULE_ID,"confusionTurn")?.mode!=="normal") {warn("困惑：本回合只能执行已记录的行为，不能自由移动。");return false;}
     if(c.entangled&&conditionContext(doc.actor,"entangled").anchored) {warn("纠缠固定在物体上，无法主动移动。");return false;}
     const stopped=["dead","dying","unconscious","paralyzed","petrified","pinned","cowering","stunned","dazed","banished","helpless","grappled","fascinated"].find(id=>c[id]);
     if(stopped){warn(`${conditionName(stopped)}：不能主动移动。`);return false;}
-    const reason=limitedAction(doc.actor,"move");
+    const reason=limitedAction(doc.actor,"move",operation);
     if(reason){warn(reason);return false;}
     if(game.combat?.started&&(c.disabled||c.staggered||c.nauseated)) {
       const used=doc.actor.getFlag(MODULE_ID,"conditionAction"),previous=used?.key===`${game.combat.id}:${game.combat.round}`?Number(used.distance)||0:0;
@@ -206,7 +229,7 @@ export function installConditionRuntime() {
   });
   Hooks.on("moveToken",(doc,movement,operation,user)=>{
     if(operation.isUndo||operation.threeRForcedMovement||user.id!==game.user.id||!doc.actor?.isOwner)return;
-    if(Number(movement.passed.distance)>0)commitConditionAction(doc.actor,"move",{movement:Number(movement.passed.distance)}).catch(report);
+    if(Number(movement.passed.distance)>0)commitConditionAction(doc.actor,"move",{...operation,movement:Number(movement.passed.distance)}).catch(report);
     const mode=movement.passed.waypoints.at(-1)?.action;
     if(!mode)return;
     const actor=doc.actor,ticket={};

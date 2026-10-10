@@ -9,16 +9,34 @@ import { installMartialSheet,openMartial } from "./martial-sheet.js";
 import { installSwordsageFeatures,swordsageFeatureAvailable } from "./martial-class-features.js";
 import { installMartialTemplate } from "./martial-template.js";
 import { resolveMartialContext } from "./martial-events.js";
+import { sceneToken,feetDistance } from "./martial-context.js";
+import { validateMapManeuver,validateMapSource,chargeEndpoint } from "./martial-map.js";
+import { useScent } from "./martial-scent.js";
+import { conditionAdmin } from "./condition-policy.js";
 
 const esc=value=>foundry.utils.escapeHTML(String(value??""));
 const channel=`module.${MODULE_ID}`,waiting=new Map();
 const queues=new Map(),dualQueues=new Map();
+const previousCombatTurns=new WeakMap();
+const knownCombatTurns=new WeakMap();
+const combatPosition=combat=>`${combat.round}:${combat.turn}:${combat.combatant?.id}`;
 // Commands and native condition writes have separate queues; never recursively
 // wait for the same actor queue while applying a condition or HP consequence.
 const actorQueue=(actor,work)=>{const next=(queues.get(actor.uuid)??Promise.resolve()).catch(()=>{}).then(work);queues.set(actor.uuid,next);return next.finally(()=>{if(queues.get(actor.uuid)===next)queues.delete(actor.uuid);});};
 const selectable=actor=>actor.items.filter(i=>i.type==="attack"&&i.system.actionType==="mwak"&&i.hasAttack);
 const trackedTurn=actor=>Boolean(martialCombat(actor));
 const ownTurn=actor=>{const combat=martialCombat(actor);return combat?combat.combatant?.actor?.uuid===actor.uuid:true;};
+export function recoveryCheck(actor,profile=null,user=game.user) {
+  const s=getState(actor,{readOnly:true}),reasons=[];
+  const expended=new Set(s.profile.expended??[]),readied=new Set(s.profile.readied??[]);
+  const items=s.moves.filter(item=>expended.has(item.id)&&readied.has(item.id));
+  if(!actor.isOwner)reasons.push("没有角色操纵权限");
+  if(!s.id||!s.level||(profile&&profile!==s.id)||!swordsageFeatureAvailable(actor,"readied"))reasons.push("贤者之剑恢复特性尚未获得、来源已移除或已停用");
+  if(!items.length)reasons.push("没有需要恢复的已消耗准备武技");
+  if(!conditionAdmin({user})&&!ownTurn(actor))reasons.push("只能在自己的行动中整轮冥想");
+  try{assertConditionAction(actor,null,{kind:"full",user});}catch(error){reasons.push(error.message);}
+  return {available:!reasons.length,reasons,items,kind:"full"};
+}
 function validateContext(actor,item,context={}) {
   const p=PLANS[martial(item)?.definition];if(!p)return;
   const targets=[...new Set(context.targets??[])];
@@ -51,8 +69,8 @@ async function prepareRequest(actor,r) {
     return answer?{...r,choices:answer}:null;
   }
   if(r.op==="recover") {
-    const s=getState(actor),choices=s.profile.expended.map(id=>actor.items.get(id)).filter(Boolean);
-    if(!choices.length)throw new Error("没有需要恢复的已消耗招式。");
+    const eligibility=recoveryCheck(actor,r.profileId),choices=eligibility.items;
+    if(!eligibility.available)throw new Error(eligibility.reasons.join("；"));
     const answer=await dialog("整轮冥想：只恢复一招",`<select name="itemId">${choices.map(i=>`<option value="${i.id}">${esc(i.name)}</option>`).join("")}</select><p>${trackedTurn(actor)?"请在自己的行动中完成整轮冥想；下次开始行动后可用。":"战斗外完成整轮冥想后可用，无需先开始遭遇。"}</p>`);
     return answer?{...r,...answer}:null;
   }
@@ -60,18 +78,25 @@ async function prepareRequest(actor,r) {
     const item=actor.items.get(r.itemId),m=martial(item),p=PLANS[m?.definition];
     if(!m||!p)throw new Error("未登记这招的武术规则。");
     if(r.op==="stance"&&state(actor).activeStance===item.id)return r;
-    const context={targets:[...new Set([...game.user.targets].filter(t=>t.actor).map(t=>t.actor.uuid))],targetTokens:[...game.user.targets].filter(t=>t.actor).map(t=>t.document.uuid),offTurn:!ownTurn(actor)};
+    const context={targets:[...new Set([...game.user.targets].filter(t=>t.actor).map(t=>t.actor.uuid))],targetTokens:[...game.user.targets].filter(t=>t.actor).map(t=>t.document.uuid),sourceToken:sceneToken(actor)?.document.uuid,offTurn:!ownTurn(actor)};
     if(r.context?.eventKey)context.eventKey=r.context.eventKey;
     if(r.context?.sourceMessage)context.sourceMessage=r.context.sourceMessage;
-    const weapons=selectable(actor),attack=p.mode==="attack"&&!p.pure||p.mode==="throw"||p.opposedAttack||p.extraAttacksPerWeapon||p.rend;
+    if(["str","dex"].includes(r.context?.opposedAbility))context.opposedAbility=r.context.opposedAbility;
+    const weapons=selectable(actor),attack=p.mode==="attack"&&!p.pure||p.opposedAttack||p.extraAttacksPerWeapon||p.rend;
     if(attack&&!weapons.length)throw new Error("先在原生攻击页生成近战武器/徒手攻击，再发动这招。");
     const fields=[];
+    if(r.op==="stance"&&m.definition==="stance-of-clarity") {
+      const choices=(canvas.tokens?.placeables??[]).filter(t=>t.actor&&t.actor.uuid!==actor.uuid&&(game.user.isGM||t.isVisible));
+      if(!choices.length)throw new Error("明净体需要场景中可见的专注目标，架势尚未切换。");
+      const selected=context.targets.length===1?context.targets[0]:null;
+      fields.push(`<label>明净体专注目标<select name="focusTarget">${choices.map(t=>`<option value="${t.actor.uuid}" ${selected===t.actor.uuid?"selected":""}>${esc(t.name)}</option>`).join("")}</select></label>`);
+    }
     if(attack) {
       if(weapons.length===1)context.weaponId=weapons[0].id;
       else fields.push(`<label>使用武器<select name="weaponId">${weapons.map(i=>`<option value="${i.id}">${esc(i.name)}</option>`).join("")}</select></label>`);
     }
     if(p.extraAttacksPerWeapon||p.rend||p.sequence==="dual")fields.push(`<label>副手武器或徒手<select name="secondWeaponId"><option value="">不使用第二把</option>${weapons.map(i=>`<option value="${i.id}">${esc(i.name)}</option>`).join("")}</select></label>`);
-    if(p.opposedAbility)fields.push('<label>反制冲锋：选择对抗属性<select name="opposedAbility"><option value="dex">敏捷</option><option value="str">力量</option></select></label>');
+    if(p.opposedAbility&&!context.opposedAbility)fields.push('<label>反制冲锋：选择对抗属性<select name="opposedAbility"><option value="dex">敏捷</option><option value="str">力量</option></select></label>');
     if(fields.length){const answer=await dialog(item.name,fields.join(""));if(!answer)return null;Object.assign(context,answer);}
     return {...r,context};
   }
@@ -85,7 +110,7 @@ async function performDual(actor,r,user) {
     if(old)return old;
     if(Number(d.dualUsed||0)>=3)throw new Error("今日双重强化已用完；由DM在休息后重置。");
     if(!r.first||!r.second||r.first.itemId===r.second.itemId)throw new Error("双重强化必须选择两招不同的强化技。");
-    for(const row of [r.first,r.second]){const i=actor.items.get(row.itemId);if(martial(i)?.kind!=="boost"||!check(actor,i,row.context).available)throw new Error("两招必须都是已准备、未消耗、当前可用的强化技。");validateContext(actor,i,row.context);}
+    for(const row of [r.first,r.second]){const i=actor.items.get(row.itemId);if(martial(i)?.kind!=="boost"||!check(actor,i,{...row.context,conditionUser:user}).available)throw new Error("两招必须都是已准备、未消耗、当前可用的强化技。");validateContext(actor,i,row.context);}
     d.dualUsed=Number(d.dualUsed||0)+1;d.dualPairs??={};d.dualPairs[r.commandId]={first:clone(r.first),secondRequest:clone(r.second),second:r.second.itemId,turn:d.turn||0};await save(actor,d);return d.dualPairs[r.commandId];
   });
   await localCommand({...pair.first,op:"initiate",actorUuid:actor.uuid,commandId:`${r.commandId}-a`},user);
@@ -102,6 +127,7 @@ async function localCommand(r,user) {
   }
   if(r.op==="configure")return configureSwordsage(actor);
   if(r.op==="sense")return senseMagic(actor,r.context);
+  if(r.op==="scent")return actorQueue(actor,()=>useScent(actor,user));
   if(r.op==="event"){if(!user.isGM)throw new Error("架势事件由DM确认。");return martialEvent(actor);}
   if(r.op==="target-turn"){if(!user.isGM)throw new Error("目标行动时点由DM确认。");for(const uuid of r.context.targets){const target=await fromUuid(uuid);if(target)await expireMartial(target,"start");}return {state:"performed"};}
   return actorQueue(actor,async()=>{
@@ -142,6 +168,7 @@ async function localCommand(r,user) {
       data.encounter={id:foundry.utils.randomID(),combat:martialCombat(actor)?.id??null,start:game.time.worldTime};p.expended=[];p.recovered={};data.swiftDebt=false;data.swiftUsed=false;data.manualActing=true;
     } else if(r.op==="end") {
       if(!user.isGM)throw new Error("遭遇结束由DM确认。");
+      await expireMartial(actor,"end");
       data.encounter=null;p.expended=[];p.recovered={};data.swiftDebt=false;data.swiftUsed=false;
     } else if(r.op==="turn") {
       if(!user.isGM||martialCombat(actor))throw new Error("战斗外下一次行动由DM确认；战斗内随回合推进。");
@@ -153,13 +180,13 @@ async function localCommand(r,user) {
       if(!user.isGM||martialCombat(actor))throw new Error("战斗外结束行动由DM确认。");
       await expireMartial(actor,"end");data.manualActing=false;data.swiftUsed=false;if(data.clearDebtAtEnd){data.swiftDebt=false;data.clearDebtAtEnd=false;}
     } else if(r.op==="recover") {
-      if(!p.expended.includes(r.itemId))throw new Error("请选择本来源已消耗的准备武技。");
-      if(!ownTurn(actor))throw new Error("只能在自己的行动中整轮冥想。");
-      assertConditionAction(actor,null,{kind:"full"});
+      const eligibility=recoveryCheck(actor,r.profileId,user);
+      if(!eligibility.available)throw new Error(eligibility.reasons.join("；"));
+      if(!eligibility.items.some(item=>item.id===r.itemId))throw new Error("请选择本来源仍存在、未被替换且已消耗的准备武技。");
       p.expended=p.expended.filter(i=>i!==r.itemId);p.recovered[r.itemId]=data.turn||0;
-      await commitConditionAction(actor,"full");
+      await commitConditionAction(actor,"full",{user});
       await recordAction(actor,"standard");await recordAction(actor,"move");
-      await message(actor,`整轮冥想恢复${actor.items.get(r.itemId).name}，${trackedTurn(actor)?"下次行动可用":"战斗外完成冥想后可用"}。`);result.kind="full";
+      await message(actor,`整轮冥想恢复${actor.items.get(r.itemId).name}，${trackedTurn(actor)?"下次行动可用":"战斗外完成冥想后可用"}。`);result.kind="full";result.label="冥想恢复武技";result.hasChat=true;
     } else if(r.op==="focus") {
       const choices=r.choices??{},known=new Set(s.known.map(i=>martial(i).discipline));
       for(const [key,min] of [["weapon",1],["strike4",4],["defense8",8],["strike12",12],["defense16",16]]) {
@@ -175,26 +202,37 @@ async function localCommand(r,user) {
       const item=actor.items.get(r.itemId),m=martial(item);
       if(!m||m.profile!==id)throw new Error("这招未关联当前来源。");
       if(r.op==="stance"&&data.activeStance===item.id) {
-        if(!ownTurn(actor))throw new Error("结束架势需要自己行动中的迅捷动作。");
-        if(trackedTurn(actor)&&(data.swiftUsed||data.swiftDebt))throw new Error("本次行动的迅捷/反应已用完。");
-        assertConditionAction(actor,item,{kind:"swift"});await leaveMartialStance(actor);data.activeStance=null;data.swiftUsed=true;result.kind="swift";await recordAction(actor,"swift");
+        if(!conditionAdmin({user})&&!ownTurn(actor))throw new Error("结束架势需要自己行动中的迅捷动作。");
+        if(!conditionAdmin({user})&&trackedTurn(actor)&&(data.swiftUsed||data.swiftDebt))throw new Error("本次行动的迅捷/反应已用完。");
+        assertConditionAction(actor,item,{kind:"swift",user});await leaveMartialStance(actor);data.activeStance=null;data.swiftUsed=true;result.kind="swift";await recordAction(actor,"swift");
       } else {
         r.context=await resolveMartialContext(actor,item,r.context??{});
         if(!r.context)return {state:"cancelled"};
         validateContext(actor,item,r.context);
+        if(m.definition==="blistering-flourish") {
+          const source=sceneToken(actor,r.context.sourceToken);if(!source)throw new Error("焰星需要场景中的发动者，招式尚未消耗。");
+          const tokens=canvas.tokens.placeables.filter(t=>t.actor&&t.actor.uuid!==actor.uuid&&t.document.level===source.document.level
+            &&feetDistance(source.center,t.center)<=30+1e-6&&!source.checkCollision(t.center,{type:"sight",mode:"any"}));
+          r.context.targets=[...new Set(tokens.map(t=>t.actor.uuid))];r.context.targetTokens=tokens.map(t=>t.document.uuid);
+        }
+        if(["mighty-throw","charging-minotaur"].includes(m.definition)) {
+          const target=await fromUuid(r.context.targets[0]);validateMapManeuver(actor,target,r.context,m.definition==="mighty-throw"?"trip":"bullrush");
+          if(m.definition==="charging-minotaur")chargeEndpoint(sceneToken(actor,r.context.sourceToken),sceneToken(target,r.context.targetTokens[0]));
+        }
+        if(["sudden-leap","distracting-ember"].includes(m.definition))validateMapSource(actor,r.context);
         const freeCounter=PLANS[martial(actor.items.get(data.activeStance))?.definition]?.freeCounter&&m.kind==="counter"&&m.action==="immediate"&&!data.freeCounterUsed;
         const pair=data.dualPairs?.[r.dualPair],freeBoost=pair?.second===item.id&&pair.turn===(data.turn||0)&&m.kind==="boost"&&data.receipts[`${r.dualPair}-a`]?.status==="done";
         const freeAction=freeCounter||freeBoost;
-        const availability=check(actor,item,{...r.context,freeCounter:freeAction});if(!availability.available)throw new Error(availability.reasons.join("；"));
-        if(trackedTurn(actor)&&["swift","immediate"].includes(m.action)&&data.swiftUsed&&ownTurn(actor)&&!freeAction)throw new Error("本次行动的迅捷/反应已用完。");
-        if(trackedTurn(actor)&&m.kind==="counter"&&data.counterUsed?.includes(item.id))throw new Error("本次行动周期已发动过这个应对技。");
-        assertConditionAction(actor,item,{kind:freeAction?"free":m.action});
+        const availability=check(actor,item,{...r.context,freeCounter:freeAction,conditionUser:user});if(!availability.available)throw new Error(availability.reasons.join("；"));
+        if(!conditionAdmin({user})&&trackedTurn(actor)&&["swift","immediate"].includes(m.action)&&data.swiftUsed&&ownTurn(actor)&&!freeAction)throw new Error("本次行动的迅捷/反应已用完。");
+        if(!conditionAdmin({user})&&trackedTurn(actor)&&m.kind==="counter"&&data.counterUsed?.includes(item.id))throw new Error("本次行动周期已发动过这个应对技。");
+        assertConditionAction(actor,item,{kind:freeAction?"free":m.action,user});
         if(m.kind!=="stance")p.expended=[...new Set([...p.expended,item.id])];
         if(m.kind==="counter"){data.counterUsed=[...(data.counterUsed??[]),item.id];if(freeCounter)data.freeCounterUsed=true;}
         if(["swift","immediate"].includes(m.action)&&!freeAction){data.swiftUsed=true;if(m.action==="immediate"&&!ownTurn(actor))data.swiftDebt=true;}
-        data.receipts[r.commandId]={status:"initiated",itemId:item.id,context:clone(r.context??{}),started:game.time.worldTime,turn:data.turn||0,kind:freeAction?"free":m.action,steps:{}};
+        data.receipts[r.commandId]={status:"initiated",itemId:item.id,context:clone(r.context??{}),started:game.time.worldTime,turn:data.turn||0,userId:user.id,kind:freeAction?"free":m.action,steps:{}};
         await save(actor,data);
-        await commitConditionAction(actor,freeAction?"free":m.action);
+        await commitConditionAction(actor,freeAction?"free":m.action,{user});
         if(!freeAction){if(m.action==="full"){await recordAction(actor,"standard");await recordAction(actor,"move");}else await recordAction(actor,m.action);}
         if(m.kind==="stance") {
           await enterMartialStance(actor,item,r.context,r.commandId);data.activeStance=item.id;
@@ -221,6 +259,9 @@ export async function command(request) {
   });
 }
 export function installMartialRuntime() {
+  // A player may advance a turn: its pre-update hook does not run on the GM.
+  // Retain the ready-time position in memory without writing a combat flag.
+  for(const combat of game.combats)if(combat.started)knownCombatTurns.set(combat,combatPosition(combat));
   installMartialTemplate();
   installMartialSheet(command);installMartialEffects();installSwordsageFeatures(command,openMartial);
   game.socket.on(channel,async payload=>{
@@ -243,9 +284,33 @@ export function installMartialRuntime() {
     hook.customUse=true;hook.threeRCompletion=command({actorUuid:actor.uuid,itemId:item.id,op:martial(item).kind==="stance"?"stance":"initiate"});
     hook.threeRCompletion.catch(error=>ui.notifications.error(error.message));
   });
+  Hooks.on("preUpdateCombat",(combat,change)=>{
+    if(game.users.activeGM!==game.user||(!Object.hasOwn(change,"turn")&&!Object.hasOwn(change,"round")))return;
+    // Capture the actual outgoing combatant before Foundry applies the update.
+    // This covers existing combats with no saved martialTurn after reloading.
+    previousCombatTurns.set(combat,combat.started?combatPosition(combat):null);
+  });
   Hooks.on("updateCombat",async(combat,change)=>{
+    const old=previousCombatTurns.has(combat)?previousCombatTurns.get(combat):knownCombatTurns.get(combat)??combat.flags?.[MODULE_ID]?.martialTurn;
+    previousCombatTurns.delete(combat);
+    const now=combatPosition(combat);
+    if(Object.hasOwn(change,"turn")||Object.hasOwn(change,"round")) {
+      if(combat.started)knownCombatTurns.set(combat,now);
+      else knownCombatTurns.delete(combat);
+    }
+    // Every client keeps a read-only snapshot for a later GM handoff; only the
+    // current primary GM performs expiration and document changes.
     if(game.users.activeGM!==game.user)return;
-    if(change.round===0&&!combat.started){for(const c of combat.combatants)if(c.actor&&getState(c.actor).encounter?.combat===combat.id)await localCommand({actorUuid:c.actor.uuid,op:"end",commandId:`combat:${combat.id}:stop:${c.actor.uuid.replaceAll(".","~")}`},game.user);return;}
+    const incomingActor=combat.combatant?.actor;
+    if(change.round===0&&!combat.started){
+      knownCombatTurns.delete(combat);
+      for(const actor of new Map(combat.combatants.filter(c=>c.actor).map(c=>[c.actor.uuid,c.actor])).values()) {
+        if(getState(actor).encounter?.combat===combat.id)await localCommand({actorUuid:actor.uuid,op:"end",commandId:`combat:${combat.id}:stop:${actor.uuid.replaceAll(".","~")}`},game.user);
+        else await actorQueue(actor,()=>expireMartial(actor,"end"));
+      }
+      return;
+    }
+    if(!combat.started)return;
     if(change.started===true||change.round===1&&combat.started) {
       for(const actor of new Map(combat.combatants.filter(c=>c.actor).map(c=>[c.actor.uuid,c.actor])).values()) {
         const s=getState(actor);if(s.id&&!s.encounter&&!s.pending.known&&!s.pending.stances&&s.profile.readied.length===s.quotas.readied)
@@ -254,19 +319,23 @@ export function installMartialRuntime() {
     }
     if(!Object.hasOwn(change,"turn")&&!Object.hasOwn(change,"round"))return;
     // Only actual turn/round advancement triggers clocks. Initiative edits do not.
-    const old=combat.flags?.[MODULE_ID]?.martialTurn,now=`${combat.round}:${combat.turn}:${combat.combatant?.id}`;
     if(old===now)return;
     if(old) {
       const oldId=old.split(":").at(-1),actor=combat.combatants.get(oldId)?.actor;
       if(actor)await actorQueue(actor,async()=>{const d=state(actor);await expireMartial(actor,"end");if(getState(actor).id){if(d.clearDebtAtEnd){d.swiftDebt=false;d.clearDebtAtEnd=false;}await save(actor,d);}});
     }
     await combat.setFlag(MODULE_ID,"martialTurn",now);
-    const actor=combat.combatant?.actor;
+    const actor=incomingActor;
     if(actor)await actorQueue(actor,async()=>{const d=state(actor);if(getState(actor).id){d.turn=(d.turn||0)+1;d.swiftUsed=Boolean(d.swiftDebt);d.clearDebtAtEnd=Boolean(d.swiftDebt);d.freeCounterUsed=false;d.counterUsed=[];await save(actor,d);}await expireMartial(actor,"start");});
   });
   Hooks.on("deleteCombat",async combat=>{
     if(game.users.activeGM!==game.user)return;
-    for(const c of combat.combatants)if(c.actor&&getState(c.actor).encounter?.combat===combat.id)await localCommand({actorUuid:c.actor.uuid,op:"end",commandId:`combat:${combat.id}:end:${c.actor.uuid.replaceAll(".","~")}`},game.user);
+    previousCombatTurns.delete(combat);
+    knownCombatTurns.delete(combat);
+    for(const actor of new Map(combat.combatants.filter(c=>c.actor).map(c=>[c.actor.uuid,c.actor])).values()) {
+      if(getState(actor).encounter?.combat===combat.id)await localCommand({actorUuid:actor.uuid,op:"end",commandId:`combat:${combat.id}:end:${actor.uuid.replaceAll(".","~")}`},game.user);
+      else await actorQueue(actor,()=>expireMartial(actor,"end"));
+    }
   });
 }
-export const martialAPI={getState,check,command,open:openMartial};
+export const martialAPI={getState,check,recoveryCheck,command,open:openMartial};

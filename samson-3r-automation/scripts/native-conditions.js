@@ -1,11 +1,12 @@
 import { MODULE_ID } from "./catalog.js";
 import { effectIsActive } from "./effect-state.js";
 import { conditionActionRestriction, CONDITION_NAMES } from "./condition-state.js";
+import { conditionItemOptions } from "./condition-policy.js";
 import { conditionActorLive, reconcileConditionJob, conditionMapUpdate, conditionBookkeepingOptions, reportConditionError } from "./condition-jobs.js";
 
 const states=item=>item.getFlag(MODULE_ID,"nativeConditions")??[];
 export function actionRestriction(actor,item) {
-  return conditionActionRestriction(actor,item);
+  return conditionActionRestriction(actor,item,conditionItemOptions(item));
 }
 export function syncNativeConditions(actor) {
   if(game.users.activeGM!==game.user||!actor)return Promise.resolve();

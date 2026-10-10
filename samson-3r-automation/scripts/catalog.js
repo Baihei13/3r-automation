@@ -1,3 +1,5 @@
+import { METAMAGIC_TEXT } from "./metamagic-text.js";
+
 export const MODULE_ID = "samson-3r-automation";
 
 // A separate world Item compendium is created for each actual rulebook source.
@@ -49,6 +51,14 @@ const feat = (name, source, description, extra = {}) => ({
   system: { ...feature(name, source, description, extra).system, featType: "feat" }
 });
 
+const metamagicFeat = name => {
+  const rule=METAMAGIC_TEXT[name],item=feat(name,rule.source,"");
+  item.system.description.value=rule.description;
+  item.flags[MODULE_ID].metamagicTextRevision=1;
+  item.flags[MODULE_ID].provenance=rule.provenance;
+  return item;
+};
+
 export const ITEMS = {
   pf: [
     { name: "PF 人类", type: "race", img: "icons/svg/mystery-man.svg", system: {
@@ -65,7 +75,7 @@ export const ITEMS = {
     feature("计划领域", "cw", "神授力量：获得法术延时作为奖励专长。领域法术依次为死亡侦测、卜筮术、锐耳术／鹰眼术、状态术、侦测探知、英雄宴、高等探知、辨明位置、时间停止。")
   ],
   phb: [
-    feat("法术延时", "phb", "施法时可选择将合格的非瞬发法术持续时间加倍；需要高一级法术位。"),
+    metamagicFeat("法术延时"),
     feat("武器专攻：巨剑", "phb", "使用巨剑的攻击检定 +1；前提为基本攻击加值至少 +1 且擅长巨剑。", {
       requirements: [["基本攻击加值至少 +1", "1", "bab"]]
     }),
@@ -73,8 +83,8 @@ export const ITEMS = {
     feature("驱散不死生物", "phb", "以一个标准动作驱散不死生物，不引发借机攻击。每日可使用3＋魅力修正值次；驱散检定为1d20＋魅力修正值，驱散伤害为2d6＋牧师等级＋魅力修正值。"),
     feature("自发转换治疗法术", "phb", "善良牧师，以及信仰善良神祇的中立牧师，可以放弃一个已准备的非领域法术，转而施放同环或更低环的治疗法术。其他中立牧师需固定选择驱散或呵斥；选择驱散者自发施放治疗法术，选择呵斥者自发施放造成伤害法术。")
   ],
-  car: [feat("法术持久", "car", "合格的个人或固定射程法术持续 24 小时；通常提高 6 个法术等级。")],
-  cd: [feat("神圣超魔：法术持久", "cd", "消耗 1 + 6 = 7 次驱散不死生物次数，使合格法术持久而不提高法术位。")],
+  car: [metamagicFeat("法术持久")],
+  cd: [metamagicFeat("神圣超魔：法术持久")],
   cc: [feat("知识虔诚", "cc", "知识（任意）至少 5 级时生效。每场战斗每类生物检定一次相应知识技能，按结果在攻击与伤害上得到 +1 至 +5 洞察加值；未达前提时保留专长但不生效。", {
     requirements: [["任意知识技能至少 5 级", "max(@skills.kar.rank, @skills.kdu.rank, @skills.ken.rank, @skills.kge.rank, @skills.khi.rank, @skills.klo.rank, @skills.kna.rank, @skills.kno.rank, @skills.kpl.rank, @skills.kre.rank, @skills.kps.rank) >= 5", "generic"]]
   })],

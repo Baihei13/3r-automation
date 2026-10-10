@@ -1,6 +1,7 @@
 import { MODULE_ID } from "./catalog.js";
 import { martial,check,getState } from "./martial-state.js";
 import { PLANS } from "./martial-plans.js";
+import { Roll35e } from "../../../systems/D35E/module/roll.js";
 
 const events=new Map(),esc=v=>foundry.utils.escapeHTML(String(v??""));
 export const saveKind=value=>/^fort/.test(value)?"fort":/^ref/.test(value)?"ref":/^will/.test(value)?"will":null;
@@ -12,12 +13,98 @@ export function registerMartialEvent(source) {
 }
 export const martialEventSource=key=>events.get(key);
 export const closeMartialEvent=key=>events.delete(key);
+const remoteWaiting=new Map();
+const choiceWaiting=new Map();
+async function ownerCounterChoice(actor,items,source) {
+  const owner=game.users.find(u=>u.active&&!u.isGM&&actor.testUserPermission(u,"OWNER"));
+  if(!owner)return null;
+  const id=foundry.utils.randomID();
+  return new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>{choiceWaiting.delete(id);reject(new Error("玩家应对选择超时，原检定尚未掷出。"));},90000);
+    choiceWaiting.set(id,{resolve,reject,timer,user:owner.id,actor:actor.uuid,items:items.map(i=>i.id)});
+    ChatMessage.create({content:"<p>即将进行原生检定，请选择是否发动应对。</p>",whisper:[owner.id],flags:{[MODULE_ID]:{nativeCounterChoice:{id,user:owner.id,actor:actor.uuid,items:items.map(i=>i.id),kind:source.kind}}}})
+      .catch(error=>{clearTimeout(timer);choiceWaiting.delete(id);reject(error);});
+  });
+}
+export async function requestMartialReaction(source) {
+  if(game.users.activeGM===game.user) {
+    const target=await fromUuid(source.target),key=registerMartialEvent(source);
+    try{await chooseMartialReaction(target,key,p=>source.kind==="save"?p.saveBonus||p.replaces===source.save:p.replaces==="ac"||source.kind==="charge"&&p.opposedAbility);return {...martialEventSource(key)};}
+    finally{closeMartialEvent(key);}
+  }
+  if(!game.users.activeGM)return {};
+  const id=foundry.utils.randomID();
+  return new Promise((resolve,reject)=>{
+    // Do not fall through to a roll after a timeout: the GM could still be
+    // resolving a counter. The original attack/save remains unrolled.
+    const timer=setTimeout(()=>{remoteWaiting.delete(id);reject(new Error("应对等待主GM超时，原检定未掷出；请先确认GM端应对结束。"));},120000);
+    remoteWaiting.set(id,{resolve,reject,timer});
+    ChatMessage.create({content:"<p>原生检定等待武术应对。</p>",whisper:[game.users.activeGM.id],flags:{[MODULE_ID]:{nativeReactionRequest:{id,...source}}}})
+      .catch(error=>{clearTimeout(timer);remoteWaiting.delete(id);reject(error);});
+  });
+}
+export function installMartialReactionBridge() {
+  const handled=new Set();
+  Hooks.on("createChatMessage",async message=>{
+    const author=message.author??message.user,reply=message.flags?.[MODULE_ID]?.nativeReactionReply;
+    const choice=message.flags?.[MODULE_ID]?.nativeCounterChoice,selection=message.flags?.[MODULE_ID]?.nativeCounterSelection;
+    if(choice&&choice.user===game.user.id&&author?.id===game.users.activeGM?.id) {
+      try {
+        const actor=await fromUuid(choice.actor);if(!actor?.isOwner)return;
+        const items=choice.items.map(id=>actor.items.get(id)).filter(i=>martial(i)?.kind==="counter");
+        const item=await foundry.applications.api.DialogV2.wait({window:{title:`${actor.name}：应对`},rejectClose:false,
+          content:`<p>即将进行${choice.kind==="save"?"豁免":"敌方攻击"}。请选择应对技，或继续原检定。</p>`,
+          buttons:[{action:"normal",label:"继续原检定",callback:()=>null},...items.map(i=>({action:i.id,label:i.name,callback:()=>i.id}))]});
+        let ability;
+        if(item&&PLANS[martial(actor.items.get(item))?.definition]?.opposedAbility)ability=await foundry.applications.api.DialogV2.wait({window:{title:"反制冲锋：对抗属性"},rejectClose:false,
+          content:"<p>用力量还是敏捷进行同属性对抗？体型与已登记加值自动读取。</p>",buttons:[{action:"dex",label:"敏捷",callback:()=>"dex"},{action:"str",label:"力量",callback:()=>"str"}]});
+        await ChatMessage.create({content:"<p>已提交应对选择。</p>",whisper:[author.id],flags:{[MODULE_ID]:{nativeCounterSelection:{id:choice.id,item:ability===null?null:item,ability}}}});
+      }catch(error){console.error(MODULE_ID,"玩家应对选择",error);ui.notifications.error(error.message);}return;
+    }
+    if(selection&&game.users.activeGM===game.user) {
+      const waiting=choiceWaiting.get(selection.id);if(!waiting||author?.id!==waiting.user)return;
+      if(selection.item&&!waiting.items.includes(selection.item))return;
+      const actor=await fromUuid(waiting.actor);if(!actor?.testUserPermission(author,"OWNER"))return;
+      clearTimeout(waiting.timer);choiceWaiting.delete(selection.id);waiting.resolve(selection);return;
+    }
+    if(reply&&author?.id===game.users.activeGM?.id&&reply.user===game.user.id) {
+      const waiting=remoteWaiting.get(reply.id);if(!waiting)return;
+      clearTimeout(waiting.timer);remoteWaiting.delete(reply.id);
+      if(reply.error)waiting.reject(new Error(reply.error));else{const result={...reply.result};if(result.roll)result.roll=Roll35e.fromData(result.roll);waiting.resolve(result);}return;
+    }
+    const request=message.flags?.[MODULE_ID]?.nativeReactionRequest;
+    if(game.users.activeGM!==game.user||!request||handled.has(message.id))return;
+    handled.add(message.id);while(handled.size>128)handled.delete(handled.values().next().value);
+    try {
+      const target=await fromUuid(request.target);if(!target?.items)throw new Error("应对目标已不存在。");
+      let source;
+      if(request.kind==="save") {
+        const origin=game.messages.get(request.sourceMessage),data=origin?.flags?.D35E?.chatTemplateData;
+        const native=origin?.flags?.[MODULE_ID]?.nativeMartial,dc=Number(native?.dc??data?.dc?.dc),kind=native?.save??saveKind(data?.dc?.type);
+        if(!target.testUserPermission(author,"OWNER")||!origin||!(dc>0)||kind!==request.save)throw new Error("无法核实这次豁免的原生来源或权限。");
+        source={kind:"save",target:target.uuid,sourceMessage:origin.id,dc,save:kind,label:"即将进行豁免"};
+      }else {
+        const attacker=await fromUuid(request.attacker),weapon=await fromUuid(request.weapon);
+        if(!["attack","charge"].includes(request.kind)||!attacker?.testUserPermission(author,"OWNER")||weapon?.actor?.uuid!==attacker.uuid||!weapon.hasAttack)throw new Error("无法核实原生攻击来源或权限。");
+        source={kind:request.kind,target:target.uuid,attacker:attacker.uuid,weapon:weapon.uuid,rolled:false,label:`${attacker.name}即将${request.kind==="charge"?"冲锋":"攻击"}`};
+      }
+      const result=await requestMartialReaction(source);
+      const safe={ac:result.ac,blocked:result.blocked,unresolved:result.unresolved,chargeBonus:result.chargeBonus,skillSave:result.skillSave,roll:result.roll?.toJSON?.()};
+      await ChatMessage.create({content:"<p>武术应对已完成。</p>",whisper:[author.id,game.user.id],flags:{[MODULE_ID]:{nativeReactionReply:{id:request.id,user:author.id,result:safe}}}});
+    }catch(error){await ChatMessage.create({content:"<p>武术应对未完成，原检定尚未掷出。</p>",whisper:[author.id,game.user.id],flags:{[MODULE_ID]:{nativeReactionReply:{id:request.id,user:author.id,error:error.message}}}});}
+  });
+}
 export async function chooseMartialReaction(actor,eventKey,kinds) {
   if(game.users.activeGM!==game.user)return null;
   const s=getState(actor,{readOnly:true}),source=events.get(eventKey);
   const freeCounter=PLANS[martial(s.activeStance)?.definition]?.freeCounter&&!s.saved.freeCounterUsed;
   const items=s.moves.filter(item=>{const m=martial(item),p=PLANS[m.definition];return m.kind==="counter"&&p&&kinds(p)&&check(actor,item,{freeCounter},s).available;});
   if(!items.length)return null;
+  if(game.users.some(u=>u.active&&!u.isGM&&actor.testUserPermission(u,"OWNER"))) {
+    const selected=await ownerCounterChoice(actor,items,source);
+    if(!selected?.item)return null;
+    return game.modules.get(MODULE_ID).api.martial.command({actorUuid:actor.uuid,itemId:selected.item,op:"initiate",context:{eventKey,opposedAbility:selected.ability}});
+  }
   const answer=await foundry.applications.api.DialogV2.wait({window:{title:`${actor.name}：应对`},rejectClose:false,
     content:`<p>${esc(source.label??"即将进行检定")}。选择应对技，或继续原检定。</p>`,
     buttons:[{action:"normal",label:"继续原检定",callback:()=>null},...items.map(item=>({action:item.id,label:item.name,callback:()=>item.id}))]});

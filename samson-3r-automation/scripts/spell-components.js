@@ -19,7 +19,7 @@ const clericComponents={
   "anarchic-water":[["铁粉","鐵粉","iron powder","powdered iron"],["银粉","銀粉","silver dust","powdered silver"]],
   "axiomatic-water":[["铁粉","鐵粉","iron powder","powdered iron"],["银粉","銀粉","silver dust","powdered silver"]]
 };
-function carried(item,actor,seen=new Set()) {
+export function carried(item,actor,seen=new Set()) {
   const quantity=Number(item.system.quantity??1);
   if(!physical.has(item.type)||item.system.carried===false||item.system.melded||!Number.isFinite(quantity)||quantity<=0||seen.has(item.id))return false;
   seen.add(item.id);

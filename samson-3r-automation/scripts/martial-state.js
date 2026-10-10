@@ -1,5 +1,6 @@
 import { MODULE_ID } from "./catalog.js";
 import { PLANS } from "./martial-plans.js";
+import { conditionAdmin } from "./condition-policy.js";
 
 export const clone=value=>foundry.utils.deepClone(value);
 export const martial=item=>item?.flags?.[MODULE_ID]?.martial;
@@ -46,22 +47,22 @@ export function check(actor,item,context={},snapshot=null) {
   if(!m)return {available:false,reasons:["不是武术条目"]};
   if(!actor.isOwner)reasons.push("没有角色操纵权限");
   if(m.retired||!m.profile||m.profile!==s.id||!s.level||!s.saved.profiles[m.profile])reasons.push("尚未从武术页正式学习、来源职业已移除，或已被替换");
-  const c=actor.system.attributes?.conditions??{};
-  if(["dead","dying","unconscious","helpless","paralyzed","pinned","stunned","dazed"].some(k=>c[k]))reasons.push("当前无法发动武术");
-  if(m.action==="immediate"&&c.flatFooted)reasons.push("措手不及时不能使用反应动作");
+  const c=actor.system.attributes?.conditions??{},admin=conditionAdmin({user:context.conditionUser??game.user});
+  if(!admin&&["dead","dying","unconscious","helpless","paralyzed","pinned","stunned","dazed"].some(k=>c[k]))reasons.push("当前无法发动武术");
+  if(!admin&&m.action==="immediate"&&c.flatFooted)reasons.push("措手不及时不能使用反应动作");
   if(m.abilityType==="su"&&context.antimagic)reasons.push("反魔法环境中超自然能力无效");
   if(m.discipline==="stone-dragon"&&context.grounded===false)reasons.push("石龙流要求接触地面");
   const combat=martialCombat(actor),tracked=Boolean(combat),own=combat?combat.combatant?.actor?.uuid===actor.uuid:true;
-  if(!own&&["standard","move","full","swift"].includes(m.action))reasons.push("战斗中这招只能在自己的行动中发动");
+  if(!admin&&!own&&["standard","move","full","swift"].includes(m.action))reasons.push("战斗中这招只能在自己的行动中发动");
   const restrictions=actor.items.filter(i=>i.system.active&&i.flags?.[MODULE_ID]?.martialEffect).map(i=>i.flags[MODULE_ID].martialEffect.restriction);
-  if(restrictions.includes("no-actions")||restrictions.includes("no-standard")&&["standard","full"].includes(m.action)||restrictions.includes("no-move")&&["move","full"].includes(m.action)||restrictions.includes("no-full-attack")&&PLANS[m.definition]?.full)reasons.push("当前武术效果限制了这次动作");
+  if(!admin&&(restrictions.includes("no-actions")||restrictions.includes("no-standard")&&["standard","full"].includes(m.action)||restrictions.includes("no-move")&&["move","full"].includes(m.action)||restrictions.includes("no-full-attack")&&PLANS[m.definition]?.full))reasons.push("当前武术效果限制了这次动作");
   if(m.kind!=="stance") {
     const p=s.saved.profiles[m.profile];
     if(!p?.readied?.includes(item.id))reasons.push("没有准备这招");
     if(p?.expended?.includes(item.id))reasons.push("这招已经消耗");
-    if(tracked&&Number(p?.recovered?.[item.id])>=Number(s.saved.turn||0))reasons.push("冥想恢复的招式在下一次行动才可使用");
+    if(!admin&&tracked&&Number(p?.recovered?.[item.id])>=Number(s.saved.turn||0))reasons.push("冥想恢复的招式在下一次行动才可使用");
   }
-  if(tracked&&!context.freeCounter&&(s.saved.swiftDebt||own&&s.saved.swiftUsed)&&["swift","immediate"].includes(m.action))reasons.push("迅捷/反应额度尚未恢复");
+  if(!admin&&tracked&&!context.freeCounter&&(s.saved.swiftDebt||own&&s.saved.swiftUsed)&&["swift","immediate"].includes(m.action))reasons.push("迅捷/反应额度尚未恢复");
   return {available:!reasons.length,reasons,kind:m.action};
 }
 export function acquisitionCheck(actor,definition,{level=classLevel(actor),otherLevels=Math.max(0,(Number(actor.system.attributes?.hd?.total)||0)-classLevel(actor)),replaceId=null}={},snapshot=null) {

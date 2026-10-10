@@ -1,4 +1,4 @@
-import { MODULE_ID, timer, remaining, durationLabel, nativeBuffSeconds, nativeEffectTimer, clockLabel } from "./time.mjs";
+import { MODULE_ID, timer, remaining, durationLabel, nativeBuffSeconds, nativeEffectTimer, clockLabel, martialDeadlinePresentation } from "./time.mjs";
 import { Roll35e } from "../../../systems/D35E/module/roll.js";
 import { Item35E } from "../../../systems/D35E/module/item/entity.js";
 import { installCombatTracker } from "./combat-tracker.js";
@@ -93,7 +93,8 @@ async function trackCastSpell(message) {
   if (data.spellFailureSuccess === false && game.settings.get("D35E", "fizzleSpellOnArcaneFailure")) return;
   if (itemCard && item.hasAction) return; // Its cast also posts an attack card; avoid a duplicate timer.
   if (actor.effects.some(effect => effect.getFlag(MODULE_ID, "sourceMessageId") === message.id)) return;
-  let seconds = spellSeconds(item, actor, data);
+  const cast=message.getFlag("samson-3r-automation","cast");
+  let seconds = Number(cast?.persistentSeconds)>0?Number(cast.persistentSeconds):spellSeconds(item, actor, data);
   if(message.getFlag("samson-3r-automation","cast")?.extendSelf && seconds && !/^\s*(永久|permanent|专注|concentration)/i.test(item.system.spellDuration??""))seconds*=2;
   if (!seconds) return;
   const targetNames = (data.targets ?? []).map(target => target.name).filter(Boolean).join("、");
@@ -137,8 +138,9 @@ function entries() {
       const ownTimer = item.getFlag(MODULE_ID, "timer");
       const native = nativeBuffSeconds(item);
       const t = ownTimer ?? null;
-      result.push({ actor, doc: item, kind: "buff", timer: t, native,
-        note: t ? "世界时间" : native ? "3R 战斗轮；可开始世界时间追踪" : "未设置时长" });
+      const deadline=martialDeadlinePresentation(item);
+      result.push({ actor, doc: item, kind: "buff", timer: t, native, deadline,
+        note: deadline?.note??(t ? "世界时间" : native ? "3R 战斗轮；可开始世界时间追踪" : "未设置时长") });
     }
     for (const effect of actor.effects) {
       if (effect.disabled || effect.isSuppressed) continue;
@@ -165,7 +167,7 @@ function entries() {
       note: entry.note,
       hasTimer: !!t,
       ownTimer: !!entry.doc.getFlag(MODULE_ID, "timer"),
-      remaining: left == null ? "—" : durationLabel(left),
+      remaining: entry.deadline?.time??(left == null ? "—" : durationLabel(left)),
       endSeconds: t?.end ?? null,
       end: t ? clockLabel(t.end, game.time.calendar) : "",
       progress: t ? Math.max(0, Math.min(100, 100 * remaining(t, now) / t.seconds)) : 0,

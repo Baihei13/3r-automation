@@ -11,7 +11,7 @@ export const PLANS={
   "burning-brand":{mode:"boost",convertFire:true,reach:5,until:"end"},
   "death-mark":attack(null,{secondary:fire("6d6"),note:"DM指定目标体型对应的扩散内生物；施展者免疫本次火焰。"}),
   "desert-tempest":attack(null,{sequence:"path",note:"按速度移动，每个擦身目标至多攻击一次；移动仍引发借机。"}),
-  "distracting-ember":{mode:"scene",until:"end",note:"在30尺内放置只提供威胁的火元素；不进行动作或借机攻击，DM确认夹击。"},
+  "distracting-ember":{mode:"scene",until:"end",note:"在30尺内放置5尺触及的场景夹击标记，自动参与夹击；不进行动作或借机攻击。尚无完整火元素生物数据。"},
   "dragons-flame":fire("6d6"),"fan-the-flames":attack(["6d6","energy-fire"],{pure:true,touch:"ranged"}),
   "fiery-assault":stance({extra:["1d6","energy-fire"]}),
   "fire-riposte":attack(["4d6","energy-fire"],{pure:true,touch:"melee",trigger:"已被近战武器/天然武器命中"}),

@@ -33,12 +33,15 @@ import { installCardSelections } from "./card-selections.js";
 import { clericOwns, prepareClericCast, installClericSpells } from "./cleric-spells.js";
 import { swordsageFeatureAction } from "./martial-class-features.js";
 import { archetypeAvailable } from "./pf-character-foundation.js";
+import { divinePersistentAction } from "./divine-metamagic.js";
 
 export const key = item => item?.flags?.[MODULE_ID]?.key;
 const CHARACTER_ITEM_ACTIONS={"protective-luck":"luck",ward:"ward",cackle:"cackle","covenant-ally":"covenant-reset",legalistic:"curse-menu",reclusive:"curse-settings",misfortune:"misfortune",fortune:"fortune",lifebound:"lifebound","samsaran-magic":"samsaran-menu",trapfinding:"trap-menu"};
 const characterItemAction=item=>CHARACTER_ITEM_ACTIONS[key(item)]??(/^(covenant|samsaran)-(health|safeguard|solace|sr|languages|deathwatch|stabilize)$/.test(key(item)??"")?key(item):null);
 // Read-only UI capability discovery. Keep rule identities in their owning module.
 export function hudItemAction(item) {
+  if(item.flags?.[MODULE_ID]?.clericPlan==="manual"&&!utilityKind(item)&&!cardSpell(item))return {mode:"reference",kind:null,label:item.flags[MODULE_ID].clericSpell==="create-water"?"仅计算产水量 · 查看规则":"规则资料 · 独有效果未实现"};
+  if(["神圣超魔：法术持久","holy-symbol"].includes(key(item)))return divinePersistentAction(item.actor,key(item)==="holy-symbol"?item:null);
   const classFeature=swordsageFeatureAction(item);if(classFeature)return classFeature;
   if(["sneak-attack","trapfinding","rogue-proficiencies","weapon-finesse"].includes(key(item)))return {mode:"reference",kind:null,label:"被动能力 · 查看完整规则"};
   if(key(item)==="finesse-training")return {mode:"configure",kind:null,label:"选择巧技训练武器"};
@@ -55,8 +58,9 @@ export function hudItemAction(item) {
   if(!action)return {
     "知识虔诚":{mode:"action",kind:null,label:"进行知识检定"},
     "修道牧师：学问":{mode:"action",kind:null,label:"进行学问检定"},
-    "驱散不死生物":{kind:"standard"},
-    "神圣超魔：法术持久":{kind:"standard"},
+    "驱散不死生物":{mode:"action",kind:"standard",available:Number(item.actor?.system.attributes.turnUndeadUses)>0,
+      label:Number(item.actor?.system.attributes.turnUndeadUses)>0?null:"驱散／斥喝次数已用完",
+      resource:item.actor?{value:item.actor.system.attributes.turnUndeadUses,max:item.actor.system.attributes.turnUndeadUsesTotal,cost:1,label:"驱散／斥喝"}:null},
     "自发转换治疗法术":{mode:"configure",kind:null,label:"选择转换法术"},
     "fist-of-stone-potion":{kind:"standard"},
     "rhamphorhynchus-familiar":{mode:"configure",kind:null,label:"打开魔宠选项"}
@@ -137,7 +141,7 @@ const spellKey = item => clericOwns(item)?null:isDivineFavor(item)?"favor":
 export const handlesSpell = item => Boolean(spellKey(item)||utilityKind(item));
 export async function applySpellBuff(item, actor=item.actor, {seconds=null,cl=null,targets=null,weaponId=null,...utility}={}) {
   cl=Number(cl)>0&&Number.isFinite(Number(cl))?Number(cl):casterLevel(item,actor);
-  if(utilityKind(item))return applyUtility(item,actor,{cl,...utility});
+  if(utilityKind(item))return applyUtility(item,actor,{cl,seconds,...utility});
   const kind=spellKey(item);
   if (!kind) return;
   const selected=targets ?? [...game.user.targets].map(t=>t.actor).filter(Boolean);
@@ -346,7 +350,7 @@ export function activateRules() {
     const book=actor.system.attributes?.spells?.spellbooks?.[item.system.spellbook??"primary"];
     if(book?.ability && Number(actor.system.abilities[book.ability].total)<10+Number(item.system.level))
       return ui.notifications.warn("施法属性尚未达到10＋法术环级，不能施放。");
-    const context={item,actor,targets:personalSpell(item)?[actor]:[...game.user.targets].map(t=>t.actor).filter(Boolean)};
+    const context={item,actor,persistentSeconds:item.flags?.[MODULE_ID]?.divinePersistent?.seconds,targets:personalSpell(item)?[actor]:[...game.user.targets].map(t=>t.actor).filter(Boolean)};
     castContexts.push(context);
     try {
       if(spellKey(item)==="weapon") {
@@ -383,9 +387,9 @@ export function activateRules() {
     const data=message.flags?.D35E?.chatTemplateData;
     if(!data?.isSpell)return;
     const actor=actorForMessage(message);
-    const context=castContexts.find(c=>c.item.id===data.item?.id&&c.actor.uuid===actor?.uuid);
+    const context=castContexts.find(c=>c.item.id===data.item?.id&&c.item.name===data.item?.name&&c.actor.uuid===actor?.uuid);
     const targets=context&&personalSpell(context.item)?[actor]:data.targets?.length?data.targets.map(t=>canvas.scene?.tokens.get(t.id)?.actor).filter(Boolean):context?.targets??[];
-    if(context)message.updateSource({[`flags.${MODULE_ID}.cast`]:{actual:true,automated:handlesSpell(context.item)||Boolean(cardSpell(context.item)),targetUuids:targets.map(t=>t.uuid),extendSelf:has(actor,"reclusive")&&curseLevel(actor,"reclusive")>=5&&targets.length===1&&targets[0].uuid===actor.uuid,weaponId:context.weaponId,cl:Number(data.cl)>0?Number(data.cl):context.cl,materials:context.materials,...context.utility}});
+    if(context)message.updateSource({[`flags.${MODULE_ID}.cast`]:{actual:true,automated:handlesSpell(context.item)||Boolean(cardSpell(context.item)),targetUuids:targets.map(t=>t.uuid),persistentSeconds:context.persistentSeconds,extendSelf:!context.persistentSeconds&&has(actor,"reclusive")&&curseLevel(actor,"reclusive")>=5&&targets.length===1&&targets[0].uuid===actor.uuid,weaponId:context.weaponId,cl:Number(data.cl)>0?Number(data.cl):context.cl,materials:context.materials,...context.utility}});
   });
   Hooks.on("createChatMessage",message=> {
     if(!activeGM())return;
@@ -395,7 +399,7 @@ export function activateRules() {
       if(!item||!handlesSpell(item))return;
       // Native action spells also post their description; only the actual action card creates the buff.
       if(item.hasAction&&message.flags.D35E.template!=="systems/D35E/templates/chat/attack-roll.html")return;
-      Promise.all(cast.targetUuids.map(u=>fromUuid(u))).then(targets=>applySpellBuff(item,actor,{cl:cast.cl,weaponId:cast.weaponId,objectUuid:cast.objectUuid,gallons:cast.gallons,targets:targets.filter(Boolean)})).catch(report);
+      Promise.all(cast.targetUuids.map(u=>fromUuid(u))).then(targets=>applySpellBuff(item,actor,{seconds:cast.persistentSeconds??null,cl:cast.cl,weaponId:cast.weaponId,objectUuid:cast.objectUuid,gallons:cast.gallons,targets:targets.filter(Boolean)})).catch(report);
     }
     if(message.flags?.D35E?.template==="systems/D35E/templates/chat/saving-throw.html"&&data?.target) {
       const roll=message.rolls?.[0],die=roll?.dice?.find(term=>term.faces===20)?.results?.find(row=>row.active!==false)?.result;

@@ -2,9 +2,7 @@
   "id": "d35e-world-timeline",
   "title": "3R 世界时间轴",
   "description": "D35E world timeline with calendar, scene weather, timed effects, and combat UI.",
-  "version": "0.7.8",
-  "url": "https://github.com/Baihei13/3r-automation",
-  "manifest": "https://github.com/Baihei13/3r-automation/releases/latest/download/d35e-world-timeline.module.json",
+  "version": "0.7.11",
   "authors": [
     {
       "name": "Local custom module"
@@ -30,5 +28,7 @@
         }
       }
     ]
-  }
+  },
+  "url": "https://github.com/Baihei13/3r-automation",
+  "manifest": "https://github.com/Baihei13/3r-automation/releases/latest/download/d35e-world-timeline.module.json"
 }

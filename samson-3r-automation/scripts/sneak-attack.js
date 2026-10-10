@@ -176,6 +176,15 @@ function flank(source,target,item) {
   if(!sides.includes(disposition)||!sides.includes(enemy))return {value:null,reason:"中立或未指定阵营的Token，敌我关系未明确"};
   if(disposition===enemy)return {value:false,reason:"攻击者与目标是同一阵营，未形成对敌夹击"};
   const island=islandStance(source.actor),near=adjacent(source,target);
+  for(const ember of canvas.tokens.placeables.filter(t=>t.document.flags?.[MODULE_ID]?.martialEmber)) {
+    const marker=ember.document.flags[MODULE_ID].martialEmber;
+    const summoner=canvas.tokens.placeables.find(t=>t.actor?.uuid===marker.source)?.actor;
+    if(!summoner?.items.some(i=>i.type==="buff"&&effectIsActive(i)&&i.flags?.[MODULE_ID]?.martialEffect?.sceneStamp===marker.stamp))continue;
+    if(Number(ember.document.disposition)!==disposition||ember.document.level!==target.document.level||Number(ember.document.elevation)!==Number(target.document.elevation))continue;
+    if(!game.user.isGM&&(!ember.isVisible||ember.document.hidden))continue;
+    const d=distance(ember,target);if(d==null||d<=0||d>5+1e-6||!clearLine(ember,target)||!clearLine(ember,target,"move"))continue;
+    if(island&&near&&adjacent(ember,target)||centers(source).some(p=>centers(ember).some(q=>opposite(p,q,target))))return {value:true,reason:"乱心之焰的小型火元素威胁目标，形成夹击"};
+  }
   let unknown=false;
   const failures=new Set();
   for(const ally of canvas.tokens.placeables) {

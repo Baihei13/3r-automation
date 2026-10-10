@@ -7,13 +7,18 @@ import { sameDeity } from "./condition-spells.js";
 import { conditionState, conditionName } from "./condition-state.js";
 import { Roll35e } from "../../../systems/D35E/module/roll.js";
 import { ActorDamageHelper } from "../../../systems/D35E/module/actor/helpers/actorDamageHelper.js";
+import { nativeHitCheck } from "./native-hit.js";
+import { conditionActorLive } from "./condition-jobs.js";
 
 const mark=item=>item?.flags?.[MODULE_ID]??{};
+// Repair only our exact old execution hint; rules and custom notes stay intact.
+const executionNote=(id,note)=>id==="nightshield"&&note==="自身全部豁免＋1至＋3抗力；魔法飞弹免疫由DM确认"
+  ?"自身全部豁免＋1至＋3抗力；自动阻止有可靠来源的原生魔法飞弹伤害。第三方直接扣HP尚未覆盖。":note;
 const esc=value=>foundry.utils.escapeHTML(String(value??""));
 const rollOf=value=>Array.isArray(value)?value.find(row=>Number.isFinite(row?.total)):value;
-const passed=(value,dc)=>{
+const passed=(value,dc,skill=false)=>{
   const roll=rollOf(value),die=roll?.dice?.find(term=>term.faces===20)?.results?.find(row=>row.active!==false)?.result;
-  return roll&&(die===20||die!==1&&roll.total>=dc);
+  return roll&&(skill?roll.total>=dc:die===20||die!==1&&roll.total>=dc);
 };
 const many=new Set(["bane","bless","blessed-aim"]);
 export const clericOwns=item=>Boolean(mark(item).clericSpell&&mark(item).clericPlan!=="legacy");
@@ -106,7 +111,7 @@ async function healthChange(target,amount,heal,receipt) {
     const hp=target.system.attributes.hp,temp=Number(hp.temp)||0,absorbed=heal?0:Math.min(temp,amount);
     await target.update({"system.attributes.hp.value":Math.clamp(Number(hp.value)+(heal?amount:-(amount-absorbed)),-100,Number(hp.max)),
       ...(heal?{"system.attributes.hp.nonlethal":Math.max(0,Number(hp.nonlethal??0)-amount)}:{"system.attributes.hp.temp":temp-absorbed}),
-      [`flags.${MODULE_ID}.clericReceipts`]:{...receipts,[receipt]:true}});
+      [`flags.${MODULE_ID}.clericReceipts`]:{...receipts,[receipt]:true}},{threeRRuleOperation:true});
   });
 }
 async function applyResult(message,pending,item,actor,target,row) {
@@ -151,7 +156,7 @@ async function applyResult(message,pending,item,actor,target,row) {
     return `敏捷伤害${amount}点；恢复按属性伤害规则处理`;
   }
   if(row.saved)return "豁免成功，无效";
-  let seconds=secondsFor(id,cl);
+  let seconds=cast.persistentSeconds??secondsFor(id,cl);
   if(cast.extendSelf&&target.uuid===actor.uuid)seconds*=2;
   const left=start+seconds-game.time.worldTime;
   if(!(left>0))return "原施法持续时间已经结束";
@@ -176,11 +181,11 @@ async function applyResult(message,pending,item,actor,target,row) {
     if(effects.length)await target.deleteEmbeddedDocuments("Item",effects.map(effect=>effect.id));
   }
   await replaceTimedBuff(target,data);
-  return definition.clericAdjudication;
+  return executionNote(id,definition.clericAdjudication);
 }
 
 const busy=new Set(),targetsBusy=new Set();
-async function resolve(message,targetUuid,mode,{hasSight=true,touchAC=null,critical=false}={}) {
+async function resolve(message,targetUuid,mode,{hasSight=true}={}) {
   if(game.users.activeGM!==game.user)throw new Error("请由当前主GM结算。");
   if(busy.has(message.id)||targetsBusy.has(targetUuid))return;
   busy.add(message.id);targetsBusy.add(targetUuid);
@@ -194,17 +199,22 @@ async function resolve(message,targetUuid,mode,{hasSight=true,touchAC=null,criti
     const data=message.flags.D35E.chatTemplateData,id=cast.clericSpell,cl=Number(cast.cl);
     if(!Number.isFinite(cl)||cl<1)throw new Error("施法者等级无效，未应用法术。");
     if(mode==="accept"&&actor.uuid!==target.uuid&&game.combat?.started&&target.items.some(entry=>entry.getFlag(MODULE_ID,"key")==="reclusive"))throw new Error("隐居诅咒：战斗中不能自愿接受其他施法者法术，请进行豁免。");
-    if(item.system.actionType==="msak"&&(!Number.isFinite(touchAC)||touchAC<0))throw new Error("请填写有效的目标接触AC。");
-    row.mode=mode;row.hasSight??=hasSight;row.touchAC??=touchAC;row.critical??=critical;
+    row.mode=mode;row.hasSight??=hasSight;
     await message.setFlag(MODULE_ID,"clericResolution",pending);
     let outcome=eligibility(item,target);
     if(id==="moon-lust"&&!row.hasSight)outcome="目标没有视觉，无效";
     const negative=id.startsWith("inflict"),undead=target.system.attributes.creatureType==="undead";
     const healing=mark(item).clericPlan==="energy"&&(negative?undead:!undead);
     if(!outcome&&item.system.actionType==="msak"&&!healing) {
-      const attack=data.attacks?.find(entry=>entry.hasAttack)?.attack;
-      if(!attack)throw new Error("没有找到原生近战接触攻击结果，未应用伤害。");
-      if(attack.conditionMiss||attack.isFumble||!attack.isNatural20&&Number(attack.total)<row.touchAC)outcome="近战接触未命中";
+      if(!row.nativeAttack) {
+        const index=data.attacks?.findIndex(entry=>entry.hasAttack)??-1;
+        const result=await nativeHitCheck(message,actor,target,{touch:true,index});
+        if(!result)return;
+        row.nativeAttack=result;row.critical=result.crit;
+        await message.setFlag(MODULE_ID,"clericResolution",pending);
+      }
+      if(!row.nativeAttack.hit)outcome="近战接触未命中";
+      row.critical=row.nativeAttack.crit;
     }
     const sr=spellResistanceValue(target,actor.uuid),lowered=mode==="accept"&&!target.items.some(effect=>effect.getFlag(MODULE_ID,"key")==="covenant-sr"&&effectIsActive(effect));
     if(!outcome&&item.system.sr&&sr>0&&!lowered) {
@@ -224,10 +234,12 @@ async function resolve(message,targetUuid,mode,{hasSight=true,touchAC=null,criti
       const book=actor.system.attributes.spells.spellbooks[item.system.spellbook??"primary"];
       const native=Number(data.dc?.dc??data.dc),dc=Number.isFinite(native)&&native>0?native:10+Number(item.system.level)+(Number(actor.system.abilities[book.ability]?.mod)||0);
       const type=item.system.save.type.startsWith("fortitude")?"fort":item.system.save.type.startsWith("reflex")?"ref":"will";
-      const result=await target.rollSavingThrow(type,null,dc);
+      const result=await target.rollSavingThrow(type,null,dc,{threeRSourceMessage:message.id});
       if(!rollOf(result))return;
-      row.saved=passed(result,dc);row.dc=dc;await message.setFlag(MODULE_ID,"clericResolution",pending);
+      const counter=message.flags?.[MODULE_ID]?.counterSaves?.[encodeURIComponent(target.uuid).replaceAll(".","%2E")];
+      row.saved=passed(result,dc,Boolean(counter?.skill&&counter.save===type));row.dc=dc;await message.setFlag(MODULE_ID,"clericResolution",pending);
     }
+    if(!conditionActorLive(actor)||!conditionActorLive(target))return;
     if(!outcome)outcome=await applyResult(message,pending,item,actor,target,row);
     row.done=true;row.outcome=outcome;
     await message.setFlag(MODULE_ID,"clericResolution",pending);
@@ -250,7 +262,7 @@ export function installClericSpells() {
       const targets={};
       for(const uuid of cast.clericTargets??[]) {
         const target=await fromUuid(uuid);
-        if(target)targets[uuid]={name:target.name,done:false,defaultTouchAC:Number(target.system.attributes.ac.touch.total)};
+        if(target)targets[uuid]={name:target.name,done:false};
       }
       await message.setFlag(MODULE_ID,"clericResolution",{item:source.uuid,start:game.time.worldTime,targets,rolls:{},plan:mark(source).clericPlan,note:mark(source).clericAdjudication,save:source.system.save.type,sr:source.system.sr,touch:source.system.actionType==="msak",id:cast.clericSpell});
     } catch(error){report(error);}
@@ -260,24 +272,21 @@ export function installClericSpells() {
     if(!pending||root.querySelector("[data-cleric-resolution]"))return;
     if(pending.plan!=="manual")for(const button of root.querySelectorAll('[data-action="rollSave"],[data-action="rollSR"],[data-action="applyDamage"],[data-action="applyDamageHalf"]'))button.remove();
     const section=document.createElement("section");section.className="three-r-spell-resolution";section.dataset.clericResolution=message.id;
-    section.innerHTML=`<strong>${pending.plan==="manual"?"DM裁定":"法术结算"}</strong><p>${esc(pending.note)}</p>`;
+    section.innerHTML=`<strong>${pending.plan==="manual"?(pending.id==="create-water"?"仅计算产水量，场景效果未实现":"仅规则资料，独有效果尚未实现"):"法术结算"}</strong><p>${esc(executionNote(pending.id,pending.note))}</p>`;
     if(pending.id==="create-water")section.insertAdjacentHTML("beforeend",`<p>本次最多${2*Number(message.getFlag(MODULE_ID,"cast")?.cl)}加仑清水。</p>`);
     if(many.has(pending.id))section.insertAdjacentHTML("beforeend","<p>结算指定目标；范围内遗漏的单位、遮挡与实际盟敌关系由DM核对。</p>");
     if(pending.id==="shivering-touch-lesser")section.insertAdjacentHTML("beforeend","<p>寒系亚种、属性伤害免疫，以及是否应有法术抗力，请按本桌规则核对；这里按指定CHM的“不可”处理。</p>");
     for(const [uuid,row] of Object.entries(pending.targets)) {
       const line=document.createElement("div"),label=document.createElement("p");
       label.textContent=`${row.name}${row.done?`：${row.outcome}`:""}`;line.append(label);
-      if(!row.done) {
-        if(pending.touch)line.insertAdjacentHTML("beforeend",`<label>目标接触AC <input type="number" min="0" name="touch-ac" value="${row.touchAC??row.defaultTouchAC}" ${row.mode?"disabled":""}></label><label><input type="checkbox" name="critical" ${row.critical?"checked":""} ${row.mode?"disabled":""}>已确认重击（×2，DM确认重击免疫、护命与其他防护）</label>`);
+      if(!row.done&&pending.plan!=="manual") {
         if(pending.id==="moon-lust")line.insertAdjacentHTML("beforeend",`<label><input type="checkbox" name="has-sight" ${row.hasSight!==false?"checked":""} ${row.mode?"disabled":""}>目标具有视觉</label>`);
         const options=document.createElement("div");options.className="three-r-spell-options";
         for(const [mode,text] of [["apply","直接应用"],...(pending.save?[["save","进行豁免"]]:[]),...(pending.save||pending.sr?[["accept","自愿接受"]]:[])]) {
           const button=document.createElement("button");button.type="button";button.textContent=text;
           button.disabled=game.users.activeGM!==game.user||Boolean(row.mode&&row.mode!==mode);
           button.title=mode==="apply"?"跳过豁免，仍检查命中、免疫与法术抗力":mode==="save"?"原生豁免；按正文处理无效、减半或部分有效":"放弃豁免，降低可以主动降低的法术抗力";
-          button.onclick=()=>resolve(message,uuid,mode,{hasSight:line.querySelector('[name="has-sight"]')?.checked??true,
-            touchAC:line.querySelector('[name="touch-ac"]')?Number(line.querySelector('[name="touch-ac"]').value):null,
-            critical:line.querySelector('[name="critical"]')?.checked??false}).catch(report);
+          button.onclick=()=>resolve(message,uuid,mode,{hasSight:line.querySelector('[name="has-sight"]')?.checked??true}).catch(report);
           options.append(button);
         }
         line.append(options);

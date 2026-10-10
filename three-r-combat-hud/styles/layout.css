@@ -20,6 +20,7 @@
 #three-r-combat-hud.trh-root .trh-availability-tabs button small { font-size: 1em; font-variant-numeric: tabular-nums; }
 #three-r-combat-hud.trh-root .trh-availability-tabs button.is-active { border-color: var(--trh-edge); color: var(--trh-gold-lit); background: var(--trh-bg-accent); }
 #three-r-combat-hud.trh-root .trh-item-meta.has-reason { display: block; font-size: .8em; text-align: left; overflow-wrap: anywhere; }
+#three-r-combat-hud.trh-root .trh-item-meta.has-resource { display: block; font-size: .8em; text-align: left; overflow-wrap: anywhere; }
 #three-r-combat-hud.trh-root .trh-card.is-unavailable { border-left: 2px solid var(--trh-muted); }
 #three-r-combat-hud.trh-root .trh-card.is-reference { border-left: 2px dotted var(--trh-muted); }
 #three-r-combat-hud.trh-root .trh-card.is-unavailable .trh-icon img { filter: grayscale(1); }

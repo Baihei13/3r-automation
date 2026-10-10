@@ -6,6 +6,8 @@ import { setSickenedPresentation, setNativeConditionPresentation } from "./condi
 import { Roll35e } from "../../../systems/D35E/module/roll.js";
 import { consumeSpellComponents, charmThreatContext } from "./spell-components.js";
 import { conditionSpell, sameDeity, conditionSpellEligibility, applyConditionSpell } from "./condition-spells.js";
+import { nativeHitCheck } from "./native-hit.js";
+import { conditionActorLive } from "./condition-jobs.js";
 
 export const cardSpell=item=>{
   const id=item?.getFlag(MODULE_ID,"currentCardSpell");
@@ -13,9 +15,9 @@ export const cardSpell=item=>{
 };
 const esc=text=>String(text??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const dice=result=>Array.isArray(result)?result.find(entry=>Number.isFinite(entry?.total)):result;
-const passed=(roll,dc)=>{
+const passed=(roll,dc,skill=false)=>{
   const result=dice(roll),die=result?.dice?.find(term=>term.faces===20)?.results?.find(row=>row.active!==false)?.result;
-  return result&&(die===20||(die!==1&&result.total>=dc));
+  return result&&(skill?result.total>=dc:die===20||(die!==1&&result.total>=dc));
 };
 function copyProgress(item) {
   const copy=item.getFlag(MODULE_ID,"copy");
@@ -78,6 +80,7 @@ async function resolveCast(message,options={}) {
     if(!cast?.actual||!pending||pending.done)return;
     const actor=await fromUuid(pending.actor),target=await fromUuid(pending.target),item=actor?.items.get(pending.item);
     if(!item||!target?.isOwner||!actor?.isOwner)throw new Error("请由能够操纵施法者和目标的GM结算这次法术。");
+    if(!conditionActorLive(actor)||!conditionActorLive(target))return;
     if(targetBusy.has(target.uuid))throw new Error("这个目标还有一项法术正在结算，请先完成该项结算。");
     targetBusy.add(target.uuid);lockedTarget=target.uuid;
     const id=cast.cardSpell,cl=Number(cast.cl),choice={...cast.cardChoice},chat=message.flags.D35E.chatTemplateData;
@@ -100,9 +103,8 @@ async function resolveCast(message,options={}) {
       if(immunity.includes("mindAffecting")||(id==="charm-person"&&immunity.includes("charm"))){allowed=false;outcome="目标免疫";}
     }
     if(id==="ray-of-sickening") {
-      const attack=chat.attacks?.find(entry=>entry.hasAttack)?.attack;
-      if(!attack)throw new Error("这张聊天卡没有射线攻击结果。");
-      allowed=!attack.conditionMiss&&!attack.isFumble&&(attack.isNatural20||attack.total>=Number(target.system.attributes.ac.touch.total));
+      if(!pending.nativeAttack){const result=await nativeHitCheck(message,actor,target,{touch:true,index:chat.attacks?.findIndex(entry=>entry.hasAttack)??-1});if(!result)return;pending.nativeAttack=result;await message.setFlag(MODULE_ID,"cardResolution",pending);}
+      allowed=pending.nativeAttack.hit;
       if(!allowed)outcome="射线未命中";
     }
     const sr=spellResistanceValue(target,actor.uuid);
@@ -130,28 +132,32 @@ async function resolveCast(message,options={}) {
       if(bonus)temporary=await replaceTimedBuff(target,timedBuff(bonus>0?"魅惑人类：正在受到威胁":"严加斥责：信奉同一神祇",bonus>0?"charm-threat-save":"castigate-same-god",null,[[String(bonus),"savingThrows","will",bonus>0?"untyped":"penalty"]]));
       let result;
       const save=/^fortitude/.test(item.system.save.type)?"fort":/^reflex/.test(item.system.save.type)?"ref":"will";
-      try{result=await target.rollSavingThrow(save,null,dc);}finally{if(temporary&&target.items.has(temporary.id))await temporary.delete();}
+      try{result=await target.rollSavingThrow(save,null,dc,{threeRSourceMessage:message.id});}finally{if(temporary&&conditionActorLive(target)&&target.items.get(temporary.id)===temporary)await temporary.delete();}
       if(!dice(result))return;
-      allowed=!passed(result,dc);if(!allowed)outcome="豁免成功";
+      const counter=message.flags?.[MODULE_ID]?.counterSaves?.[encodeURIComponent(target.uuid).replaceAll(".","%2E")];
+      allowed=!passed(result,dc,Boolean(counter?.skill&&counter.save===save));if(!allowed)outcome="豁免成功";
       pending.saveFailed=allowed;
       await message.setFlag(MODULE_ID,"cardResolution",pending);
     }
+    if(!conditionActorLive(actor)||!conditionActorLive(target))return;
     const partial=stateSpell&&!stateImmune&&outcome==="豁免成功";
     if(stateSpell&&(allowed||partial)) {
       const raw=Number(chat.dc?.dc??chat.dc),book=actor.system.attributes.spells.spellbooks[item.system.spellbook??"primary"],dc=raw>0?raw:10+Number(item.system.level)+(Number(actor.system.abilities[book?.ability]?.mod)||0);
       if(await applyConditionSpell(item,actor,target,{cl,dc,saveFailed:allowed,start:pending.start,message,pending})===false)outcome="持续时间已结束";
       else if(partial)outcome=id==="castigate"?"豁免成功，仍战栗一轮":"豁免成功，伤害减半，无附加状态";
-    }else if(allowed&&await applyCardEffect(item,actor,target,{cl,choice,start:pending.start,dc:chat.dc?.dc??chat.dc})===false)outcome="持续时间已结束";
+    }else if(allowed&&await applyCardEffect(item,actor,target,{cl,choice,start:pending.start,dc:chat.dc?.dc??chat.dc,persistentSeconds:cast.persistentSeconds,extendSelf:cast.extendSelf})===false)outcome="持续时间已结束";
     await message.setFlag(MODULE_ID,"cardResolution",{...pending,done:true,outcome,resolvedAt:game.time.worldTime});
     await ChatMessage.create({speaker:ChatMessage.getSpeaker({actor}),content:`<p>${esc(item.name)} → ${esc(target.name)}：${{apply:"直接应用",save:"进行豁免",accept:"自愿接受"}[mode]}${id==="charm-person"&&choice.threatened&&mode==="save"?"（威胁＋5）":""}，${esc(outcome)}。</p>`,flags:{[MODULE_ID]:{resolvedCast:message.id}}});
   }finally{busy.delete(message.id);if(lockedTarget)targetBusy.delete(lockedTarget);}
 }
 
-async function applyCardEffect(item,actor,target,{cl,choice,start,dc}) {
+async function applyCardEffect(item,actor,target,{cl,choice,start,dc,persistentSeconds,extendSelf}) {
   const id=cardSpell(item);
   const periods={"mage-armor":3600*cl,"enlarge-person":60*cl,"guidance":60,"ray-of-sickening":60*cl,
     "charm-person":3600*cl,"comprehend-languages":600*cl,"ears-of-the-city":6*cl,"pesh-vigor":6*cl,"amanuensis":600*cl};
-  const remaining=Math.max(0,(start??game.time.worldTime)+(periods[id]??0)-game.time.worldTime);
+  let seconds=Number(persistentSeconds)>0?Number(persistentSeconds):periods[id]??0;
+  if(extendSelf&&target.uuid===actor.uuid)seconds*=2;
+  const remaining=Math.max(0,(start??game.time.worldTime)+seconds-game.time.worldTime);
   if(!remaining&&id!=="detect-poison")return false;
   const changes=id==="mage-armor"?[["4","ac","ac","armor"]]:id==="enlarge-person"?[["2","ability","str","size"],["-2","ability","dex","penalty"]]
     :id==="pesh-vigor"?[["2","ability","str","enh"]]:[];

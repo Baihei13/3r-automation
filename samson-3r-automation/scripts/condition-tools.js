@@ -92,7 +92,7 @@ export async function clearCondition(actor,id) {
     if(!conditionActorLive(actor))return;
     // Native icons are already reconciled by actor.update. Our own markers
     // have one writer below; do not race that writer to delete the same ID.
-    const effects=actor.effects.filter(effect=>effect.statuses?.has(id)&&!effect.getFlag(MODULE_ID,"conditionMarker"));
+    const effects=CONFIG.D35E.conditions[id]?[]:actor.effects.filter(effect=>effect.statuses?.has(id)&&!effect.getFlag(MODULE_ID,"conditionMarker"));
     if(effects.length)await actor.deleteEmbeddedDocuments("ActiveEffect",effects.map(effect=>effect.id),{stopUpdates:true,threeRConditionMarker:true});
     await syncNativeConditions(actor);await syncConditionMarkers(actor);
   });

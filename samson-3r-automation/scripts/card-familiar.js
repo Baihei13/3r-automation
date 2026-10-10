@@ -71,10 +71,22 @@ export async function syncCardFamiliar(master) {
 }
 
 export function installCardFamiliar() {
+  const nearbyState=new WeakMap(),movementRefresh=new WeakMap();
+  const hasFamiliarFeature=master=>master?.items.some(item=>item.getFlag(MODULE_ID,"key")==="rhamphorhynchus-familiar"&&effectIsActive(item));
+  const rememberNearby=master=>nearbyState.set(master,familiarBonusApplies(master));
+  const rememberScene=()=>{
+    for(const actor of game.actors??[])if(hasFamiliarFeature(actor))rememberNearby(actor);
+  };
+  // Keep this client-only cache out of Actor flags and player data.
+  rememberScene();
+  Hooks.on("canvasReady",rememberScene);
   const refreshMaster=familiar=>{
     if(game.users.activeGM!==game.user||familiar.getFlag(MODULE_ID,"familiarSpecies")!=="rhamphorhynchus")return;
     const master=game.actors.get(familiar.system.master?.id);
-    if(master)master.refresh().catch(error=>console.error(MODULE_ID,error));
+    if(master) {
+      rememberNearby(master);
+      master.refresh().catch(error=>console.error(MODULE_ID,error));
+    }
   };
   Hooks.on("deleteActor",refreshMaster);
   Hooks.on("updateActor",(actor,change)=>{
@@ -104,9 +116,24 @@ export function installCardFamiliar() {
     })();
     hook.threeRCompletion.catch(error=>{console.error(MODULE_ID,error);ui.notifications.error(error.message);});
   });
-  Hooks.on("updateToken",(token,change)=>{
-    if(game.users.activeGM!==game.user||!Object.keys(change).some(key=>["x","y","elevation"].includes(key)))return;
-    const actor=token.actor,master=actor?.system.master?.id?game.actors.get(actor.system.master.id):actor;
-    if(master?.items.some(item=>item.getFlag(MODULE_ID,"key")==="rhamphorhynchus-familiar"&&effectIsActive(item)))master.refresh().catch(error=>console.error(MODULE_ID,error));
+  Hooks.on("moveToken",(token,movement)=>{
+    if(game.users.activeGM!==game.user||movement?.pending?.waypoints?.length)return;
+    const actor=token.baseActor??token.actor,master=actor?.system.master?.id?game.actors.get(actor.system.master.id):actor;
+    if(!hasFamiliarFeature(master))return;
+    const ticket={};
+    movementRefresh.set(master,ticket);
+    (async()=>{
+      // D35E refresh() calls Actor.update({}); never start that work mid-animation.
+      // Wait for both sides of the link when they are moving together.
+      const participants=[master,...game.actors.filter(row=>row.system.master?.id===master.id&&row.getFlag(MODULE_ID,"familiarSpecies")==="rhamphorhynchus")];
+      const tokens=new Set([token.object,...participants.flatMap(row=>row.getActiveTokens())]);
+      await Promise.all([...tokens].filter(Boolean).map(row=>row.movementAnimationPromise));
+      if(movementRefresh.get(master)!==ticket||canvas.scene!==token.parent||game.users.activeGM!==game.user||!hasFamiliarFeature(master))return;
+      const nearby=familiarBonusApplies(master);
+      if(nearbyState.get(master)===nearby)return;
+      nearbyState.set(master,nearby);
+      try {await master.refresh();}
+      catch(error) {nearbyState.delete(master);throw error;}
+    })().catch(error=>console.error(MODULE_ID,error));
   });
 }

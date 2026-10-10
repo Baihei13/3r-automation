@@ -1,6 +1,7 @@
 import { MODULE_ID } from "./catalog.js";
 import { effectIsActive } from "./effect-state.js";
 import { Item35E } from "../../../systems/D35E/module/item/entity.js";
+import { conditionAdmin } from "./condition-policy.js";
 
 export const CONDITION_NAMES={blind:"目盲",dazzled:"目眩",deaf:"耳聋",entangled:"纠缠",fatigued:"疲乏",exhausted:"力竭",
   grappled:"擒抱",helpless:"无助",paralyzed:"麻痹",pinned:"压制",fear:"恐惧",sickened:"恶心",stunned:"震慑",shaken:"战栗",
@@ -72,6 +73,7 @@ export function conditionItems(actor,system) {
   return {c,entries};
 }
 export function skillConditionFailure(actor,id,options={}) {
+  if(conditionAdmin(options))return null;
   const c=conditionState(actor);
   if(["dead","dying","unconscious","petrified","stunned","dazed","cowering","banished"].some(state=>c[state]))return "当前状态不能主动进行技能检定。";
   if(c.fascinated&&!["lis","spt"].includes(id))return "迷魂期间无法主动从事其他活动。";
@@ -82,19 +84,25 @@ export function skillConditionFailure(actor,id,options={}) {
   if(c.dead||c.dying||c.unconscious||c.petrified)return "无法主动进行技能检定。";
   return null;
 }
-export function limitedAction(actor,kind) {
+export function limitedAction(actor,kind,options={}) {
+  if(conditionAdmin(options))return null;
   const c=conditionState(actor);
   if(!["standard","move","full","round"].includes(kind))return null;
   if(!(c.staggered||c.disabled||c.nauseated))return null;
   if(["full","round"].includes(kind))return "当前状态不允许整轮动作。";
   if(c.nauseated&&kind!=="move")return "反胃时每轮只能进行一个移动动作。";
+  // The martial command committed this action before generating native dice.
+  // Do not reject its own continuation as a second action this round.
+  if(options.threeRConditionCommitted)return null;
   const combat=game.combat;
   if(!combat?.started)return null;
   const used=actor.getFlag(MODULE_ID,"conditionAction");
   const key=`${combat.id}:${combat.round}`;
   return used?.key===key&&!(kind==="move"&&used.kind==="move")?"本轮已经使用过当前状态允许的一个动作。":null;
 }
-export function conditionActionRestriction(actor,item,{kind=item?.system?.activation?.type,common=null}={}) {
+export function conditionActionRestriction(actor,item,options={}) {
+  if(conditionAdmin(options))return null;
+  const {kind=item?.system?.activation?.type,common=null}=options;
   const c=conditionState(actor),components=item?.system?.components??{},mental=item?.getFlag?.(MODULE_ID,"purelyMental")===true||item?.type==="spell"&&!Object.values(components).some(value=>value===true)&&!Number(components.divineFocus);
   const unable=["dead","dying","unconscious","stunned","dazed","cowering","petrified","banished"].find(id=>c[id]);
   if(unable)return `处于${conditionName(unable)}状态，不能执行这项动作。`;
@@ -126,7 +134,7 @@ export function conditionActionRestriction(actor,item,{kind=item?.system?.activa
     if(turn.mode==="flee"&&kind!=="move"&&common!=="run"&&!item?.getFlag?.(MODULE_ID,"helpsEscape"))return "困惑：本回合须逃离施法者。";
     if(turn.mode==="attack"&&(!item?.hasAttack||![...game.user.targets].some(token=>token.actor?.uuid===turn.target)))return "困惑：本回合只能攻击记录的目标；无法攻击时语无伦次。";
   }
-  return limitedAction(actor,kind);
+  return limitedAction(actor,kind,options);
 }
 export function conditionSpeedFactor(c) {
   if(["dead","dying","unconscious","paralyzed","petrified","pinned","cowering","stunned","dazed","banished"].some(id=>c[id]))return 0;

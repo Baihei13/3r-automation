@@ -12,7 +12,7 @@ export function loadHudStyles() {
   // Running servers can retain the old manifest. Reuse the existing stylesheet
   // path and load this version directly, so CSS caching cannot omit the themes.
   const url = new URL("../styles/hud.css", import.meta.url);
-  url.searchParams.set("v", "0.5.11");
+  url.searchParams.set("v", "0.5.15");
   const id = "three-r-combat-hud-styles";
   document.getElementById(id)?.remove();
   return new Promise((resolve, reject) => {

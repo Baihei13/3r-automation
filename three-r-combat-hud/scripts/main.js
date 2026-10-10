@@ -54,7 +54,7 @@ Hooks.once("ready", async () => {
   hud = new ThreeRCombatHud();
   installMovement(() => hud.refresh());
   hud.refresh();
-  console.info(`${MODULE_ID}: 0.5.11，支持v13.351与v14；能力区区分动作、被动规则与配置，仅依赖D35E。`);
+  console.info(`${MODULE_ID}: 0.5.15，能力页接武术职业恢复；显示真实动作及可用性，规则由可选3r自动化处理，仅依赖D35E。`);
 });
 
 Hooks.on("getSceneControlButtons", controls => {

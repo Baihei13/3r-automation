@@ -13,7 +13,7 @@ const queueRest = (...args) => {
 const channel = `module.${MODULE_ID}`;
 const escape = text => String(text).replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 
-async function nativeRest(actor, rest, args) {
+async function nativeRest(actor, rest, args, requester=null) {
   const updates = [];
   // Empty-target view preserves native private receivers and captures the un-awaited final update.
   const view = new Proxy(Object.create(null), {
@@ -26,6 +26,7 @@ async function nativeRest(actor, rest, args) {
           delete values[0]["system.attributes.hp.nonlethal"];
           if(values[0].system?.attributes?.hp)delete values[0].system.attributes.hp.nonlethal;
         }
+        if(requester)values[1]={...values[1],threeRConditionUserId:requester.id};
         const promise = actor.update(...values); updates.push(promise); return promise;
       };
       const value = Reflect.get(actor, property, actor);
@@ -40,8 +41,11 @@ async function nativeRest(actor, rest, args) {
 
 async function restWithClock(actor, health, daily, care, invoke, requester = null) {
   if (!game.user.isGM) throw new Error("世界时间由DM控制。");
-  const condition=game.modules.get("samson-3r-automation")?.api?.conditionState?.(actor);
-  if(condition?.dead||condition?.petrified)throw new Error("当前状态不能通过休息恢复生命或能力。");
+  const assertRest=()=>{
+    const condition=game.modules.get("samson-3r-automation")?.api?.conditionState?.(actor);
+    if(!Boolean((requester??game.user)?.isGM)&&(condition?.dead||condition?.petrified))throw new Error("当前状态不能通过休息恢复生命或能力。");
+  };
+  assertRest();
   const previous = game.settings.get(MODULE_ID, "lastRest");
   const join = previous?.id && previous.mode !== "recover" && Array.isArray(previous.actors) && Math.abs(game.time.worldTime - previous.end) < 1 && !previous.actors.includes(actor.uuid);
   const choice = await foundry.applications.api.DialogV2.wait({
@@ -58,6 +62,7 @@ async function restWithClock(actor, health, daily, care, invoke, requester = nul
   if (choice === "new") await game.time.advance(8 * 3600);
   await game.modules.get(MODULE_ID)?.api?.processExpirations?.();
   await game.modules.get("samson-3r-automation")?.api?.processTime?.();
+  assertRest();
   executing.add(actor.uuid);
   try {
     const recovered=await invoke();
@@ -107,7 +112,7 @@ export function installRestSync() {
         const requester = game.users.get(data.sender), actor = await fromUuid(data.uuid);
         if (!requester?.active || actor?.documentName !== "Actor" || !actor.testUserPermission(requester, "OWNER")) throw new Error("请求角色或操纵权限无效。");
         const result = await queueRest(actor, data.health === true, data.daily === true, data.care === true,
-          () => actor.rest(data.health === true, data.daily === true, data.care === true), requester);
+          () => nativeRest(actor,rest,[data.health === true,data.daily === true,data.care === true],requester), requester);
         completed = result.completed;
       } catch (error) { ui.notifications.error(`休息未完成：${error.message}`); }
       game.socket.emit(channel, { type: "rest-result", id: data.id, receiver: data.sender, gm: game.user.id, completed });

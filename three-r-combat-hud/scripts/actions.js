@@ -128,6 +128,12 @@ export async function useNative(actor, token, itemId, event, reminderContext, co
     dialogListeners.abort();
   }
   const after = Number(actor.items.get(item.id)?.charges);
+  if(customCompletion&&["performed","cancelled","pending"].includes(customResult?.state)){
+    if(customResult.state!=="performed")return {state:customResult.state==="cancelled"?"cancelled":"pending",reason:customResult.reason};
+    const raw=customResult.kind??route?.kind,normalized={round:"full",attack:"standard",aao:"immediate"}[raw]??raw;
+    const kind=["standard","move","swift","immediate","full","free"].includes(normalized)?normalized:null;
+    return {state:"performed",kind,label:customResult.label??displayName(item),hasChat:hasChat||customResult.hasChat===true};
+  }
   // The GM receipt is authoritative for martial actions, including ending a
   // stance (which has no charge change). A waiting chat card is not execution.
   if(item.flags?.["samson-3r-automation"]?.martial&&customCompletion){

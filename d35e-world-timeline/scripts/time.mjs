@@ -1,6 +1,22 @@
 export const MODULE_ID = "d35e-world-timeline";
 export const ROUND_SECONDS = 6;
 
+// Martial effects use an event deadline, not a world-second duration. Read only
+// the recorded metadata; drawing an icon never creates/resets a timer.
+export function martialDeadlinePresentation(item) {
+  const effect=item?.flags?.["samson-3r-automation"]?.martialEffect;
+  if(effect?.stance)return {time:"直到退出或切换架势",badge:"架势",note:"架势持续生效；移动等原文限制由3r自动化处理"};
+  const deadline=effect?.deadline;
+  if(!deadline?.actor||!["start","end"].includes(deadline.phase))return null;
+  if(deadline.until&&!["start","end","target-start","target-end"].includes(deadline.until))return null;
+  const subject=deadline.actor===item?.parent?.uuid?"自身":"发动者";
+  const time=deadline.phase==="end"?`${subject}行动结束时失效`:`${subject}下次行动开始时失效`;
+  const round=Number(deadline.round);
+  return {time:deadline.until==="end"?`${subject}本次行动结束时失效`:time,
+    badge:deadline.phase==="end"?"行动末":"行动初",
+    note:`武术行动期限${deadline.phase==="end"&&round>0?` · 发动于第${round}轮`:""} · 由3r自动化处理到期`};
+}
+
 export function timer(start, seconds) {
   if (!Number.isFinite(start) || !Number.isFinite(seconds) || seconds <= 0) return null;
   return { start, seconds, end: start + seconds };

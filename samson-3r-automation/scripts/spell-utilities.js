@@ -39,7 +39,7 @@ export async function prepareUtility(item,actor,cl) {
   }
   return {};
 }
-export async function applyUtility(item,actor,{cl=casterLevel(item),objectUuid,gallons}={}) {
+export async function applyUtility(item,actor,{cl=casterLevel(item),seconds=null,objectUuid,gallons}={}) {
   const kind=utilityKind(item);
   if(kind==="mending") {
     if(!objectUuid)return;
@@ -52,8 +52,9 @@ export async function applyUtility(item,actor,{cl=casterLevel(item),objectUuid,g
     return actor.createEmbeddedDocuments("Item",[{name:"造水术：清水（加仑）",type:"loot",img:"icons/svg/droplet.svg",system:{quantity:gallons,weight:8,price:0,description:{value:"<p>每份1加仑，约8磅。饮用时减少数量；剩余水1天后消失。</p>"}},flags:{[MODULE_ID]:{key:"created-water",sourceItemUuid:item.uuid,expiresAt:game.time.worldTime+86400}}}]);
   }
   if(kind==="detect") {
-    const data=timedBuff("侦测魔法（专注）","detect-magic-concentration",60*cl,[],{sourceActor:actor.uuid,sourceItemUuid:item.uuid,cl});
+    const data=timedBuff(seconds===86400?"侦测魔法（持久）":"侦测魔法（专注）","detect-magic-concentration",seconds??60*cl,[],{sourceActor:actor.uuid,sourceItemUuid:item.uuid,cl});
     data.img=item.img;data.system.description.value=await item.getChatDescription();
+    if(seconds===86400)data.system.description.value+="<p>持久24小时：注意到受侦测事物出现或消失无需持续专注；获取进一步信息仍需正常专注。</p>";
     return replaceTimedBuff(actor,data);
   }
 }

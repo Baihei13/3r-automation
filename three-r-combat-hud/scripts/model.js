@@ -48,8 +48,26 @@ export function actorChoices() {
   return [{ key: token.document.uuid, actor: token.actor, token }];
 }
 
-export function resourceLabel(item) {
+function usagePool(item,route) {
+  if(route?.resource)return route.resource;
+  if(item.type!=="spell"&&(item.isCharged||item.system.linkedChargeItem?.id||item.system.uses?.isResource)) {
+    const source=item.system.linkedChargeItem?.id?item.actor?.getItemByUidOrId(item.system.linkedChargeItem.id):item;
+    // Native single-use inventory and spell maxCharges equal the current supply,
+    // not a capacity. Do not invent an original maximum for these pools.
+    const maximum=source?.type==="spell"||source?.system.uses?.per==="single"?null:item.maxCharges;
+    return {value:item.charges,max:maximum,cost:item.chargeCost};
+  }
+  return null;
+}
+function poolLabel(pool) {
+  if(pool?.value===Infinity)return "无限";
+  if(pool?.value==null||!Number.isFinite(Number(pool.value)))return "";
+  const maximum=pool.max!=null&&Number.isFinite(Number(pool.max))?` / ${fmt(pool.max)}`:"";
+  return `${fmt(pool.value)}${maximum}`;
+}
+export function resourceLabel(item,route=itemActionRoute(item),pool=usagePool(item,route)) {
   if(martialEntry(item))return martialResource(item,item.actor);
+  if(pool)return poolLabel(pool);
   if (automationFlag(item, "key") === "legalistic" && item.actor) {
     const record = automationFlag(item.actor, "promise");
     return `每日${record?.used && record.day === Math.floor(game.time.worldTime / 86400) ? 0 : 1}次`;
@@ -140,10 +158,13 @@ export function availabilitySections(entries, category = "") {
 
 function card(item, favorites, actor) {
   const route=itemActionRoute(item),m=martialEntry(item);
+  const pool=m?null:usagePool(item,route),resource=resourceLabel(item,route,pool);
+  const resourceText=pool&&resource&&pool.value!==Infinity
+    ?`${pool.label?`${pool.label} · `:""}剩余 ${resource} 次${Number(pool.cost)>1?` · 每次消耗 ${fmt(pool.cost)} 次`:""}`:"";
   const availability = itemAvailability(item, actor,route);
   return {
-    id: item.id, name: displayName(item), img: item.img || "icons/svg/book.svg",
-    favorite: favorites.includes(item.id), resource: resourceLabel(item),
+    id: item.id, name: route?.name || displayName(item), img: item.img || "icons/svg/book.svg",
+    favorite: favorites.includes(item.id), resource,resourceText,
     action: ["buff", "aura"].includes(item.type) ? (item.system.active ? "已启用" : "未启用") : availability.reference ? route?.label || "查看详情"
       : route?.label || (route?.kind ? actionNames[route.kind] : actionLabel(item)),
     passive: availability.reference, ...availability, item,
@@ -151,7 +172,7 @@ function card(item, favorites, actor) {
     level: m?finite(m.level):item.type === "spell" ? finite(item.system.level) : null,
     book: m?martialBook(m):item.type === "spell" ? item.system.spellbook || "primary" : "",
     spellInfo: m?`${m.level}级${m.kind==="stance"?"架势":"武技"} · ${m.disciplineName}`:item.type === "spell" ? `${finite(item.system.level)}环 · ${spellbookName(actor, item.system.spellbook || "primary")}` : "",
-    low: m?martialResource(item,actor)==="0 / 1":Boolean((item.type === "spell" || item.isCharged) && Number(item.charges) <= 0),
+    low: m?martialResource(item,actor)==="0 / 1":pool?Number(pool.value)<Math.max(1,Number(pool.cost)||1):Boolean((item.type === "spell" || item.isCharged) && Number(item.charges) <= 0),
     note: item.type === "weapon" && !item.system.equipped ? "未装备"
       : item.type === "feat" && !availability.reference && !item.hasAction && !route ? "手动结算" : ""
   };

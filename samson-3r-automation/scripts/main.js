@@ -22,6 +22,7 @@ import { activateRules, completeActors, applySpellBuff, processRuleTime, timedBu
 import { installConditionRuntime, assertConditionAction, commitConditionAction } from "./condition-runtime.js";
 import { applyCondition, clearCondition, editConditionContext, registerConditionTools } from "./condition-tools.js";
 import { conditionState } from "./condition-state.js";
+import { useDivinePersistent, installHolySymbolUse } from "./divine-metamagic.js";
 import { conditionOperation } from "./condition-actions.js";
 import { completeConditionRest } from "./condition-vitals.js";
 
@@ -142,28 +143,13 @@ async function replaceBuff(actor, key, data) {
 }
 
 async function divineFavor(actor, persistent = false) {
+  if(persistent)return useDivinePersistent(actor);
   const spell = actor.items.find(item => item.getFlag(MODULE_ID, "key") === "spell-Divine Favor");
   if (!spell) return ui.notifications.error("角色缺少神恩法术。");
   if (Number(spell.system.preparation?.preparedAmount ?? 0) < 1) {
     return ui.notifications.warn("神恩没有已准备的法术次数。");
   }
-  const turn = Number(actor.system.attributes?.turnUndeadUses ?? 0);
-  if (persistent && (!has(actor, "神圣超魔：法术持久") || !has(actor, "法术持久")
-    || !has(actor, "法术延时") || !actor.getFlag(MODULE_ID, "energyMode")
-    || Number(actor.system.attributes?.turnUndeadHdTotal ?? 0) < 1 || turn < 7)) {
-    return ui.notifications.warn("持久神恩需要法术延时、法术持久、神圣超魔，以及至少 7 次剩余驱散次数。");
-  }
-  if (!persistent) {
-    await spell.use();
-    renderPanel(actor);
-    return;
-  }
-  await spell.addCharges(-1);
-  await actor.update({ "system.attributes.turnUndeadUses": turn - 7 });
-  await applySpellBuff(spell,actor,{seconds:86400,targets:[]});
-  await recordAction(actor,"standard");
-  await ChatMessage.create({speaker:ChatMessage.getSpeaker({actor}),content:"<p>神圣超魔：消耗7次驱散，神恩持续24小时。</p>"});
-  renderPanel(actor);
+  return spell.use();
 }
 
 async function stoneFist(actor) {
@@ -313,6 +299,13 @@ Hooks.once("init", () => {
   registerCantripSetting();
   registerContentSearch();
   registerConditionTools();
+  Hooks.on("renderChatMessageHTML",(message,html)=>{
+    if(message.flags?.[MODULE_ID]?.cast?.persistentSeconds!==86400)return;
+    const root=html?.nodeType===1?html:html?.[0];if(!root||root.querySelector(".three-r-persistent-cast"))return;
+    const note=document.createElement("p");note.className="three-r-persistent-cast";
+    note.textContent="神圣超魔：法术持久 · 本次持续24小时，原法术位不提高，消耗7次驱散／斥喝。";
+    (root.querySelector(".chat-card")??root).append(note);
+  });
   game.modules.get(MODULE_ID).api = { search: openContentSearch, open: openAutomation, openCharacter: openCharacterPanel, install: installSamson, repairFragile, processTime: processRuleTime,
     martial:martialAPI,
     applyCondition, clearCondition, openConditions:editConditionContext, conditionState, conditionOperation, checkConditionAction:assertConditionAction, commitConditionAction, completeConditionRest, hudItemAction,
@@ -361,12 +354,14 @@ Hooks.once("ready", async () => {
     if (Object.keys(update).length) item.updateSource(update);
   });
   installPFCharacterFoundation();
+  installHolySymbolUse();
   Hooks.on("D35E.ItemUse.preRollAllAttacks", applyCombatBonuses);
   Hooks.on("D35E.ChatAttack.preAddDamage", applyKnowledgeDamage);
   Hooks.on("D35E.ItemUse.preUseItem",(item,actor,hook)=>{
     if(hook.customUse)return;
     const actions={"知识虔诚":()=>knowledgeDevotion(actor,targetType()),"修道牧师：学问":()=>lore(actor),
-      "驱散不死生物":()=>turnUndead(actor),"神圣超魔：法术持久":()=>divineFavor(actor,true),
+      "驱散不死生物":()=>turnUndead(actor),"神圣超魔：法术持久":()=>useDivinePersistent(actor),
+      "holy-symbol":()=>useDivinePersistent(actor,item),
       "fist-of-stone-potion":()=>stoneFist(actor),"自发转换治疗法术":()=>renderPanel(actor)};
     const action=actions[item.getFlag(MODULE_ID,"key")];
     if(action){hook.customUse=true;hook.threeRCompletion=Promise.resolve().then(action);hook.threeRCompletion.catch(error=>ui.notifications.error(error.message));}

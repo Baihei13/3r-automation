@@ -40,6 +40,12 @@ export function swordsageFeatureAvailable(actor,id) {
 export function swordsageFeatureAction(item) {
   const meta=feature(item);if(!meta)return null;
   const available=item.actor&&classes(item.actor).some(klass=>(!meta.classId||klass.id===meta.classId)&&Number(klass.system.levels)>=meta.level&&!disabled(klass,meta));
+  if(key(item)==="swordsage-feature-readied") {
+    const check=item.actor&&game.modules.get(MODULE_ID)?.api?.martial?.recoveryCheck?.(item.actor,meta.classId);
+    const usable=Boolean(available&&check?.available);
+    return {mode:"action",kind:"full",available:usable,name:item.name==="准备招式与恢复"?"冥想恢复武技（贤者之剑）":item.name,
+      label:!available?"职业等级不足、来源已移除或此特性已停用":!check?"武术恢复入口尚未加载":!usable?check.reasons.join("；"):`全回合动作 · 恢复1招 · 已消耗 ${check.items.length} 招`};
+  }
   const mode=["sense","dual"].includes(meta.op)?"action":["focus","open"].includes(meta.op)?"configure":"reference";
   return {mode,kind:mode==="action"?meta.op==="sense"?"standard":"swift":null,available:Boolean(available),label:available?meta.op==="focus"?"选择流派专攻":meta.op==="sense"?"感知魔法":meta.op==="dual"?"双重强化":meta.op==="open"?"打开武术页":"被动能力 · 查看完整规则":"职业等级不足、来源已移除或此特性已停用"};
 }
@@ -137,7 +143,9 @@ export function installSwordsageFeatures(command,open) {
     const meta=feature(item);if(!meta?.op||hook.customUse)return;
     hook.customUse=true;
     hook.threeRCompletion=Promise.resolve().then(async()=>{
-      if(!actor.isOwner||!swordsageFeatureAction(item).available)throw new Error("此职业特性尚未获得或已停用。");
+      const route=swordsageFeatureAction(item);
+      if(!actor.isOwner||!route.available)throw new Error(route.label||"此职业特性尚未获得或已停用。");
+      if(key(item)==="swordsage-feature-readied")return command({actorUuid:actor.uuid,op:"recover",profileId:meta.classId});
       if(meta.op==="open"){await open(actor);return {state:"opened"};}
       return command({actorUuid:actor.uuid,op:meta.op});
     });

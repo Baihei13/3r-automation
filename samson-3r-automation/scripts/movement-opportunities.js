@@ -6,7 +6,7 @@ const escape = text => String(text).replace(/[&<>"']/g, char => ({ "&": "&amp;",
 
 export function installMovementOpportunities() {
   Hooks.on("moveToken", (document, movement, operation) => {
-    if (game.users.activeGM?.id !== game.user.id || !game.combat?.started || operation.isUndo) return;
+    if (game.users.activeGM?.id !== game.user.id || !game.combat?.started || operation.isUndo || operation.threeRNoOpportunity) return;
     if (movement.passed.waypoints.some(point => CONFIG.Token.movement.actions[point.action]?.teleport)) return;
     const key = `${game.combat.id}:${game.combat.round}`;
     if (round !== key) { notified.clear(); round = key; }
@@ -14,7 +14,7 @@ export function installMovementOpportunities() {
     // Only explicitly activated step mode suppresses movement opportunities. Distance alone never does.
     if (state?.turn === key && state.mode === "step") return;
     try {
-      const enemies = movementThreats(document, movement).filter(enemy => !notified.has(`${document.uuid}:${enemy.id}`));
+      const enemies = movementThreats(document, movement).filter(enemy => !(operation.threeRTumbleAvoids??[]).includes(enemy.id)&&!notified.has(`${document.uuid}:${enemy.id}`));
       if (!enemies.length) return;
       for (const enemy of enemies) notified.add(`${document.uuid}:${enemy.id}`);
       ChatMessage.create({ whisper: game.users.filter(user => user.isGM).map(user => user.id),
